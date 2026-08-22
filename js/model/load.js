@@ -1,0 +1,458 @@
+/*
+   OPEN / DRAG & DROP / OPEN MODEL / PREPARE MODEL / DISPOSE MODEL
+
+   A fájl-megnyitás teljes életciklusa: fájl kiválasztása
+   (gombbal vagy drag&drop-pal), betöltés (GLTF/GLB/FBX),
+   a modell előkészítése (középre igazítás, élek, talaj,
+   nap, kamera ráállítás), majd - új fájl nyitásakor vagy
+   bezáráskor - a korábbi modell rendes eltávolítása.
+*/
+
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+
+import { State } from "../core/state.js";
+import { scene } from "../core/scene.js";
+import {
+  startScreen,
+  openButton,
+  openAgain,
+  fileInput
+} from "../core/dom.js";
+import {
+  whiteMaterial,
+  wireMaterial,
+  renaissanceMaterial,
+  renaissanceGlassMaterial,
+  sectionCapMaterial
+} from "../model/materials.js";
+import { centreModel, fitCamera } from "../view/camera.js";
+import { buildSectionTopology } from "../section/topology.js";
+import { buildEdges } from "../view/edges.js";
+import { createGround, configureSun } from "../view/ground-sun.js";
+import { inspectModel } from "../ui/inspector.js";
+import { setViewMode } from "../view/view-modes.js";
+import { setStatus } from "../ui/status.js";
+import { disposeSectionCap } from "../section/section-cap.js";
+
+
+/* ======================================================
+   OPEN
+====================================================== */
+
+openButton.onclick =
+openAgain.onclick =
+() => {
+
+  fileInput.value =
+    "";
+
+  fileInput.click();
+
+};
+
+
+fileInput.addEventListener(
+  "change",
+  event => {
+
+    const file =
+      event.target.files?.[0];
+
+    if (file)
+      openFile(file);
+
+  }
+);
+
+
+
+/* ======================================================
+   DRAG & DROP
+====================================================== */
+
+window.addEventListener(
+  "dragover",
+  event => {
+
+    event.preventDefault();
+
+    document.body
+      .classList
+      .add("dragging");
+
+  }
+);
+
+
+window.addEventListener(
+  "dragleave",
+  () => {
+
+    document.body
+      .classList
+      .remove("dragging");
+
+  }
+);
+
+
+window.addEventListener(
+  "drop",
+  event => {
+
+    event.preventDefault();
+
+    document.body
+      .classList
+      .remove("dragging");
+
+
+    const file =
+      event.dataTransfer
+        .files?.[0];
+
+
+    if (file)
+      openFile(file);
+
+  }
+);
+
+
+
+/* ======================================================
+   OPEN MODEL
+====================================================== */
+
+export async function openFile(file) {
+
+  disposeCurrentModel();
+
+
+  const extension =
+    file.name
+      .split(".")
+      .pop()
+      .toLowerCase();
+
+
+  if (
+    ![
+      "glb",
+      "gltf",
+      "fbx"
+    ].includes(extension)
+  ) {
+
+    setStatus(
+      "Unsupported file format."
+    );
+
+    return;
+
+  }
+
+
+  setStatus(
+    `Opening ${file.name}…`
+  );
+
+
+  startScreen.classList.add(
+    "hidden"
+  );
+
+
+  State.currentObjectURL =
+    URL.createObjectURL(file);
+
+
+  try {
+
+    let object;
+
+
+    if (
+      extension === "glb" ||
+      extension === "gltf"
+    ) {
+
+      const loader =
+        new GLTFLoader();
+
+
+      const result =
+        await loader.loadAsync(
+          State.currentObjectURL
+        );
+
+
+      object =
+        result.scene;
+
+    }
+
+
+    else if (
+      extension === "fbx"
+    ) {
+
+      const loader =
+        new FBXLoader();
+
+
+      object =
+        await loader.loadAsync(
+          State.currentObjectURL
+        );
+
+    }
+
+
+    prepareModel(
+      object,
+      file
+    );
+
+  }
+
+
+  catch(error) {
+
+    console.error(
+      error
+    );
+
+
+    setStatus(
+      "The model could not be opened."
+    );
+
+  }
+
+}
+
+
+
+/* ======================================================
+   PREPARE MODEL
+====================================================== */
+
+export function prepareModel(
+  object,
+  file
+) {
+
+  State.model =
+    object;
+
+
+  State.originalMaterials.clear();
+
+
+  State.model.traverse(
+  node => {
+
+    if (!node.isMesh)
+      return;
+
+    node.castShadow =
+      true;
+
+    node.receiveShadow =
+      true;
+
+    const materials =
+      Array.isArray(node.material)
+        ? node.material
+        : [node.material];
+
+    materials.forEach(material => {
+
+      if (!material)
+        return;
+
+      material.side =
+        THREE.DoubleSide;
+
+      material.needsUpdate =
+        true;
+
+    });
+
+    State.originalMaterials.set(
+      node.uuid,
+      node.material
+    );
+
+  }
+);
+
+
+  scene.add(
+    State.model
+  );
+
+
+  centreModel();
+
+  buildSectionTopology();
+
+buildEdges();
+
+createGround();
+
+
+configureSun();
+
+  inspectModel(file);
+
+  fitCamera();
+
+
+  setViewMode(
+    "original"
+  );
+
+
+  setStatus(
+    `${file.name} · drag to orbit · scroll/pinch to zoom`
+  );
+
+}
+
+
+
+
+
+export function disposeCurrentModel() {
+
+  if (!State.model)
+    return;
+
+
+if (State.sectionCapFrame !== null) {
+    cancelAnimationFrame(State.sectionCapFrame);
+    State.sectionCapFrame = null;
+  }
+
+  disposeSectionCap();
+  scene.remove(
+    State.model
+  );
+
+
+  State.model.traverse(
+    node => {
+
+      if (!node.isMesh)
+        return;
+
+
+      node.geometry?.dispose();
+
+
+      const materials =
+        Array.isArray(
+          node.material
+        )
+        ? node.material
+        : [node.material];
+
+
+      materials.forEach(
+        material => {
+
+          if (!material)
+            return;
+
+
+          /*
+             A megosztott viewer-materialokat
+             nem akarjuk itt eldobni.
+          */
+
+          if (
+            material === whiteMaterial ||
+            material === wireMaterial ||
+            material === renaissanceMaterial ||
+            material === renaissanceGlassMaterial ||
+            material === sectionCapMaterial
+          )
+            return;
+
+
+          material.map?.dispose();
+
+          material.dispose();
+
+        }
+      );
+
+    }
+  );
+
+
+  if (State.edgeGroup) {
+
+    scene.remove(
+      State.edgeGroup
+    );
+
+    State.edgeGroup =
+      null;
+
+  }
+
+
+  if (State.ground) {
+
+    scene.remove(
+      State.ground
+    );
+
+
+    State.ground.geometry.dispose();
+
+    State.ground.material.dispose();
+
+
+    State.ground =
+      null;
+
+  }
+
+
+  if (
+    State.currentObjectURL
+  ) {
+
+    URL.revokeObjectURL(
+      State.currentObjectURL
+    );
+
+
+    State.currentObjectURL =
+      null;
+
+  }
+
+
+  State.originalMaterials.clear();
+  
+  State.originalCastShadow.clear();
+
+
+  State.sectionTriangleComponents =
+    new WeakMap();
+
+  State.sectionTopologyComponentCount =
+    0;
+
+
+  State.model =
+    null;
+
+}

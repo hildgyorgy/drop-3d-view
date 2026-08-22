@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+<title>Drop & View 1.3</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<script type="importmap">
+{
+  "imports": {
+    "three":
+      "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+
+    "three/addons/":
+      "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     START SCREEN
+===================================================== -->
+
+<div id="startScreen">
+
+  <div class="drop-card">
+
+    <div class="logo">
+      DROP & VIEW
+    </div>
+
+    <div class="drop-title">
+      Drop your 3D model here
+    </div>
+
+    <div class="drop-subtitle">
+      or choose a file from your device
+    </div>
+
+    <button
+      class="open-button"
+      id="openButton">
+      Open model
+    </button>
+
+    <input
+      id="fileInput"
+      type="file"
+      accept=".glb,.gltf,.fbx"
+      hidden>
+
+    <div class="formats">
+      GLB · GLTF · FBX
+    </div>
+
+    <div class="local-note">
+      Local only · Nothing is uploaded
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     VIEWER UI
+===================================================== -->
+
+<div id="viewerUI">
+
+  <div id="topbar">
+
+    <div class="brand">
+      DROP & VIEW
+    </div>
+
+
+    <div class="toolbar">
+
+      <button
+        class="tool-button"
+        id="openAgain">
+        Open
+      </button>
+
+      <button
+        class="tool-button active"
+        data-mode="original">
+        Original
+      </button>
+
+      <button
+        class="tool-button"
+        data-mode="white">
+        White
+      </button>
+
+      <button
+        class="tool-button"
+        data-mode="hidden">
+        Hidden
+      </button>
+
+      <button
+        class="tool-button"
+        data-mode="wireframe">
+        Wire
+      </button>
+
+      <button
+        class="tool-button"
+        data-mode="renaissance">
+        B/W
+      </button>
+
+      <button
+        class="tool-button"
+        id="cameraButton">
+        Axon
+      </button>
+
+      <button
+        class="tool-button red"
+        id="sectionButton">
+        Section
+      </button>
+
+      <button
+        class="tool-button"
+        id="panelButton">
+        Controls
+      </button>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ===================================================
+       CONTROLS
+  =================================================== -->
+
+  <div
+    id="sidePanel"
+    class="hidden">
+
+
+    <div class="panel-section">
+
+      <div class="panel-title">
+        Light
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Sun direction
+        </label>
+
+        <input
+          id="sunAngle"
+          type="range"
+          min="0"
+          max="360"
+          value="45">
+
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Sun height
+        </label>
+
+        <input
+          id="sunHeight"
+          type="range"
+          min="5"
+          max="85"
+          value="45">
+
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Shadows
+        </label>
+
+        <input
+          id="shadowToggle"
+          type="checkbox"
+          checked>
+
+      </div>
+
+    </div>
+
+
+
+    <div class="panel-section">
+
+      <div class="panel-title">
+        Section
+      </div>
+
+
+      <div class="axis-buttons">
+
+        <button
+          data-axis="x">
+          X
+        </button>
+
+        <button
+          data-axis="y"
+          class="active">
+          Y
+        </button>
+
+        <button
+          data-axis="z">
+          Z
+        </button>
+
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Position
+        </label>
+
+        <input
+          id="sectionSlider"
+          type="range"
+          min="0"
+          max="1000"
+          value="500">
+
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Flip
+        </label>
+
+        <input
+          id="sectionFlip"
+          type="checkbox">
+
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Section Debug
+        </label>
+
+        <input
+          id="sectionDebug"
+          type="checkbox">
+
+      </div>
+
+
+      <div
+        id="sectionDebugStats"
+        class="section-debug-stats">
+      </div>
+
+    </div>
+
+
+
+    <div class="panel-section">
+
+      <div class="panel-title">
+        Model
+      </div>
+
+      <div id="modelStats"></div>
+
+    </div>
+
+
+
+    <div class="panel-section">
+
+      <div class="panel-title">
+        Materials
+      </div>
+
+      <div
+        id="materialList"
+        class="material-list">
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div id="status">
+    Drop or open a model
+  </div>
+
+</div>
+
+
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>

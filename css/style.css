@@ -1,0 +1,452 @@
+:root {
+  --bg: #efefed;
+  --panel: rgba(255,255,255,.90);
+  --text: #171717;
+  --muted: #777;
+  --line: rgba(0,0,0,.12);
+  --red: #e32620;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+canvas {
+  display: block;
+  touch-action: none;
+}
+
+
+/* ======================================================
+   START SCREEN
+====================================================== */
+
+#startScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+
+  display: grid;
+  place-items: center;
+
+  background: var(--bg);
+
+  transition:
+    opacity .35s ease,
+    visibility .35s ease;
+}
+
+#startScreen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.drop-card {
+  width: min(520px, calc(100vw - 40px));
+  padding: 42px 34px;
+
+  text-align: center;
+
+  border: 1px solid var(--line);
+  border-radius: 18px;
+
+  background: rgba(255,255,255,.55);
+
+  transition:
+    transform .15s ease,
+    background .15s ease;
+}
+
+body.dragging .drop-card {
+  transform: scale(1.015);
+  background: white;
+}
+
+.logo {
+  margin-bottom: 42px;
+
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .18em;
+}
+
+.drop-title {
+  margin-bottom: 12px;
+
+  font-size: clamp(28px,5vw,44px);
+  line-height: 1.03;
+  letter-spacing: -.04em;
+}
+
+.drop-subtitle {
+  margin-bottom: 28px;
+
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.open-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 150px;
+  height: 46px;
+
+  padding: 0 22px;
+
+  border-radius: 23px;
+
+  background: #111;
+  color: white;
+
+  cursor: pointer;
+}
+
+.open-button:hover {
+  opacity: .82;
+}
+
+.formats {
+  margin-top: 22px;
+
+  font-size: 12px;
+  letter-spacing: .08em;
+  color: #888;
+}
+
+.local-note {
+  margin-top: 28px;
+
+  font-size: 12px;
+  color: #999;
+}
+
+
+/* ======================================================
+   VIEWER UI
+====================================================== */
+
+#viewerUI {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+
+  pointer-events: none;
+}
+
+#topbar {
+  position: absolute;
+
+  top: 16px;
+  left: 16px;
+  right: 16px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  pointer-events: none;
+}
+
+.brand,
+.toolbar,
+.panel {
+  pointer-events: auto;
+}
+
+.brand {
+  padding: 10px 14px;
+
+  border-radius: 10px;
+
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  gap: 5px;
+
+  max-width: min(800px,75vw);
+}
+
+.tool-button {
+  min-height: 36px;
+
+  padding: 0 12px;
+
+  border-radius: 8px;
+
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+
+  cursor: pointer;
+
+  color: #222;
+}
+
+.tool-button:hover {
+  background: white;
+}
+
+.tool-button.active {
+  background: #111;
+  color: white;
+}
+
+.tool-button.red.active {
+  background: var(--red);
+}
+
+
+/* ======================================================
+   SIDE PANEL
+====================================================== */
+
+#sidePanel {
+  position: absolute;
+
+  top: 66px;
+  right: 16px;
+
+  width: 280px;
+  max-height: calc(100vh - 100px);
+
+  overflow: auto;
+
+  padding: 15px;
+
+  border-radius: 12px;
+
+  background: var(--panel);
+  backdrop-filter: blur(16px);
+
+  pointer-events: auto;
+
+  transition:
+    opacity .2s ease,
+    transform .2s ease;
+}
+
+#sidePanel.hidden {
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+}
+
+.panel-section + .panel-section {
+  border-top: 1px solid var(--line);
+
+  margin-top: 15px;
+  padding-top: 15px;
+}
+
+.panel-title {
+  margin-bottom: 10px;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin: 8px 0;
+
+  font-size: 13px;
+}
+
+.row label {
+  color: #555;
+}
+
+.row input[type="range"] {
+  width: 145px;
+}
+
+.axis-buttons {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+
+  gap: 5px;
+}
+
+.axis-buttons button {
+  padding: 8px;
+
+  border-radius: 6px;
+
+  cursor: pointer;
+
+  background: #ddd;
+}
+
+.axis-buttons button.active {
+  background: var(--red);
+  color: white;
+}
+
+.model-stat {
+  display: flex;
+  justify-content: space-between;
+
+  padding: 3px 0;
+
+  font-size: 12px;
+}
+
+.material-list {
+  max-height: 180px;
+  overflow: auto;
+}
+
+.material-item {
+  padding: 4px 0;
+
+  border-bottom: 1px solid rgba(0,0,0,.05);
+
+  font-size: 11px;
+}
+
+.section-debug-stats {
+  margin-top: 10px;
+  padding: 9px 10px;
+
+  border-radius: 6px;
+
+  background: rgba(0,0,0,.045);
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 10px;
+  line-height: 1.55;
+  color: #444;
+}
+
+.section-debug-stats:empty {
+  display: none;
+}
+
+
+/* ======================================================
+   STATUS
+====================================================== */
+
+#status {
+  position: absolute;
+
+  left: 16px;
+  bottom: 16px;
+
+  max-width: calc(100vw - 32px);
+
+  padding: 9px 12px;
+
+  border-radius: 9px;
+
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+
+  font-size: 12px;
+  color: #555;
+
+  pointer-events: none;
+
+  transition: opacity .5s;
+}
+
+
+/* ======================================================
+   MOBILE
+====================================================== */
+
+@media (max-width:720px) {
+
+  #topbar {
+    top: max(10px,env(safe-area-inset-top));
+    left: 10px;
+    right: 10px;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .toolbar {
+    max-width: 100%;
+    justify-content: flex-end;
+  }
+
+  .tool-button {
+    min-height: 34px;
+
+    padding: 0 10px;
+
+    font-size: 12px;
+  }
+
+  #sidePanel {
+    top: auto;
+    left: 10px;
+    right: 10px;
+
+    bottom: max(10px,env(safe-area-inset-bottom));
+
+    width: auto;
+    max-height: 45vh;
+  }
+
+  #status {
+    display: none;
+  }
+
+}
