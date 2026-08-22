@@ -362,6 +362,29 @@ body.dragging .drop-card {
   font-size: 11px;
 }
 
+.section-debug-stats {
+  margin-top: 10px;
+  padding: 9px 10px;
+
+  border-radius: 6px;
+
+  background: rgba(0,0,0,.045);
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 10px;
+  line-height: 1.55;
+  color: #444;
+}
+
+.section-debug-stats:empty {
+  display: none;
+}
+
 
 /* ======================================================
    STATUS
@@ -699,6 +722,25 @@ body.dragging .drop-card {
 
       </div>
 
+
+      <div class="row">
+
+        <label>
+          Section Debug
+        </label>
+
+        <input
+          id="sectionDebug"
+          type="checkbox">
+
+      </div>
+
+
+      <div
+        id="sectionDebugStats"
+        class="section-debug-stats">
+      </div>
+
     </div>
 
 
@@ -803,6 +845,12 @@ const sectionSlider =
 
 const sectionFlip =
   document.querySelector("#sectionFlip");
+
+const sectionDebug =
+  document.querySelector("#sectionDebug");
+
+const sectionDebugStats =
+  document.querySelector("#sectionDebugStats");
 
 const statusElement =
   document.querySelector("#status");
@@ -1064,6 +1112,12 @@ let sectionCapGroup =
 let sectionCapFrame =
   null;
 
+let sectionTriangleComponents =
+  new WeakMap();
+
+let sectionTopologyComponentCount =
+  0;
+
 let originalCastShadow =
   new Map();
 
@@ -1125,6 +1179,45 @@ const sectionCapMaterial =
     depthTest: true,
     toneMapped: false
   });
+
+
+const sectionDebugLineMaterial =
+  new THREE.LineBasicMaterial({
+    color: 0x00eaff,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false
+  });
+
+
+function createSectionDebugPointMaterial(color) {
+
+  return new THREE.PointsMaterial({
+    color,
+    size: 6,
+    sizeAttenuation: false,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false
+  });
+
+}
+
+
+const sectionDebugDegree2Material =
+  createSectionDebugPointMaterial(
+    0x20d96b
+  );
+
+const sectionDebugDegree1Material =
+  createSectionDebugPointMaterial(
+    0xff2b2b
+  );
+
+const sectionDebugBranchMaterial =
+  createSectionDebugPointMaterial(
+    0xff00d4
+  );
 
 
 
@@ -1578,6 +1671,8 @@ function prepareModel(
 
   centreModel();
 
+  buildSectionTopology();
+
 buildEdges();
 
 createGround();
@@ -1598,6 +1693,396 @@ configureSun();
   setStatus(
     `${file.name} · drag to orbit · scroll/pinch to zoom`
   );
+
+}
+
+
+
+/* ======================================================
+   SECTION SURFACE TOPOLOGY
+====================================================== */
+
+function buildSectionTopology() {
+
+  sectionTriangleComponents =
+    new WeakMap();
+
+  sectionTopologyComponentCount =
+    0;
+
+
+  if (!model)
+    return;
+
+
+  model.updateMatrixWorld(
+    true
+  );
+
+
+  const tolerance =
+    Math.max(
+      maxModelSize * 1e-5,
+      1e-6
+    );
+
+
+  const meshEntries =
+    [];
+
+  let totalTriangles =
+    0;
+
+
+  model.traverse(
+    mesh => {
+
+      if (
+        !mesh.isMesh ||
+        !mesh.geometry?.attributes?.position
+      )
+        return;
+
+
+      const geometry =
+        mesh.geometry;
+
+      const position =
+        geometry.attributes.position;
+
+      const triangleCount =
+        geometry.index
+        ? Math.floor(
+            geometry.index.count / 3
+          )
+        : Math.floor(
+            position.count / 3
+          );
+
+
+      const components =
+        new Int32Array(
+          triangleCount
+        );
+
+
+      sectionTriangleComponents.set(
+        mesh,
+        components
+      );
+
+
+      meshEntries.push({
+        mesh,
+        geometry,
+        start: totalTriangles,
+        triangleCount,
+        components
+      });
+
+
+      totalTriangles +=
+        triangleCount;
+
+    }
+  );
+
+
+  const parents =
+    new Int32Array(
+      totalTriangles
+    );
+
+  const ranks =
+    new Uint8Array(
+      totalTriangles
+    );
+
+
+  for (let i=0; i<totalTriangles; i++)
+    parents[i] = i;
+
+
+  function findRoot(index) {
+
+    let root =
+      index;
+
+
+    while (parents[root] !== root)
+      root = parents[root];
+
+
+    while (parents[index] !== index) {
+
+      const next =
+        parents[index];
+
+      parents[index] =
+        root;
+
+      index =
+        next;
+
+    }
+
+
+    return root;
+
+  }
+
+
+  function union(aIndex,bIndex) {
+
+    let aRoot =
+      findRoot(aIndex);
+
+    let bRoot =
+      findRoot(bIndex);
+
+
+    if (aRoot === bRoot)
+      return;
+
+
+    if (ranks[aRoot] < ranks[bRoot]) {
+
+      const swap =
+        aRoot;
+
+      aRoot =
+        bRoot;
+
+      bRoot =
+        swap;
+
+    }
+
+
+    parents[bRoot] =
+      aRoot;
+
+
+    if (ranks[aRoot] === ranks[bRoot])
+      ranks[aRoot]++;
+
+  }
+
+
+  const pointIds =
+    new Map();
+
+  const edgeOwners =
+    new Map();
+
+  let nextPointId =
+    0;
+
+
+  const worldPoint =
+    new THREE.Vector3();
+
+
+  function getPointId(
+    position,
+    index,
+    matrixWorld
+  ) {
+
+    worldPoint
+      .fromBufferAttribute(
+        position,
+        index
+      )
+      .applyMatrix4(
+        matrixWorld
+      );
+
+
+    const key =
+      Math.round(worldPoint.x / tolerance) +
+      "," +
+      Math.round(worldPoint.y / tolerance) +
+      "," +
+      Math.round(worldPoint.z / tolerance);
+
+
+    if (pointIds.has(key))
+      return pointIds.get(key);
+
+
+    const pointId =
+      nextPointId++;
+
+
+    pointIds.set(
+      key,
+      pointId
+    );
+
+
+    return pointId;
+
+  }
+
+
+  function connectEdge(
+    pointA,
+    pointB,
+    triangleId
+  ) {
+
+    if (pointA === pointB)
+      return;
+
+
+    const lo =
+      Math.min(pointA,pointB);
+
+    const hi =
+      Math.max(pointA,pointB);
+
+    const key =
+      lo + ":" + hi;
+
+
+    if (edgeOwners.has(key)) {
+
+      union(
+        triangleId,
+        edgeOwners.get(key)
+      );
+
+    }
+
+    else {
+
+      edgeOwners.set(
+        key,
+        triangleId
+      );
+
+    }
+
+  }
+
+
+  for (const entry of meshEntries) {
+
+    const geometry =
+      entry.geometry;
+
+    const position =
+      geometry.attributes.position;
+
+    const index =
+      geometry.index;
+
+
+    for (
+      let triangle=0;
+      triangle<entry.triangleCount;
+      triangle++
+    ) {
+
+      const ia =
+        index
+        ? index.getX(triangle*3)
+        : triangle*3;
+
+      const ib =
+        index
+        ? index.getX(triangle*3+1)
+        : triangle*3+1;
+
+      const ic =
+        index
+        ? index.getX(triangle*3+2)
+        : triangle*3+2;
+
+
+      const pointA =
+        getPointId(
+          position,
+          ia,
+          entry.mesh.matrixWorld
+        );
+
+      const pointB =
+        getPointId(
+          position,
+          ib,
+          entry.mesh.matrixWorld
+        );
+
+      const pointC =
+        getPointId(
+          position,
+          ic,
+          entry.mesh.matrixWorld
+        );
+
+      const triangleId =
+        entry.start + triangle;
+
+
+      connectEdge(
+        pointA,
+        pointB,
+        triangleId
+      );
+
+      connectEdge(
+        pointB,
+        pointC,
+        triangleId
+      );
+
+      connectEdge(
+        pointC,
+        pointA,
+        triangleId
+      );
+
+    }
+
+  }
+
+
+  const componentIds =
+    new Map();
+
+
+  for (const entry of meshEntries) {
+
+    for (
+      let triangle=0;
+      triangle<entry.triangleCount;
+      triangle++
+    ) {
+
+      const root =
+        findRoot(
+          entry.start + triangle
+        );
+
+
+      if (!componentIds.has(root)) {
+
+        componentIds.set(
+          root,
+          sectionTopologyComponentCount++
+        );
+
+      }
+
+
+      entry.components[triangle] =
+        componentIds.get(root);
+
+    }
+
+  }
 
 }
 
@@ -2101,7 +2586,7 @@ function setViewMode(mode) {
 
   node.castShadow =
     true;
-    
+
           node.visible =
             true;
 
@@ -2117,8 +2602,8 @@ function setViewMode(mode) {
 
           node.material =
             whiteMaterial;
-            
-            
+
+
   node.castShadow =
     true;
 
@@ -2137,7 +2622,7 @@ function setViewMode(mode) {
 
           node.material =
             whiteMaterial;
-            
+
   node.castShadow =
     true;
 
@@ -2159,8 +2644,8 @@ function setViewMode(mode) {
 
           node.material =
             wireMaterial;
-            
-            
+
+
   node.castShadow =
     true;
 
@@ -2493,6 +2978,16 @@ sectionFlip.addEventListener(
 );
 
 
+sectionDebug.addEventListener(
+  "change",
+  () => {
+
+    scheduleSectionCapRebuild();
+
+  }
+);
+
+
 
 /* ======================================================
    SECTION PLANE
@@ -2751,6 +3246,10 @@ function scheduleSectionCapRebuild() {
 
 function disposeSectionCap() {
 
+  sectionDebugStats.textContent =
+    "";
+
+
   if (!sectionCapGroup)
     return;
 
@@ -2847,13 +3346,30 @@ function rebuildSectionCap() {
   const points2D =
     [];
 
+  const pointComponentIds =
+    [];
+
   const edges =
     new Map();
 
+  const debugEnabled =
+    sectionDebug.checked;
 
-  function pointKey(x,y) {
+  const rawSegmentPositions =
+    [];
+
+  const intersectedMeshes =
+    new Set();
+
+  const intersectedComponents =
+    new Set();
+
+
+  function pointKey(x,y,componentId) {
 
     return (
+      componentId +
+      "|" +
       Math.round(x / worldTolerance) +
       "," +
       Math.round(y / worldTolerance)
@@ -2862,7 +3378,10 @@ function rebuildSectionCap() {
   }
 
 
-  function getPointIndex(worldPoint) {
+  function getPointIndex(
+    worldPoint,
+    componentId
+  ) {
 
     const delta =
       worldPoint
@@ -2878,7 +3397,11 @@ function rebuildSectionCap() {
 
 
     const key =
-      pointKey(x,y);
+      pointKey(
+        x,
+        y,
+        componentId
+      );
 
 
     if (pointMap.has(key))
@@ -2911,6 +3434,11 @@ function rebuildSectionCap() {
     );
 
 
+    pointComponentIds.push(
+      componentId
+    );
+
+
     pointMap.set(
       key,
       index
@@ -2922,13 +3450,43 @@ function rebuildSectionCap() {
   }
 
 
-  function addSegment(a,b) {
+  function addSegment(
+    a,
+    b,
+    mesh,
+    componentId
+  ) {
+
+    if (debugEnabled) {
+
+      rawSegmentPositions.push(
+        a.x,a.y,a.z,
+        b.x,b.y,b.z
+      );
+
+
+      intersectedMeshes.add(
+        mesh
+      );
+
+
+      intersectedComponents.add(
+        componentId
+      );
+
+    }
 
     const ia =
-      getPointIndex(a);
+      getPointIndex(
+        a,
+        componentId
+      );
 
     const ib =
-      getPointIndex(b);
+      getPointIndex(
+        b,
+        componentId
+      );
 
 
     if (ia === ib)
@@ -2977,7 +3535,9 @@ function rebuildSectionCap() {
     p2,
     plane,
     epsilon,
-    matrixWorld
+    matrixWorld,
+    mesh,
+    componentId
   ) {
 
     const trianglePoints =
@@ -3148,7 +3708,9 @@ function rebuildSectionCap() {
     )
       addSegment(
         edgeA,
-        edgeB
+        edgeB,
+        mesh,
+        componentId
       );
 
   }
@@ -3223,6 +3785,11 @@ function rebuildSectionCap() {
           ? Math.floor(index.count / 3)
           : Math.floor(position.count / 3);
 
+      const triangleComponents =
+        sectionTriangleComponents.get(
+          mesh
+        );
+
 
       for (let tri=0; tri<triangleCount; tri++) {
 
@@ -3262,7 +3829,9 @@ function rebuildSectionCap() {
           a,b,c,
           localPlane,
           localEpsilon,
-          mesh.matrixWorld
+          mesh.matrixWorld,
+          mesh,
+          triangleComponents?.[tri] ?? -1
         );
 
       }
@@ -3271,8 +3840,297 @@ function rebuildSectionCap() {
   );
 
 
-  if (edges.size === 0)
-    return;
+  /* ----------------------------------------------------
+     DETERMINISTIC T-JUNCTION SPLITTING
+
+     Ha egy már létező metszési végpont egy másik szakasz
+     belsejére esik, a hosszabb szakaszt ott kettévágjuk.
+     Nem hozunk létre új, becsült pontot: kizárólag a valódi
+     háromszög/sík metszések pontjait használjuk.
+  ---------------------------------------------------- */
+
+  function splitEdgesAtExistingPoints() {
+
+    if (
+      edges.size < 2 ||
+      points2D.length < 3
+    )
+      return 0;
+
+
+    const indices =
+      points2D.map(
+        (_,index) => index
+      );
+
+
+    const byX =
+      [...indices].sort(
+        (ia,ib) =>
+          points2D[ia].x -
+          points2D[ib].x
+      );
+
+
+    const byY =
+      [...indices].sort(
+        (ia,ib) =>
+          points2D[ia].y -
+          points2D[ib].y
+      );
+
+
+    function coordinate(index,useX) {
+
+      return useX
+        ? points2D[index].x
+        : points2D[index].y;
+
+    }
+
+
+    function lowerBound(order,value,useX) {
+
+      let low =
+        0;
+
+      let high =
+        order.length;
+
+
+      while (low < high) {
+
+        const middle =
+          (low + high) >> 1;
+
+
+        if (
+          coordinate(
+            order[middle],
+            useX
+          ) < value
+        )
+          low = middle + 1;
+        else
+          high = middle;
+
+      }
+
+
+      return low;
+
+    }
+
+
+    const rebuiltEdges =
+      new Map();
+
+
+    function addRebuiltEdge(i,j) {
+
+      if (i === j)
+        return;
+
+
+      const lo =
+        Math.min(i,j);
+
+      const hi =
+        Math.max(i,j);
+
+
+      rebuiltEdges.set(
+        lo + ":" + hi,
+        [lo,hi]
+      );
+
+    }
+
+
+    let splitCount =
+      0;
+
+
+    for (const [start,end] of edges.values()) {
+
+      const p0 =
+        points2D[start];
+
+      const p1 =
+        points2D[end];
+
+
+      const dx =
+        p1.x - p0.x;
+
+      const dy =
+        p1.y - p0.y;
+
+      const lengthSquared =
+        dx * dx + dy * dy;
+
+
+      if (
+        lengthSquared <=
+        worldTolerance * worldTolerance
+      )
+        continue;
+
+
+      /*
+         A keskenyebb koordinátatengely szerint keresünk,
+         így hosszú vízszintes/függőleges éleknél kevés
+         pontot kell megvizsgálni.
+      */
+      const useX =
+        Math.abs(dx) <= Math.abs(dy);
+
+      const order =
+        useX ? byX : byY;
+
+      const minCoordinate =
+        Math.min(
+          useX ? p0.x : p0.y,
+          useX ? p1.x : p1.y
+        ) - worldTolerance;
+
+      const maxCoordinate =
+        Math.max(
+          useX ? p0.x : p0.y,
+          useX ? p1.x : p1.y
+        ) + worldTolerance;
+
+
+      const cuts = [
+        {t: 0,index: start},
+        {t: 1,index: end}
+      ];
+
+
+      for (
+        let cursor =
+          lowerBound(
+            order,
+            minCoordinate,
+            useX
+          );
+        cursor < order.length;
+        cursor++
+      ) {
+
+        const pointIndex =
+          order[cursor];
+
+        const axisCoordinate =
+          coordinate(
+            pointIndex,
+            useX
+          );
+
+
+        if (axisCoordinate > maxCoordinate)
+          break;
+
+
+        if (
+          pointIndex === start ||
+          pointIndex === end
+        )
+          continue;
+
+
+        const point =
+          points2D[pointIndex];
+
+
+        if (
+          point.x < Math.min(p0.x,p1.x) - worldTolerance ||
+          point.x > Math.max(p0.x,p1.x) + worldTolerance ||
+          point.y < Math.min(p0.y,p1.y) - worldTolerance ||
+          point.y > Math.max(p0.y,p1.y) + worldTolerance
+        )
+          continue;
+
+
+        const cross =
+          dx * (point.y - p0.y) -
+          dy * (point.x - p0.x);
+
+
+        if (
+          cross * cross >
+          worldTolerance *
+          worldTolerance *
+          lengthSquared
+        )
+          continue;
+
+
+        const t =
+          (
+            (point.x - p0.x) * dx +
+            (point.y - p0.y) * dy
+          ) /
+          lengthSquared;
+
+        const endpointMargin =
+          worldTolerance /
+          Math.sqrt(lengthSquared);
+
+
+        if (
+          t <= endpointMargin ||
+          t >= 1 - endpointMargin
+        )
+          continue;
+
+
+        cuts.push({
+          t,
+          index: pointIndex
+        });
+
+      }
+
+
+      cuts.sort(
+        (aCut,bCut) =>
+          aCut.t - bCut.t
+      );
+
+
+      splitCount +=
+        cuts.length - 2;
+
+
+      for (let i=0; i<cuts.length-1; i++) {
+
+        addRebuiltEdge(
+          cuts[i].index,
+          cuts[i+1].index
+        );
+
+      }
+
+    }
+
+
+    edges.clear();
+
+
+    for (const [key,value] of rebuiltEdges) {
+
+      edges.set(
+        key,
+        value
+      );
+
+    }
+
+
+    return splitCount;
+
+  }
 
 
   /* ----------------------------------------------------
@@ -3293,6 +4151,121 @@ function rebuildSectionCap() {
 
     neighbours[i].add(j);
     neighbours[j].add(i);
+
+  }
+
+
+  let degrees =
+    [];
+
+  let degree1Count =
+    0;
+
+  let branchCount =
+    0;
+
+  let openChainCount =
+    0;
+
+
+  if (debugEnabled) {
+
+    degrees =
+      neighbours.map(
+        set => set.size
+      );
+
+
+    degree1Count =
+      degrees.filter(
+        degree => degree === 1
+      ).length;
+
+
+    branchCount =
+      degrees.filter(
+        degree => degree > 2
+      ).length;
+
+
+    /*
+       Open chains are maximal graph paths whose ends are not
+       ordinary degree-2 continuation nodes. This is diagnostic
+       only; it does not repair or modify the graph.
+    */
+    const openChainEdges =
+      new Set();
+
+
+    function undirectedKey(i,j) {
+
+      return Math.min(i,j) + ":" + Math.max(i,j);
+
+    }
+
+
+    for (let start=0; start<neighbours.length; start++) {
+
+      if (degrees[start] === 2)
+        continue;
+
+
+      for (const first of neighbours[start]) {
+
+        const firstKey =
+          undirectedKey(start,first);
+
+
+        if (openChainEdges.has(firstKey))
+          continue;
+
+
+        openChainCount++;
+
+
+        let previous =
+          start;
+
+        let current =
+          first;
+
+
+        openChainEdges.add(firstKey);
+
+
+        while (degrees[current] === 2) {
+
+          const next =
+            [...neighbours[current]].find(
+              index => index !== previous
+            );
+
+
+          if (next === undefined)
+            break;
+
+
+          const nextKey =
+            undirectedKey(current,next);
+
+
+          if (openChainEdges.has(nextKey))
+            break;
+
+
+          openChainEdges.add(nextKey);
+
+          previous =
+            current;
+
+          current =
+            next;
+
+        }
+
+      }
+
+    }
 
   }
 
@@ -3542,16 +4515,18 @@ function rebuildSectionCap() {
         worldTolerance * worldTolerance * 4
       )
         loops.push(
-          cleaned
+          {
+            points: cleaned,
+            componentId:
+              pointComponentIds[
+                loopIndices[0]
+              ]
+          }
         );
 
     }
 
   }
-
-
-  if (loops.length === 0)
-    return;
 
 
   function pointInPolygon(point,polygon) {
@@ -3637,11 +4612,17 @@ function rebuildSectionCap() {
 
   const loopData =
     loops.map(
-      loop => ({
-        loop,
-        sample: interiorPoint(loop),
+      entry => ({
+        loop: entry.points,
+        componentId:
+          entry.componentId,
+        sample: interiorPoint(
+          entry.points
+        ),
         area: Math.abs(
-          THREE.ShapeUtils.area(loop)
+          THREE.ShapeUtils.area(
+            entry.points
+          )
         ),
         depth: 0,
         parent: -1
@@ -3668,6 +4649,13 @@ function rebuildSectionCap() {
     for (let j=0; j<loopData.length; j++) {
 
       if (i === j)
+        continue;
+
+
+      if (
+        loopData[j].componentId !==
+        loopData[i].componentId
+      )
         continue;
 
 
@@ -3770,6 +4758,13 @@ function rebuildSectionCap() {
 
 
       if (
+        holeData.componentId !==
+        outerData.componentId
+      )
+        continue;
+
+
+      if (
         holeData.depth !==
         outerData.depth + 1
       )
@@ -3839,50 +4834,181 @@ function rebuildSectionCap() {
   }
 
 
-  if (positions.length === 0)
-    return;
-
-
-  const geometry =
-    new THREE.BufferGeometry();
-
-
-  geometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(
-      positions,
-      3
-    )
-  );
-
-
   sectionCapGroup =
     new THREE.Group();
 
 
-  const capMesh =
-    new THREE.Mesh(
-      geometry,
-      sectionCapMaterial
+  if (positions.length > 0) {
+
+    const geometry =
+      new THREE.BufferGeometry();
+
+
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(
+        positions,
+        3
+      )
     );
 
 
-  capMesh.renderOrder =
-    10500;
-
-  capMesh.castShadow =
-    false;
-
-  capMesh.receiveShadow =
-    false;
-
-  capMesh.raycast =
-    () => {};
+    const capMesh =
+      new THREE.Mesh(
+        geometry,
+        sectionCapMaterial
+      );
 
 
-  sectionCapGroup.add(
-    capMesh
-  );
+    capMesh.renderOrder =
+      10500;
+
+    capMesh.castShadow =
+      false;
+
+    capMesh.receiveShadow =
+      false;
+
+    capMesh.raycast =
+      () => {};
+
+
+    sectionCapGroup.add(
+      capMesh
+    );
+
+  }
+
+
+  if (debugEnabled) {
+
+    const rawGeometry =
+      new THREE.BufferGeometry();
+
+
+    rawGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(
+        rawSegmentPositions,
+        3
+      )
+    );
+
+
+    const rawLines =
+      new THREE.LineSegments(
+        rawGeometry,
+        sectionDebugLineMaterial
+      );
+
+
+    rawLines.renderOrder =
+      10510;
+
+    rawLines.raycast =
+      () => {};
+
+
+    sectionCapGroup.add(
+      rawLines
+    );
+
+
+    const pointPositions = [[],[],[]];
+
+
+    for (let i=0; i<points2D.length; i++) {
+
+      const degree =
+        degrees[i];
+
+
+      const groupIndex =
+        degree === 1
+        ? 1
+        : degree > 2
+          ? 2
+          : 0;
+
+
+      const worldPoint =
+        worldFrom2D(
+          points2D[i]
+        );
+
+
+      pointPositions[groupIndex].push(
+        worldPoint.x,
+        worldPoint.y,
+        worldPoint.z
+      );
+
+    }
+
+
+    const pointMaterials = [
+      sectionDebugDegree2Material,
+      sectionDebugDegree1Material,
+      sectionDebugBranchMaterial
+    ];
+
+
+    for (let i=0; i<pointPositions.length; i++) {
+
+      if (pointPositions[i].length === 0)
+        continue;
+
+
+      const pointGeometry =
+        new THREE.BufferGeometry();
+
+
+      pointGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(
+          pointPositions[i],
+          3
+        )
+      );
+
+
+      const pointCloud =
+        new THREE.Points(
+          pointGeometry,
+          pointMaterials[i]
+        );
+
+
+      pointCloud.renderOrder =
+        10520;
+
+      pointCloud.raycast =
+        () => {};
+
+
+      sectionCapGroup.add(
+        pointCloud
+      );
+
+    }
+
+
+    sectionDebugStats.textContent =
+      [
+        `intersected meshes  ${intersectedMeshes.size}`,
+        `surface components  ${sectionTopologyComponentCount}`,
+        `cut components      ${intersectedComponents.size}`,
+        `raw segments        ${rawSegmentPositions.length / 6}`,
+        `graph edges         ${edges.size}`,
+        `graph nodes         ${points2D.length}`,
+        `closed loops        ${loops.length}`,
+        `cap triangles       ${positions.length / 9}`,
+        `open chains         ${openChainCount}`,
+        `degree-1 nodes      ${degree1Count}`,
+        `degree >2 nodes     ${branchCount}`
+      ].join("\n");
+
+  }
 
 
   scene.add(
@@ -3911,7 +5037,6 @@ function inspectModel(file) {
 
   const materials =
     new Map();
-
 
   model.traverse(
     node => {
@@ -4371,6 +5496,13 @@ if (sectionCapFrame !== null) {
   originalMaterials.clear();
   
   originalCastShadow.clear();
+
+
+  sectionTriangleComponents =
+    new WeakMap();
+
+  sectionTopologyComponentCount =
+    0;
 
 
   model =
