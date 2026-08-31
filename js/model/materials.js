@@ -20,8 +20,10 @@ import * as THREE from "three";
 ------------------------------------------------------ */
 
 export const whiteMaterial =
-  new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+  new THREE.MeshStandardMaterial({
+    color: 0xf7f7f4,
+    roughness: .88,
+    metalness: 0,
     side: THREE.DoubleSide
   });
 
