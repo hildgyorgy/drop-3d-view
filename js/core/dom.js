@@ -29,8 +29,11 @@ export const sidePanel =
 export const panelButton =
   document.querySelector("#panelButton");
 
-export const cameraButton =
-  document.querySelector("#cameraButton");
+export const perspectiveButton =
+  document.querySelector("#perspectiveButton");
+
+export const axonButton =
+  document.querySelector("#axonButton");
 
 export const sectionButton =
   document.querySelector("#sectionButton");
@@ -44,6 +47,9 @@ export const sunHeight =
 export const shadowToggle =
   document.querySelector("#shadowToggle");
 
+export const lightSection =
+  document.querySelector("#lightSection");
+
 export const sectionSlider =
   document.querySelector("#sectionSlider");
 
@@ -52,6 +58,12 @@ export const sectionFlip =
 
 export const sectionDebug =
   document.querySelector("#sectionDebug");
+
+export const sectionFill =
+  document.querySelector("#sectionFill");
+
+export const sectionColorButtons =
+  document.querySelectorAll("[data-section-color]");
 
 export const sectionDebugStats =
   document.querySelector("#sectionDebugStats");

@@ -184,6 +184,15 @@ export function buildSectionTopology() {
   const edgeOwners =
     new Map();
 
+  /*
+     Egyes exportálók ugyanazon felület szomszédos lapjainál
+     nem tartják meg a közös élt, csak a közös (weldelt) csúcsot.
+     Ezt a már meglévő geometriai pont alapján kapcsoljuk össze;
+     új szakaszt vagy felületet nem találunk ki.
+  */
+  const pointOwners =
+    new Map();
+
   let nextPointId =
     0;
 
@@ -276,6 +285,30 @@ export function buildSectionTopology() {
   }
 
 
+  function connectPoint(
+    mesh,
+    pointId,
+    triangleId
+  ) {
+
+    const key =
+      mesh.uuid + ":" + pointId;
+
+    if (pointOwners.has(key))
+      union(
+        triangleId,
+        pointOwners.get(key)
+      );
+
+    else
+      pointOwners.set(
+        key,
+        triangleId
+      );
+
+  }
+
+
   for (const entry of meshEntries) {
 
     const geometry =
@@ -350,6 +383,24 @@ export function buildSectionTopology() {
       connectEdge(
         pointC,
         pointA,
+        triangleId
+      );
+
+      connectPoint(
+        entry.mesh,
+        pointA,
+        triangleId
+      );
+
+      connectPoint(
+        entry.mesh,
+        pointB,
+        triangleId
+      );
+
+      connectPoint(
+        entry.mesh,
+        pointC,
         triangleId
       );
 

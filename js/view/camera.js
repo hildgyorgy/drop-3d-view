@@ -10,7 +10,7 @@ import * as THREE from "three";
 import { State } from "../core/state.js";
 import { perspectiveCamera, orthoCamera } from "../core/scene.js";
 import { createControls } from "../core/controls.js";
-import { cameraButton } from "../core/dom.js";
+import { perspectiveButton, axonButton } from "../core/dom.js";
 
 
 export function centreModel() {
@@ -194,9 +194,20 @@ export function updateOrthoFrustum() {
    CAMERA MODE
 ====================================================== */
 
-cameraButton.addEventListener(
+perspectiveButton.addEventListener(
   "click",
-  toggleCamera
+  () => {
+    if (State.cameraMode !== "perspective")
+      toggleCamera();
+  }
+);
+
+axonButton.addEventListener(
+  "click",
+  () => {
+    if (State.cameraMode !== "orthographic")
+      toggleCamera();
+  }
 );
 
 
@@ -253,9 +264,6 @@ export function toggleCamera() {
     );
 
 
-    cameraButton.textContent =
-      "Perspective";
-
   }
 
   else {
@@ -281,10 +289,17 @@ export function toggleCamera() {
     );
 
 
-    cameraButton.textContent =
-      "Axon";
-
   }
+
+  perspectiveButton.classList.toggle(
+    "active",
+    State.cameraMode === "perspective"
+  );
+
+  axonButton.classList.toggle(
+    "active",
+    State.cameraMode === "orthographic"
+  );
 
 
   State.controls =

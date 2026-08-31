@@ -14,11 +14,14 @@
 */
 
 import * as THREE from "three";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { State } from "../core/state.js";
 import { scene } from "../core/scene.js";
-import { sectionDebug, sectionDebugStats } from "../core/dom.js";
+import { sectionDebug, sectionDebugStats, sectionFill } from "../core/dom.js";
 import {
   sectionCapMaterial,
+  sectionEdgeMaterial,
   sectionDebugLineMaterial,
   sectionDebugDegree2Material,
   sectionDebugDegree1Material,
@@ -261,12 +264,12 @@ export function rebuildSectionCap() {
     componentId
   ) {
 
-    if (debugEnabled) {
+    rawSegmentPositions.push(
+      a.x,a.y,a.z,
+      b.x,b.y,b.z
+    );
 
-      rawSegmentPositions.push(
-        a.x,a.y,a.z,
-        b.x,b.y,b.z
-      );
+    if (debugEnabled) {
 
 
       intersectedMeshes.add(
@@ -1642,7 +1645,7 @@ export function rebuildSectionCap() {
     new THREE.Group();
 
 
-  if (positions.length > 0) {
+  if (sectionFill.checked && positions.length > 0) {
 
     const geometry =
       new THREE.BufferGeometry();
@@ -1679,6 +1682,39 @@ export function rebuildSectionCap() {
 
     State.sectionCapGroup.add(
       capMesh
+    );
+
+  }
+
+
+  if (!sectionFill.checked && rawSegmentPositions.length > 0) {
+
+    const edgeGeometry =
+      new LineSegmentsGeometry();
+
+    edgeGeometry.setPositions(
+      rawSegmentPositions
+    );
+
+    sectionEdgeMaterial.resolution.set(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+    const edgeLines =
+      new LineSegments2(
+        edgeGeometry,
+        sectionEdgeMaterial
+      );
+
+    edgeLines.renderOrder =
+      10505;
+
+    edgeLines.raycast =
+      () => {};
+
+    State.sectionCapGroup.add(
+      edgeLines
     );
 
   }

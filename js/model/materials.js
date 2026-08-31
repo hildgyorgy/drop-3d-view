@@ -8,6 +8,7 @@
 */
 
 import * as THREE from "three";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
 
 /* ======================================================
@@ -73,6 +74,19 @@ export const sectionDebugLineMaterial =
     depthTest: false,
     depthWrite: false,
     toneMapped: false
+  });
+
+export const sectionEdgeMaterial =
+  new LineMaterial({
+    color: 0xe32620,
+    linewidth: 1,
+    worldUnits: false,
+    vertexColors: false,
+    dashed: false,
+    alphaToCoverage: true,
+    transparent: false,
+    depthTest: false,
+    depthWrite: false
   });
 
 
@@ -248,6 +262,19 @@ export function isGlassMaterial(material) {
     name.includes("glass")
 
   );
+
+}
+
+/* Keep transparent glass in White/Hidden while whitening other materials. */
+export function getWhiteMaterial(original) {
+
+  if (Array.isArray(original)) {
+    return original.map(material =>
+      isGlassMaterial(material) ? material : whiteMaterial
+    );
+  }
+
+  return isGlassMaterial(original) ? original : whiteMaterial;
 
 }
 

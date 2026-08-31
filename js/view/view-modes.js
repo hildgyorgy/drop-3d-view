@@ -8,13 +8,16 @@
 import * as THREE from "three";
 import { State } from "../core/state.js";
 import { hemi, DEFAULT_HEMI_INTENSITY } from "../core/scene.js";
+import { lightSection, sunAngle, sunHeight, shadowToggle } from "../core/dom.js";
 import {
-  whiteMaterial,
   wireMaterial,
   getRenaissanceMaterial,
+  getWhiteMaterial,
   isEntirelyGlass
 } from "../model/materials.js";
 import { applyClipping } from "../section/section-plane.js";
+
+let shadowSettingBeforeWireframe = null;
 
 
 /* ======================================================
@@ -51,6 +54,25 @@ export function setViewMode(mode) {
 
   State.currentMode =
     mode;
+
+  const wireframe = mode === "wireframe";
+
+  if (wireframe && shadowSettingBeforeWireframe === null) {
+    shadowSettingBeforeWireframe = shadowToggle.checked;
+    shadowToggle.checked = false;
+    shadowToggle.dispatchEvent(new Event("change"));
+  }
+
+  if (!wireframe && shadowSettingBeforeWireframe !== null) {
+    shadowToggle.checked = shadowSettingBeforeWireframe;
+    shadowToggle.dispatchEvent(new Event("change"));
+    shadowSettingBeforeWireframe = null;
+  }
+
+  [sunAngle, sunHeight, shadowToggle].forEach(control => {
+    control.disabled = wireframe;
+  });
+  lightSection?.classList.toggle("disabled", wireframe);
 
 
   document
@@ -163,11 +185,11 @@ export function setViewMode(mode) {
         case "white":
 
           node.material =
-            whiteMaterial;
+            getWhiteMaterial(original);
 
 
-  node.castShadow =
-    true;
+          node.castShadow =
+            !isEntirelyGlass(original);
 
           node.visible =
             true;
@@ -183,10 +205,10 @@ export function setViewMode(mode) {
         case "hidden":
 
           node.material =
-            whiteMaterial;
+            getWhiteMaterial(original);
 
-  node.castShadow =
-    true;
+          node.castShadow =
+            !isEntirelyGlass(original);
 
           node.visible =
             true;

@@ -12,9 +12,12 @@ import {
   sectionButton,
   sectionSlider,
   sectionFlip,
-  sectionDebug
+  sectionDebug,
+  sectionFill,
+  sectionColorButtons
 } from "../core/dom.js";
 import { scheduleSectionCapRebuild } from "./section-cap.js";
+import { sectionCapMaterial, sectionEdgeMaterial } from "../model/materials.js";
 
 
 /* ======================================================
@@ -35,7 +38,15 @@ sectionButton.addEventListener(
     );
 
 
-    applyClipping();
+    /*
+       Bekapcsoláskor a csúszka aktuális értékéből azonnal
+       állítsuk elő a síkot. Enélkül az első kattintás még a
+       State-ben lévő (kezdetben alsó) síkot használja.
+    */
+    if (State.sectionEnabled)
+      updateSectionPlane();
+    else
+      applyClipping();
 
   }
 );
@@ -101,6 +112,30 @@ sectionDebug.addEventListener(
 
   }
 );
+
+sectionFill.addEventListener(
+  "change",
+  () => {
+    scheduleSectionCapRebuild();
+  }
+);
+
+sectionColorButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    const color = button.dataset.sectionColor;
+
+    sectionCapMaterial.color.set(color);
+    sectionEdgeMaterial.color.set(color);
+    sectionCapMaterial.needsUpdate = true;
+    sectionEdgeMaterial.needsUpdate = true;
+
+    sectionColorButtons.forEach(swatch => {
+      swatch.classList.toggle("active", swatch === button);
+    });
+
+    scheduleSectionCapRebuild();
+  });
+});
 
 
 

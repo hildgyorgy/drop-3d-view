@@ -172,20 +172,25 @@ body.dragging .drop-card {
   left: 16px;
   right: 16px;
 
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
   align-items: flex-start;
 
   pointer-events: none;
 }
 
 .brand,
-.toolbar,
+.style-toolbar,
+.view-toolbar,
+.controls-button,
 .panel {
   pointer-events: auto;
 }
 
 .brand {
+  border: 0;
+
   padding: 10px 14px;
 
   border-radius: 10px;
@@ -196,16 +201,36 @@ body.dragging .drop-card {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .12em;
+
+  cursor: pointer;
 }
 
-.toolbar {
+.style-toolbar,
+.view-toolbar {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  align-items: center;
 
   gap: 5px;
+}
 
-  max-width: min(800px,75vw);
+.style-toolbar {
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.view-toolbar {
+  justify-content: flex-end;
+}
+
+.controls-button {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 .tool-button {
@@ -289,6 +314,14 @@ body.dragging .drop-card {
   text-transform: uppercase;
 }
 
+.panel-section.disabled {
+  opacity: .42;
+}
+
+.panel-section.disabled input {
+  cursor: not-allowed;
+}
+
 .row {
   display: flex;
   align-items: center;
@@ -307,6 +340,35 @@ body.dragging .drop-card {
 
 .row input[type="range"] {
   width: 145px;
+}
+
+.color-row {
+  align-items: flex-start;
+}
+
+.section-colors {
+  display: grid;
+  grid-template-columns: repeat(6, 16px);
+  gap: 5px;
+}
+
+.color-swatch {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid rgba(0,0,0,.16);
+  border-radius: 4px;
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+.color-swatch.active {
+  border: 2px solid #111;
+  box-shadow: 0 0 0 1px white;
+}
+
+.hidden-section-control {
+  display: none;
 }
 
 .axis-buttons {
@@ -353,6 +415,17 @@ body.dragging .drop-card {
   font-size: 11px;
 }
 
+.navigation-hint {
+  margin-top: 15px;
+  padding-top: 12px;
+
+  border-top: 1px solid var(--line);
+
+  color: #888;
+  font-size: 11px;
+  text-align: center;
+}
+
 .section-debug-stats {
   margin-top: 10px;
   padding: 9px 10px;
@@ -378,34 +451,6 @@ body.dragging .drop-card {
 
 
 /* ======================================================
-   STATUS
-====================================================== */
-
-#status {
-  position: absolute;
-
-  left: 16px;
-  bottom: 16px;
-
-  max-width: calc(100vw - 32px);
-
-  padding: 9px 12px;
-
-  border-radius: 9px;
-
-  background: var(--panel);
-  backdrop-filter: blur(12px);
-
-  font-size: 12px;
-  color: #555;
-
-  pointer-events: none;
-
-  transition: opacity .5s;
-}
-
-
-/* ======================================================
    MOBILE
 ====================================================== */
 
@@ -421,9 +466,20 @@ body.dragging .drop-card {
     display: none;
   }
 
-  .toolbar {
-    max-width: 100%;
-    justify-content: flex-end;
+  #topbar {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .style-toolbar,
+  .view-toolbar,
+  .controls-button {
+    justify-self: end;
+  }
+
+  .style-toolbar {
+    position: static;
+    transform: none;
   }
 
   .tool-button {
@@ -443,10 +499,6 @@ body.dragging .drop-card {
 
     width: auto;
     max-height: 45vh;
-  }
-
-  #status {
-    display: none;
   }
 
 }

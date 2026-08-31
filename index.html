@@ -80,18 +80,14 @@
 
   <div id="topbar">
 
-    <div class="brand">
+    <button
+      class="brand"
+      id="openAgain">
       DROP & VIEW
-    </div>
+    </button>
 
 
-    <div class="toolbar">
-
-      <button
-        class="tool-button"
-        id="openAgain">
-        Open
-      </button>
+    <div class="style-toolbar">
 
       <button
         class="tool-button active"
@@ -123,10 +119,21 @@
         B/W
       </button>
 
+    </div>
+
+
+    <div class="view-toolbar">
+
+      <button
+        class="tool-button active"
+        id="perspectiveButton">
+        Perspective
+      </button>
+
       <button
         class="tool-button"
-        id="cameraButton">
-        Axon
+        id="axonButton">
+        Axonometry
       </button>
 
       <button
@@ -135,13 +142,13 @@
         Section
       </button>
 
-      <button
-        class="tool-button"
-        id="panelButton">
-        Controls
-      </button>
-
     </div>
+
+    <button
+      class="tool-button controls-button"
+      id="panelButton">
+      Controls
+    </button>
 
   </div>
 
@@ -156,7 +163,9 @@
     class="hidden">
 
 
-    <div class="panel-section">
+    <div
+      id="lightSection"
+      class="panel-section">
 
       <div class="panel-title">
         Light
@@ -269,7 +278,25 @@
       </div>
 
 
-      <div class="row">
+      <div class="row color-row">
+        <label>Cut color</label>
+        <div class="section-colors" role="group" aria-label="Cut color">
+          <button type="button" class="color-swatch" data-section-color="#000000" style="--swatch:#000000" aria-label="Black"></button>
+          <button type="button" class="color-swatch" data-section-color="#007aff" style="--swatch:#007aff" aria-label="Blue"></button>
+          <button type="button" class="color-swatch" data-section-color="#a2845e" style="--swatch:#a2845e" aria-label="Brown"></button>
+          <button type="button" class="color-swatch" data-section-color="#32ade6" style="--swatch:#32ade6" aria-label="Cyan"></button>
+          <button type="button" class="color-swatch" data-section-color="#34c759" style="--swatch:#34c759" aria-label="Green"></button>
+          <button type="button" class="color-swatch" data-section-color="#5856d6" style="--swatch:#5856d6" aria-label="Indigo"></button>
+          <button type="button" class="color-swatch" data-section-color="#ff9500" style="--swatch:#ff9500" aria-label="Orange"></button>
+          <button type="button" class="color-swatch" data-section-color="#ff2d55" style="--swatch:#ff2d55" aria-label="Pink"></button>
+          <button type="button" class="color-swatch" data-section-color="#af52de" style="--swatch:#af52de" aria-label="Purple"></button>
+          <button type="button" class="color-swatch active" data-section-color="#ff3b30" style="--swatch:#ff3b30" aria-label="Red"></button>
+          <button type="button" class="color-swatch" data-section-color="#ffffff" style="--swatch:#ffffff" aria-label="White"></button>
+          <button type="button" class="color-swatch" data-section-color="#ffcc00" style="--swatch:#ffcc00" aria-label="Yellow"></button>
+        </div>
+      </div>
+
+      <div class="row hidden-section-control">
 
         <label>
           Section Debug
@@ -281,10 +308,22 @@
 
       </div>
 
+      <div class="row hidden-section-control">
+
+        <label>
+          Fill cut
+        </label>
+
+        <input
+          id="sectionFill"
+          type="checkbox">
+
+      </div>
+
 
       <div
         id="sectionDebugStats"
-        class="section-debug-stats">
+        class="section-debug-stats hidden-section-control">
       </div>
 
     </div>
@@ -316,11 +355,11 @@
 
     </div>
 
-  </div>
 
+    <div class="navigation-hint">
+      Drag to orbit · scroll/pinch to zoom
+    </div>
 
-  <div id="status">
-    Drop or open a model
   </div>
 
 </div>

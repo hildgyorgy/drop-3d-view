@@ -11,6 +11,9 @@ import { statusElement } from "../core/dom.js";
 
 export function setStatus(text) {
 
+  if (!statusElement)
+    return;
+
   statusElement.textContent =
     text;
 
