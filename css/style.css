@@ -58,7 +58,7 @@ canvas {
   display: grid;
   place-items: center;
 
-  background: var(--bg);
+  background: #fff;
 
   transition:
     opacity .35s ease,
@@ -75,12 +75,18 @@ canvas {
   width: min(520px, calc(100vw - 40px));
   padding: 42px 34px;
 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
   text-align: center;
 
   border: 1px solid var(--line);
   border-radius: 18px;
 
-  background: rgba(255,255,255,.55);
+  background: #fff;
+  box-shadow: 0 24px 50px rgba(0,0,0,.24);
 
   transition:
     transform .15s ease,
@@ -115,6 +121,15 @@ body.dragging .drop-card {
   font-size: 15px;
 }
 
+.drop-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+
+  font-size: 16px;
+}
+
 .open-button {
   display: inline-flex;
   align-items: center;
@@ -130,26 +145,15 @@ body.dragging .drop-card {
   background: #111;
   color: white;
 
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: .08em;
+
   cursor: pointer;
 }
 
 .open-button:hover {
   opacity: .82;
-}
-
-.formats {
-  margin-top: 22px;
-
-  font-size: 12px;
-  letter-spacing: .08em;
-  color: #888;
-}
-
-.local-note {
-  margin-top: 28px;
-
-  font-size: 12px;
-  color: #999;
 }
 
 
@@ -181,6 +185,7 @@ body.dragging .drop-card {
 }
 
 .brand,
+.brand-group,
 .style-toolbar,
 .view-toolbar,
 .controls-button,
@@ -203,6 +208,19 @@ body.dragging .drop-card {
   letter-spacing: .12em;
 
   cursor: pointer;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-credit {
+  color: #777;
+  font-size: 11px;
+  letter-spacing: .04em;
+  white-space: nowrap;
 }
 
 .style-toolbar,
@@ -463,6 +481,10 @@ body.dragging .drop-card {
   }
 
   .brand {
+    display: none;
+  }
+
+  .brand-group {
     display: none;
   }
 

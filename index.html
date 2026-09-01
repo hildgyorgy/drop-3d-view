@@ -34,37 +34,28 @@
 
   <div class="drop-card">
 
-    <div class="logo">
-      DROP & VIEW
-    </div>
-
     <div class="drop-title">
-      Drop your 3D model here
+      Drop 3D model
     </div>
 
     <div class="drop-subtitle">
-      or choose a file from your device
+      fbx · gltf · glb
     </div>
 
-    <button
-      class="open-button"
-      id="openButton">
-      Open model
-    </button>
+    <div class="drop-action">
+      <span>OR</span>
+      <button
+        class="open-button"
+        id="openButton">
+        OPEN FILE
+      </button>
+    </div>
 
     <input
       id="fileInput"
       type="file"
       accept=".glb,.gltf,.fbx"
       hidden>
-
-    <div class="formats">
-      GLB · GLTF · FBX
-    </div>
-
-    <div class="local-note">
-      Local only · Nothing is uploaded
-    </div>
 
   </div>
 
@@ -80,11 +71,14 @@
 
   <div id="topbar">
 
-    <button
-      class="brand"
-      id="openAgain">
-      DROP & VIEW
-    </button>
+    <div class="brand-group">
+      <button
+        class="brand"
+        id="openAgain">
+        DROP & VIEW
+      </button>
+      <span class="brand-credit">2026 • György Hild</span>
+    </div>
 
 
     <div class="style-toolbar">
