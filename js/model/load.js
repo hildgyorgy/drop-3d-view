@@ -10,6 +10,7 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 
 import { State } from "../core/state.js";
@@ -35,6 +36,19 @@ import { inspectModel } from "../ui/inspector.js";
 import { setViewMode } from "../view/view-modes.js";
 import { setStatus } from "../ui/status.js";
 import { disposeSectionCap } from "../section/section-cap.js";
+
+
+/*
+   Draco decoder for compressed GLB/GLTF files.
+   The decoder files are served from the same Three.js CDN version as the
+   import map, so compressed geometry is transparently decoded in-browser.
+*/
+const dracoLoader =
+  new DRACOLoader();
+
+dracoLoader.setDecoderPath(
+  "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/"
+);
 
 
 /* ======================================================
@@ -181,6 +195,10 @@ export async function openFile(file) {
 
       const loader =
         new GLTFLoader();
+
+      loader.setDRACOLoader(
+        dracoLoader
+      );
 
 
       const result =
