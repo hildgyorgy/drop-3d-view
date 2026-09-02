@@ -7,7 +7,7 @@
 */
 
 import { State } from "../core/state.js";
-import { modelStats, materialList } from "../core/dom.js";
+import { modelStats, materialList, elementTypeList } from "../core/dom.js";
 import { escapeHTML } from "./status.js";
 
 
@@ -26,11 +26,24 @@ export function inspectModel(file) {
   const materials =
     new Map();
 
+  const elementTypes =
+    new Map();
+
   State.model.traverse(
     node => {
-
       if (!node.isMesh)
         return;
+
+      const typeName =
+        node.name ||
+        "(unnamed)";
+
+      const meshes =
+        elementTypes.get(typeName) ||
+        new Set();
+
+      meshes.add(node);
+      elementTypes.set(typeName, meshes);
 
 
       meshCount++;
@@ -99,11 +112,7 @@ export function inspectModel(file) {
 
           materials.set(
             name,
-            (
-              materials.get(
-                name
-              ) || 0
-            ) + 1
+            (materials.get(name) || 0) + 1
           );
 
         }
@@ -185,6 +194,78 @@ export function inspectModel(file) {
 
 
         materialList.appendChild(
+          item
+        );
+
+      }
+    );
+
+  elementTypeList.innerHTML =
+    "";
+
+  if (!elementTypes.size) {
+
+    elementTypeList.textContent =
+      "No named element groups found in this export.";
+
+  }
+
+  [...elementTypes.entries()]
+    .sort(
+      (a,b) =>
+        a[0].localeCompare(
+          b[0],
+          "hu"
+        )
+    )
+    .forEach(
+      ([name,meshes]) => {
+
+        const item =
+          document.createElement(
+            "label"
+          );
+
+        item.className =
+          "element-type-item";
+
+        const toggle =
+          document.createElement(
+            "input"
+          );
+
+        toggle.type =
+          "checkbox";
+
+        toggle.checked =
+          true;
+
+        toggle.addEventListener(
+          "change",
+          () => {
+            meshes.forEach(
+              mesh => {
+                mesh.visible =
+                  toggle.checked;
+              }
+            );
+          }
+        );
+
+        const text =
+          document.createElement(
+            "span"
+          );
+
+        text.textContent =
+          `${name} · ${meshes.size}`;
+
+        item.append(
+          toggle,
+          text
+        );
+
+        elementTypeList.appendChild(
           item
         );
 

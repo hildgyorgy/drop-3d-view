@@ -51,14 +51,14 @@ canvas {
 ====================================================== */
 
 #startScreen {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 100;
+  z-index: 10;
 
   display: grid;
   place-items: center;
 
-  background: #fff;
+  pointer-events: auto;
 
   transition:
     opacity .35s ease,
@@ -71,31 +71,19 @@ canvas {
   pointer-events: none;
 }
 
-.drop-card {
-  width: min(520px, calc(100vw - 40px));
-  padding: 42px 34px;
-
+.empty-state-content {
+  width: min(500px, calc(100vw - 40px));
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
   text-align: center;
-
-  border: 1px solid var(--line);
-  border-radius: 18px;
-
-  background: #fff;
-  box-shadow: 0 24px 50px rgba(0,0,0,.24);
-
-  transition:
-    transform .15s ease,
-    background .15s ease;
+  transition: transform .15s ease;
 }
 
-body.dragging .drop-card {
+body.dragging .empty-state-content {
   transform: scale(1.015);
-  background: white;
 }
 
 .logo {
@@ -119,6 +107,30 @@ body.dragging .drop-card {
 
   color: var(--muted);
   font-size: 15px;
+}
+
+.demo-button {
+  margin: 0 0 18px;
+  padding: 0;
+  background: transparent;
+  color: #555;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.demo-button:not(:disabled):hover {
+  color: var(--red);
+}
+
+.demo-button:disabled {
+  color: #555;
+  cursor: default;
+}
+
+.privacy-note {
+  margin-bottom: 22px;
+  color: #888;
+  font-size: 12px;
 }
 
 .drop-action {
@@ -431,6 +443,30 @@ body.dragging .drop-card {
   border-bottom: 1px solid rgba(0,0,0,.05);
 
   font-size: 11px;
+}
+
+.element-type-list {
+  max-height: 180px;
+  overflow: auto;
+  color: #555;
+  font-size: 11px;
+}
+
+.element-type-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(0,0,0,.05);
+  cursor: pointer;
+}
+
+.element-type-item input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--red);
 }
 
 .navigation-hint {

@@ -30,43 +30,6 @@
 
 
 <!-- =====================================================
-     START SCREEN
-===================================================== -->
-
-<div id="startScreen">
-
-  <div class="drop-card">
-
-    <div class="drop-title">
-      Drop 3D model
-    </div>
-
-    <div class="drop-subtitle">
-      fbx · gltf · glb
-    </div>
-
-    <div class="drop-action">
-      <span>OR</span>
-      <button
-        class="open-button"
-        id="openButton">
-        OPEN FILE
-      </button>
-    </div>
-
-    <input
-      id="fileInput"
-      type="file"
-      accept="*/*"
-      hidden>
-
-  </div>
-
-</div>
-
-
-
-<!-- =====================================================
      VIEWER UI
 ===================================================== -->
 
@@ -146,6 +109,47 @@
       id="panelButton">
       Controls
     </button>
+
+  </div>
+
+
+  <div id="startScreen" class="empty-state">
+
+    <div class="empty-state-content">
+
+      <div class="drop-title">
+        Drop your 3D model here
+      </div>
+
+      <div class="drop-subtitle">
+        FBX • GLB • GLTF
+      </div>
+
+      <button
+        class="demo-button"
+        id="demoButton"
+        type="button"
+        >
+        or try this demo model first →
+      </button>
+
+      <div class="privacy-note">
+        Nothing is uploaded — your file stays in your browser.
+      </div>
+
+      <button
+        class="open-button"
+        id="openButton">
+        OPEN FILE
+      </button>
+
+      <input
+        id="fileInput"
+        type="file"
+        accept="*/*"
+        hidden>
+
+    </div>
 
   </div>
 
@@ -352,6 +356,15 @@
 
     </div>
 
+    <div class="panel-section">
+
+      <div class="panel-title">
+        Element types
+      </div>
+
+      <div id="elementTypeList" class="element-type-list"></div>
+
+    </div>
 
     <div class="navigation-hint">
       Drag to orbit · scroll/pinch to zoom

@@ -17,6 +17,9 @@ export const startScreen =
 export const openButton =
   document.querySelector("#openButton");
 
+export const demoButton =
+  document.querySelector("#demoButton");
+
 export const openAgain =
   document.querySelector("#openAgain");
 
@@ -76,3 +79,6 @@ export const modelStats =
 
 export const materialList =
   document.querySelector("#materialList");
+
+export const elementTypeList =
+  document.querySelector("#elementTypeList");

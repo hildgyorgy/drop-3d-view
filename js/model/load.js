@@ -18,6 +18,7 @@ import { scene } from "../core/scene.js";
 import {
   startScreen,
   openButton,
+  demoButton,
   openAgain,
   fileInput
 } from "../core/dom.js";
@@ -65,6 +66,61 @@ openAgain.onclick =
   fileInput.click();
 
 };
+
+
+if (demoButton) {
+
+  demoButton.onclick =
+  async () => {
+
+    demoButton.disabled =
+      true;
+
+    try {
+
+      const response =
+        await fetch(
+          "demo/demo_house.fbx"
+        );
+
+      if (!response.ok)
+        throw new Error(
+          `Demo model request failed (${response.status})`
+        );
+
+      const blob =
+        await response.blob();
+
+      await openFile(
+        new File(
+          [blob],
+          "demo_house.fbx",
+          { type: "application/octet-stream" }
+        )
+      );
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      setStatus(
+        "The demo model could not be opened."
+      );
+
+    }
+
+    finally {
+
+      demoButton.disabled =
+        false;
+
+    }
+
+  };
+
+}
 
 
 fileInput.addEventListener(
