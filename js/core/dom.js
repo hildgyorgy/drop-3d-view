@@ -50,6 +50,12 @@ export const sunHeight =
 export const shadowToggle =
   document.querySelector("#shadowToggle");
 
+export const cameraFov =
+  document.querySelector("#cameraFov");
+
+export const glassOpacity =
+  document.querySelector("#glassOpacity");
+
 export const lightSection =
   document.querySelector("#lightSection");
 

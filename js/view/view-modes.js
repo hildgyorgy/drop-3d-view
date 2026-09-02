@@ -8,16 +8,53 @@
 import * as THREE from "three";
 import { State } from "../core/state.js";
 import { hemi, DEFAULT_HEMI_INTENSITY } from "../core/scene.js";
-import { lightSection, sunAngle, sunHeight, shadowToggle } from "../core/dom.js";
+import { lightSection, sunAngle, sunHeight, shadowToggle, cameraFov, glassOpacity } from "../core/dom.js";
 import {
   wireMaterial,
   getRenaissanceMaterial,
   getWhiteMaterial,
-  isEntirelyGlass
+  isEntirelyGlass,
+  isGlassMaterial,
+  applyGlassAppearance
 } from "../model/materials.js";
 import { applyClipping } from "../section/section-plane.js";
 
 let shadowSettingBeforeWireframe = null;
+
+
+function updateGlassAppearance() {
+
+  if (!State.model || State.currentMode === "renaissance")
+    return;
+
+  const opacity =
+    Number(glassOpacity.value) / 100;
+
+  State.originalMaterials.forEach(
+    original => {
+
+      const materials =
+        Array.isArray(original)
+          ? original
+          : [original];
+
+      materials.forEach(
+        material => {
+          if (isGlassMaterial(material))
+            applyGlassAppearance(material, opacity);
+        }
+      );
+
+    }
+  );
+
+}
+
+
+glassOpacity?.addEventListener(
+  "input",
+  updateGlassAppearance
+);
 
 
 /* ======================================================
@@ -69,7 +106,7 @@ export function setViewMode(mode) {
     shadowSettingBeforeWireframe = null;
   }
 
-  [sunAngle, sunHeight, shadowToggle].forEach(control => {
+  [sunAngle, sunHeight, shadowToggle, cameraFov].forEach(control => {
     control.disabled = wireframe;
   });
   lightSection?.classList.toggle("disabled", wireframe);
@@ -280,6 +317,8 @@ export function setViewMode(mode) {
 
     }
   );
+
+  updateGlassAppearance();
 
 
   applyClipping();

@@ -265,6 +265,37 @@ export function isGlassMaterial(material) {
 
 }
 
+export function applyGlassAppearance(
+  material,
+  opacity
+) {
+
+  if (!material || !isGlassMaterial(material))
+    return;
+
+  material.transparent =
+    true;
+
+  material.opacity =
+    opacity;
+
+  material.depthWrite =
+    false;
+
+  if ("roughness" in material)
+    material.roughness = .16;
+
+  if ("metalness" in material)
+    material.metalness = .02;
+
+  if ("shininess" in material)
+    material.shininess = 90;
+
+  material.needsUpdate =
+    true;
+
+}
+
 /* Keep transparent glass in White/Hidden while whitening other materials. */
 export function getWhiteMaterial(original) {
 

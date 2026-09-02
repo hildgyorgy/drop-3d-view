@@ -10,7 +10,20 @@ import * as THREE from "three";
 import { State } from "../core/state.js";
 import { perspectiveCamera, orthoCamera } from "../core/scene.js";
 import { createControls } from "../core/controls.js";
-import { perspectiveButton, axonButton } from "../core/dom.js";
+import { perspectiveButton, axonButton, cameraFov } from "../core/dom.js";
+
+
+cameraFov?.addEventListener(
+  "input",
+  () => {
+
+    perspectiveCamera.fov =
+      Number(cameraFov.value);
+
+    perspectiveCamera.updateProjectionMatrix();
+
+  }
+);
 
 
 export function centreModel() {
