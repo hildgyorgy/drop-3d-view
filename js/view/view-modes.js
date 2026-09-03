@@ -8,7 +8,7 @@
 import * as THREE from "three";
 import { State } from "../core/state.js";
 import { hemi, DEFAULT_HEMI_INTENSITY } from "../core/scene.js";
-import { lightSection, sunAngle, sunHeight, shadowToggle, cameraFov, glassOpacity } from "../core/dom.js";
+import { lightSection, sunAngle, sunHeight, shadowToggle, glassOpacity } from "../core/dom.js";
 import {
   wireMaterial,
   getRenaissanceMaterial,
@@ -85,10 +85,6 @@ document
 
 export function setViewMode(mode) {
 
-  if (!State.model)
-    return;
-
-
   State.currentMode =
     mode;
 
@@ -106,7 +102,7 @@ export function setViewMode(mode) {
     shadowSettingBeforeWireframe = null;
   }
 
-  [sunAngle, sunHeight, shadowToggle, cameraFov].forEach(control => {
+  [sunAngle, sunHeight, shadowToggle].forEach(control => {
     control.disabled = wireframe;
   });
   lightSection?.classList.toggle("disabled", wireframe);
@@ -123,10 +119,13 @@ export function setViewMode(mode) {
           "active",
           button.dataset.mode === mode
         );
+        button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
 
       }
     );
 
+
+  if (!State.model) return;
 
   State.edgeGroup.visible =
     false;

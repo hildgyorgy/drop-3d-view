@@ -36,6 +36,7 @@ sectionButton.addEventListener(
       "active",
       State.sectionEnabled
     );
+    sectionButton.setAttribute("aria-pressed", String(State.sectionEnabled));
 
 
     /*
@@ -78,6 +79,7 @@ document
                   "active",
                   b === button
                 );
+                b.setAttribute("aria-pressed", String(b === button));
 
               }
             );

@@ -1,431 +1,111 @@
 <!doctype html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-
 <title>Drop & View</title>
-
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
-
 <link rel="stylesheet" href="css/style.css">
-
 <script type="importmap">
-{
-  "imports": {
-    "three":
-      "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-
-    "three/addons/":
-      "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-  }
-}
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
 </script>
-
 </head>
-
-
 <body>
-
-
-<!-- =====================================================
-     VIEWER UI
-===================================================== -->
-
 <div id="viewerUI">
-
-  <div id="topbar">
-
-    <div class="brand-group">
-      <button
-        class="brand"
-        id="openAgain">
-        DROP & VIEW
-      </button>
-      <span class="brand-credit">v1.0.1 • 2026 • György Hild</span>
+  <header id="topbar">
+    <button class="brand" id="openAgain" title="Open a 3D model">OPEN FILE <span class="open-dot" aria-hidden="true"></span></button>
+    <nav class="style-toolbar" aria-label="Display style">
+      <button class="tool-button active" data-mode="original" aria-pressed="true">ORIGINAL</button>
+      <button class="tool-button" data-mode="white" aria-pressed="false">WHITE</button>
+      <button class="tool-button" data-mode="hidden" aria-pressed="false">HIDDEN</button>
+      <button class="tool-button" data-mode="wireframe" aria-pressed="false">WIRE</button>
+      <button class="tool-button" data-mode="renaissance" aria-pressed="false">B&W</button>
+    </nav>
+    <div class="view-dock">
+      <nav class="view-toolbar" aria-label="Camera projection">
+        <button class="tool-button active" id="perspectiveButton" aria-pressed="true" title="Perspective">PERSP</button>
+        <button class="tool-button" id="axonButton" aria-pressed="false" title="Axonometry">AXON</button>
+        <button class="tool-button" id="orthoButton" aria-pressed="false" aria-expanded="false" aria-controls="orthoMenu" title="Orthogonal views">ORTHO</button>
+      </nav>
+      <div id="orthoMenu" class="corner-menu view-menu" hidden role="group" aria-label="Orthogonal view">
+        <button data-view="top" aria-pressed="false">TOP</button>
+        <button data-view="front" class="active" aria-pressed="true">FRONT</button>
+        <button data-view="left" aria-pressed="false">LEFT</button>
+        <button data-view="right" aria-pressed="false">RIGHT</button>
+        <button data-view="back" aria-pressed="false">BACK</button>
+      </div>
     </div>
-
-
-    <div class="style-toolbar">
-
-      <button
-        class="tool-button active"
-        data-mode="original">
-        Original
-      </button>
-
-      <button
-        class="tool-button"
-        data-mode="white">
-        White
-      </button>
-
-      <button
-        class="tool-button"
-        data-mode="hidden">
-        Hidden
-      </button>
-
-      <button
-        class="tool-button"
-        data-mode="wireframe">
-        Wire
-      </button>
-
-      <button
-        class="tool-button"
-        data-mode="renaissance">
-        B/W
-      </button>
-
-    </div>
-
-
-    <div class="view-toolbar">
-
-      <button
-        class="tool-button active"
-        id="perspectiveButton">
-        Perspective
-      </button>
-
-      <button
-        class="tool-button"
-        id="axonButton">
-        Axonometry
-      </button>
-
-      <button
-        class="tool-button red"
-        id="sectionButton">
-        Section
-      </button>
-
-    </div>
-
-    <button
-      class="tool-button controls-button"
-      id="panelButton">
-      Controls
-    </button>
-
-  </div>
-
+  </header>
 
   <div id="startScreen" class="empty-state">
-
     <div class="empty-state-content">
-
-      <div class="drop-title">
-        Drop your 3D model here
-      </div>
-
-      <div class="drop-subtitle">
-        FBX • GLB • GLTF
-      </div>
-
-      <button
-        class="demo-button"
-        id="demoButton"
-        type="button"
-        >
-        or try this demo model first →
-      </button>
-
-      <div class="privacy-note">
-        Nothing is uploaded — your file stays in your browser.
-      </div>
-
-      <button
-        class="open-button"
-        id="openButton">
-        OPEN FILE
-      </button>
-
-      <input
-        id="fileInput"
-        type="file"
-        accept="*/*"
-        hidden>
-
+      <div class="drop-title">DROP YOUR 3D MODEL HERE</div>
+      <div class="drop-subtitle">GLB • FBX • GLTF</div>
+      <button class="demo-button" id="demoButton" type="button">OR TRY THIS <span>DEMO</span> FIRST</button>
+      <div class="privacy-note">NOTHING IS UPLOADED — YOUR FILE STAYS IN YOUR BROWSER</div>
     </div>
+  </div>
+  <input id="fileInput" type="file" accept="*/*" hidden>
 
+  <div class="controls-dock">
+    <div id="sidePanel" class="corner-menu" hidden>
+      <div id="lightSection">
+        <label class="slider-control" for="sunAngle">SUN DIRECTION
+          <input id="sunAngle" type="range" min="0" max="360" value="45">
+        </label>
+        <label class="slider-control" for="sunHeight">SUN HEIGHT
+          <input id="sunHeight" type="range" min="5" max="85" value="45">
+        </label>
+      </div>
+      <label class="slider-control" for="cameraFov">CAMERA FOV
+        <input id="cameraFov" type="range" min="35" max="60" value="42">
+      </label>
+      <label class="slider-control" for="glassOpacity">GLASS TRANSPARENCY
+        <input id="glassOpacity" type="range" min="15" max="70" value="32">
+      </label>
+      <label class="check-control" for="shadowToggle"><input id="shadowToggle" type="checkbox" checked> SHADOW</label>
+      <div class="controls-help">
+        <span>Drag to orbit · scroll/pinch to zoom</span>
+        <a href="https://hildgyorgy.github.io/app-support/drop-view/" target="_blank" rel="noopener">Support</a>
+      </div>
+    </div>
+    <button id="panelButton" class="menu-toggle" aria-expanded="false" aria-controls="sidePanel">CONTROLS <span class="menu-arrow" aria-hidden="true"></span></button>
   </div>
 
-
-
-  <!-- ===================================================
-       CONTROLS
-  =================================================== -->
-
-  <div
-    id="sidePanel"
-    class="hidden">
-
-
-    <div
-      id="lightSection"
-      class="panel-section">
-
-      <div class="panel-title">
-        Light
-      </div>
-
-
-      <div class="row">
-
-        <label>
-          Sun direction
-        </label>
-
-        <input
-          id="sunAngle"
-          type="range"
-          min="0"
-          max="360"
-          value="45">
-
-      </div>
-
-
-      <div class="row">
-
-        <label>
-          Sun height
-        </label>
-
-        <input
-          id="sunHeight"
-          type="range"
-          min="5"
-          max="85"
-          value="45">
-
-      </div>
-
-
-      <div class="row">
-
-        <label>
-          Shadows
-        </label>
-
-        <input
-          id="shadowToggle"
-          type="checkbox"
-          checked>
-
-      </div>
-
+  <div class="section-dock">
+    <div id="sectionMenu" class="corner-menu axis-buttons" hidden role="group" aria-label="Section axis">
+      <button data-axis="x" aria-pressed="false">X</button>
+      <button data-axis="y" class="active" aria-pressed="true">Y</button>
+      <button data-axis="z" aria-pressed="false">Z</button>
     </div>
-
-
-    <div class="panel-section">
-
-      <div class="panel-title">
-        Camera
-      </div>
-
-      <div class="row">
-
-        <label>
-          FOV
-        </label>
-
-        <input
-          id="cameraFov"
-          type="range"
-          min="35"
-          max="60"
-          value="42">
-
-      </div>
-
+    <div class="section-heading">
+      <button id="sectionButton" class="circle-toggle" aria-label="Enable section" aria-pressed="false"></button>
+      <button id="sectionMenuButton" class="menu-toggle" aria-expanded="false" aria-controls="sectionMenu">SECTION</button>
     </div>
-
-
-    <div class="panel-section">
-
-      <div class="panel-title">
-        Glass
-      </div>
-
-      <div class="row">
-
-        <label>
-          Transparency
-        </label>
-
-        <input
-          id="glassOpacity"
-          type="range"
-          min="15"
-          max="70"
-          value="32">
-
-      </div>
-
-    </div>
-
-
-
-    <div class="panel-section">
-
-      <div class="panel-title">
-        Section
-      </div>
-
-
-      <div class="axis-buttons">
-
-        <button
-          data-axis="x">
-          X
-        </button>
-
-        <button
-          data-axis="y"
-          class="active">
-          Y
-        </button>
-
-        <button
-          data-axis="z">
-          Z
-        </button>
-
-      </div>
-
-
-      <div class="row">
-
-        <label>
-          Position
-        </label>
-
-        <input
-          id="sectionSlider"
-          type="range"
-          min="0"
-          max="1000"
-          value="500">
-
-      </div>
-
-
-      <div class="row">
-
-        <label>
-          Flip
-        </label>
-
-        <input
-          id="sectionFlip"
-          type="checkbox">
-
-      </div>
-
-
-      <div class="row color-row">
-        <label>Cut color</label>
-        <div class="section-colors" role="group" aria-label="Cut color">
-          <button type="button" class="color-swatch" data-section-color="#000000" style="--swatch:#000000" aria-label="Black"></button>
-          <button type="button" class="color-swatch active" data-section-color="#ff3b30" style="--swatch:#ff3b30" aria-label="Red"></button>
-          <button type="button" class="color-swatch" data-section-color="#34c759" style="--swatch:#34c759" aria-label="Green"></button>
-          <button type="button" class="color-swatch" data-section-color="#007aff" style="--swatch:#007aff" aria-label="Blue"></button>
-          <button type="button" class="color-swatch" data-section-color="#ffcc00" style="--swatch:#ffcc00" aria-label="Yellow"></button>
-          <button type="button" class="color-swatch" data-section-color="#ffffff" style="--swatch:#ffffff" aria-label="White"></button>
-        </div>
-      </div>
-
-      <div class="row hidden-section-control">
-
-        <label>
-          Section Debug
-        </label>
-
-        <input
-          id="sectionDebug"
-          type="checkbox">
-
-      </div>
-
-      <div class="row hidden-section-control">
-
-        <label>
-          Fill cut
-        </label>
-
-        <input
-          id="sectionFill"
-          type="checkbox">
-
-      </div>
-
-
-      <div
-        id="sectionDebugStats"
-        class="section-debug-stats hidden-section-control">
-      </div>
-
-    </div>
-
-
-
-    <div class="panel-section">
-
-      <div class="panel-title">
-        Model
-      </div>
-
-      <div id="modelStats"></div>
-
-    </div>
-
-
-
-    <div class="panel-section">
-
-      <div class="panel-title">
-        Materials
-      </div>
-
-      <div
-        id="materialList"
-        class="material-list">
-      </div>
-
-    </div>
-
-    <div class="panel-section">
-
-      <div class="panel-title">
-        Element types
-      </div>
-
-      <div id="elementTypeList" class="element-type-list"></div>
-
-    </div>
-
-    <div class="navigation-hint">
-      Drag to orbit · scroll/pinch to zoom
-    </div>
-
-    <a
-      class="support-link"
-      href="https://hildgyorgy.github.io/app-support/drop-view/"
-      target="_blank"
-      rel="noopener">
-      Support
-    </a>
-
+    <input id="sectionSlider" type="range" min="0" max="1000" value="500" aria-label="Section position" hidden>
   </div>
 
+  <!-- Retained for later UI iterations; controls and inspector data stay wired. -->
+  <div id="retainedControls" hidden>
+    <button id="openButton">OPEN FILE</button>
+    <input id="sectionFlip" type="checkbox">
+    <div class="section-colors">
+      <button data-section-color="#000000" aria-label="Black"></button>
+      <button data-section-color="#ff3b30" class="active" aria-label="Red"></button>
+      <button data-section-color="#34c759" aria-label="Green"></button>
+      <button data-section-color="#007aff" aria-label="Blue"></button>
+      <button data-section-color="#ffcc00" aria-label="Yellow"></button>
+      <button data-section-color="#ffffff" aria-label="White"></button>
+    </div>
+    <input id="sectionDebug" type="checkbox">
+    <input id="sectionFill" type="checkbox">
+    <div id="sectionDebugStats"></div>
+    <section><h2>Model</h2><div id="modelStats"></div></section>
+    <section><h2>Materials</h2><div id="materialList" class="material-list"></div></section>
+    <section><h2>Element types</h2><div id="elementTypeList" class="element-type-list"></div></section>
+  </div>
 </div>
-
-
 <script type="module" src="js/main.js"></script>
-
 </body>
 </html>

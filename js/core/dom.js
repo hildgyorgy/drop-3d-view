@@ -38,6 +38,11 @@ export const perspectiveButton =
 export const axonButton =
   document.querySelector("#axonButton");
 
+export const orthoButton = document.querySelector("#orthoButton");
+export const orthoMenu = document.querySelector("#orthoMenu");
+export const sectionMenu = document.querySelector("#sectionMenu");
+export const sectionMenuButton = document.querySelector("#sectionMenuButton");
+
 export const sectionButton =
   document.querySelector("#sectionButton");
 

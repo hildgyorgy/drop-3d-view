@@ -37,6 +37,7 @@ import { inspectModel } from "../ui/inspector.js";
 import { setViewMode } from "../view/view-modes.js";
 import { setStatus } from "../ui/status.js";
 import { disposeSectionCap } from "../section/section-cap.js";
+import { updateSectionPlane } from "../section/section-plane.js";
 
 
 /*
@@ -384,10 +385,11 @@ configureSun();
   inspectModel(file);
 
   fitCamera();
+  updateSectionPlane();
 
 
   setViewMode(
-    "original"
+    State.currentMode
   );
 
 

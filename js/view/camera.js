@@ -10,7 +10,7 @@ import * as THREE from "three";
 import { State } from "../core/state.js";
 import { perspectiveCamera, orthoCamera } from "../core/scene.js";
 import { createControls } from "../core/controls.js";
-import { perspectiveButton, axonButton, cameraFov } from "../core/dom.js";
+import { perspectiveButton, axonButton, orthoButton, cameraFov } from "../core/dom.js";
 
 
 cameraFov?.addEventListener(
@@ -132,6 +132,7 @@ export function fitCamera() {
 
 
   State.controls.update();
+  setProjection(projection, true);
 
 }
 
@@ -207,125 +208,80 @@ export function updateOrthoFrustum() {
    CAMERA MODE
 ====================================================== */
 
-perspectiveButton.addEventListener(
-  "click",
-  () => {
-    if (State.cameraMode !== "perspective")
-      toggleCamera();
-  }
-);
+// AXON is freely orbitable; ORTHO presets stay aligned while panning/zooming.
+let projection = "perspective";
+let preset = "front";
+const orbitDirection = new THREE.Vector3(1, .72, 1).normalize();
+const presetDirections = {
+  top: new THREE.Vector3(0, 1, 0),
+  front: new THREE.Vector3(0, 0, 1),
+  left: new THREE.Vector3(-1, 0, 0),
+  right: new THREE.Vector3(1, 0, 0),
+  back: new THREE.Vector3(0, 0, -1)
+};
 
-axonButton.addEventListener(
-  "click",
-  () => {
-    if (State.cameraMode !== "orthographic")
-      toggleCamera();
-  }
-);
+perspectiveButton.addEventListener("click", () => setProjection("perspective"));
+axonButton.addEventListener("click", () => setProjection("axon"));
+orthoButton.addEventListener("click", () => {
+  if (projection !== "ortho") setProjection("ortho");
+});
+document.querySelectorAll("[data-view]").forEach(button => {
+  button.addEventListener("click", () => {
+    preset = button.dataset.view;
+    setProjection("ortho");
+  });
+});
 
+function setProjection(next, refit = false) {
+  const target = State.controls.target.clone();
+  let distance = Math.max(State.camera.position.distanceTo(target), .01);
+  const oldCamera = State.camera;
+  if (projection !== "ortho")
+    orbitDirection.copy(oldCamera.position).sub(target).normalize();
 
-export function toggleCamera() {
-
-  const direction =
-    new THREE.Vector3();
-
-
-  State.camera.getWorldDirection(
-    direction
-  );
-
-
-  const distance =
-    State.camera.position.distanceTo(
-      State.controls.target
-    );
-
-
-  const oldTarget =
-    State.controls.target.clone();
-
+  // Match the visible vertical span when switching between projections.
+  const span = oldCamera.isPerspectiveCamera
+    ? 2 * distance * Math.tan(THREE.MathUtils.degToRad(oldCamera.fov / 2))
+    : (oldCamera.top - oldCamera.bottom) / oldCamera.zoom;
 
   State.controls.dispose();
-
-
-  if (
-    State.cameraMode ===
-    "perspective"
-  ) {
-
-    State.cameraMode =
-      "orthographic";
-
-
-    State.camera =
-      orthoCamera;
-
-
+  State.camera = next === "perspective" ? perspectiveCamera : orthoCamera;
+  State.cameraMode = next === "perspective" ? "perspective" : "orthographic";
+  projection = next;
+  if (next === "perspective") {
+    distance = span / (2 * Math.tan(THREE.MathUtils.degToRad(perspectiveCamera.fov / 2)));
+  } else {
     updateOrthoFrustum();
-
-
-    State.camera.position
-      .copy(oldTarget)
-      .addScaledVector(
-        direction,
-        -distance
-      );
-
-
-    State.camera.lookAt(
-      oldTarget
-    );
-
-
+    orthoCamera.zoom = refit ? 1 : (orthoCamera.top - orthoCamera.bottom) / span;
+    orthoCamera.updateProjectionMatrix();
   }
 
-  else {
-
-    State.cameraMode =
-      "perspective";
-
-
-    State.camera =
-      perspectiveCamera;
-
-
-    State.camera.position
-      .copy(oldTarget)
-      .addScaledVector(
-        direction,
-        -distance
-      );
-
-
-    State.camera.lookAt(
-      oldTarget
-    );
-
-
+  const direction = next === "ortho" ? presetDirections[preset] : orbitDirection;
+  State.camera.up.set(0, 1, 0);
+  if (next === "ortho" && preset === "top") State.camera.up.set(0, 0, -1);
+  State.camera.position.copy(target).addScaledVector(direction, distance);
+  State.camera.lookAt(target);
+  State.controls = createControls(State.camera);
+  State.controls.target.copy(target);
+  if (next === "ortho") {
+    State.controls.enableRotate = false;
+    State.controls.minPolarAngle = 0;
+    State.controls.maxPolarAngle = Math.PI;
   }
-
-  perspectiveButton.classList.toggle(
-    "active",
-    State.cameraMode === "perspective"
-  );
-
-  axonButton.classList.toggle(
-    "active",
-    State.cameraMode === "orthographic"
-  );
-
-
-  State.controls =
-    createControls(
-      State.camera
-    );
-
-
-  State.controls.target.copy(
-    oldTarget
-  );
-
-
   State.controls.update();
 
+  [[perspectiveButton, "perspective"], [axonButton, "axon"], [orthoButton, "ortho"]]
+    .forEach(([button, value]) => {
+      button.classList.toggle("active", value === next);
+      button.setAttribute("aria-pressed", String(value === next));
+    });
+  document.querySelectorAll("[data-view]").forEach(button => {
+    button.classList.toggle("active", button.dataset.view === preset);
+    button.setAttribute("aria-pressed", String(button.dataset.view === preset));
+  });
+  cameraFov.disabled = next !== "perspective";
+}
+
+export function toggleCamera() {
+  setProjection(projection === "perspective" ? "axon" : "perspective");
 }
