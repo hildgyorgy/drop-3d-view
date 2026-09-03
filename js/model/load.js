@@ -80,7 +80,7 @@ if (demoButton) {
 
       const response =
         await fetch(
-          "demo/demo_house.fbx"
+          "demo/demo_house.glb"
         );
 
       if (!response.ok)
@@ -94,7 +94,7 @@ if (demoButton) {
       await openFile(
         new File(
           [blob],
-          "demo_house.fbx",
+          "demo_house.glb",
           { type: "application/octet-stream" }
         )
       );
