@@ -205,8 +205,9 @@ export function setViewMode(mode) {
           node.material =
             original;
 
-  node.castShadow =
-    true;
+          // Transparent glass must not cast an opaque shadow in Model mode.
+          node.castShadow =
+            !isEntirelyGlass(original);
 
           node.visible =
             true;
