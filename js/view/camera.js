@@ -208,7 +208,7 @@ export function updateOrthoFrustum() {
    CAMERA MODE
 ====================================================== */
 
-// AXON is freely orbitable; ORTHO presets stay aligned while panning/zooming.
+// AXON orbits freely; ORTHO elevations orbit horizontally, TOP stays fixed.
 let projection = "perspective";
 let preset = "front";
 const orbitDirection = new THREE.Vector3(1, .72, 1).normalize();
@@ -219,6 +219,18 @@ const presetDirections = {
   right: new THREE.Vector3(1, 0, 0),
   back: new THREE.Vector3(0, 0, -1)
 };
+
+const currentViewDirection = new THREE.Vector3();
+
+function updateOrthoSelection() {
+  currentViewDirection.copy(State.camera.position).sub(State.controls.target).normalize();
+  document.querySelectorAll("[data-view]").forEach(button => {
+    const active = projection === "ortho" &&
+      currentViewDirection.dot(presetDirections[button.dataset.view]) > 1 - 1e-8;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
 
 perspectiveButton.addEventListener("click", () => setProjection("perspective"));
 axonButton.addEventListener("click", () => setProjection("axon"));
@@ -247,6 +259,7 @@ function setProjection(next, refit = false) {
   State.controls.dispose();
   State.camera = next === "perspective" ? perspectiveCamera : orthoCamera;
   State.cameraMode = next === "perspective" ? "perspective" : "orthographic";
+  State.cameraProjection = next;
   projection = next;
   if (next === "perspective") {
     distance = span / (2 * Math.tan(THREE.MathUtils.degToRad(perspectiveCamera.fov / 2)));
@@ -264,9 +277,11 @@ function setProjection(next, refit = false) {
   State.controls = createControls(State.camera);
   State.controls.target.copy(target);
   if (next === "ortho") {
-    State.controls.enableRotate = false;
-    State.controls.minPolarAngle = 0;
-    State.controls.maxPolarAngle = Math.PI;
+    const topView = preset === "top";
+    State.controls.enableRotate = !topView;
+    State.controls.minPolarAngle = topView ? 0 : Math.PI / 2;
+    State.controls.maxPolarAngle = topView ? Math.PI : Math.PI / 2;
+    State.controls.addEventListener("change", updateOrthoSelection);
   }
   State.controls.update();
 
@@ -275,10 +290,7 @@ function setProjection(next, refit = false) {
       button.classList.toggle("active", value === next);
       button.setAttribute("aria-pressed", String(value === next));
     });
-  document.querySelectorAll("[data-view]").forEach(button => {
-    button.classList.toggle("active", button.dataset.view === preset);
-    button.setAttribute("aria-pressed", String(button.dataset.view === preset));
-  });
+  updateOrthoSelection();
   cameraFov.disabled = next !== "perspective";
 }
 

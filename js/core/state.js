@@ -17,6 +17,7 @@ export const State = {
   // --- kamera ---
   camera: perspectiveCamera,
   cameraMode: "perspective",
+  cameraProjection: "perspective",
   controls: createControls(perspectiveCamera),
 
   // --- betöltött modell ---

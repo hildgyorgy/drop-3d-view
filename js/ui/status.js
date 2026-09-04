@@ -6,7 +6,21 @@
    egy fájlnévbe rejtett HTML kód lefusson a felületen.
 */
 
-import { statusElement } from "../core/dom.js";
+import { statusElement, startScreen } from "../core/dom.js";
+
+const startMessage = document.querySelector("#startMessage");
+const privacyMessage = startMessage.textContent;
+
+export function resetStartMessage() {
+  startMessage.textContent = privacyMessage;
+  startMessage.classList.remove("error");
+}
+
+export function showStartError(text) {
+  startMessage.textContent = text;
+  startMessage.classList.add("error");
+  startScreen.classList.remove("hidden");
+}
 
 
 export function setStatus(text) {

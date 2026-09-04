@@ -35,9 +35,12 @@ canvas { display: block; touch-action: none; }
 }
 .brand, .style-toolbar, .view-dock, .controls-dock, .section-dock { pointer-events: auto; }
 .brand { display: flex; align-items: center; gap: 16px; min-height: 36px; white-space: nowrap; }
+.brand button { min-height: 36px; letter-spacing: inherit; }
 .open-dot {
   width: 23px; height: 23px; border-radius: 50%; background: var(--red);
   box-shadow: 1px 2px 3px #0004;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: #fff; font: bold 16px/1 Georgia, serif; letter-spacing: 0; text-decoration: none;
 }
 .style-toolbar, .view-toolbar { display: flex; align-items: center; white-space: nowrap; }
 .style-toolbar { position: absolute; left: 50%; transform: translateX(-50%); }
@@ -117,6 +120,7 @@ input[type="checkbox"]:checked, .circle-toggle.active { background: var(--red); 
 .demo-button span { color: var(--red); }
 .demo-button:disabled { opacity: .4; }
 .privacy-note { margin-top: 55px; font-size: 11px; line-height: 1.5; }
+.privacy-note.error { color: var(--red); }
 body.dragging .drop-title { color: var(--red); }
 
 /* Keep the canvas usable until the dedicated mobile design. */
@@ -129,7 +133,7 @@ body.dragging .drop-title { color: var(--red); }
   :root { --edge: 18px; }
   .brand, .tool-button, .menu-toggle, .corner-menu, .section-heading { font-size: 10px; letter-spacing: .18em; }
   .brand { gap: 8px; }
-  .open-dot { width: 16px; height: 16px; }
+  .open-dot { width: 16px; height: 16px; font-size: 12px; }
   .tool-button + .tool-button { margin-left: 18px; }
   .tool-button + .tool-button::before { left: -11px; }
   .style-toolbar { top: 75px; }

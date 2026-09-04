@@ -14,7 +14,10 @@
 <body>
 <div id="viewerUI">
   <header id="topbar">
-    <button class="brand" id="openAgain" title="Open a 3D model">OPEN FILE <span class="open-dot" aria-hidden="true"></span></button>
+    <div class="brand">
+      <button id="openAgain" title="Open a 3D model">OPEN FILE</button>
+      <a class="open-dot" href="https://hildgyorgy.github.io/app-support/drop-view/" target="_blank" rel="noopener" aria-label="About Drop & View — opens in a new tab" title="About Drop & View"><span aria-hidden="true">i</span></a>
+    </div>
     <nav class="style-toolbar" aria-label="Display style">
       <button class="tool-button active" data-mode="original" aria-pressed="true">ORIGINAL</button>
       <button class="tool-button" data-mode="white" aria-pressed="false">WHITE</button>
@@ -43,7 +46,7 @@
       <div class="drop-title">DROP YOUR 3D MODEL HERE</div>
       <div class="drop-subtitle">GLB • FBX • GLTF</div>
       <button class="demo-button" id="demoButton" type="button">OR TRY THIS <span>DEMO</span> FIRST</button>
-      <div class="privacy-note">NOTHING IS UPLOADED — YOUR FILE STAYS IN YOUR BROWSER</div>
+      <div id="startMessage" class="privacy-note" role="status" aria-live="polite">NOTHING IS UPLOADED — YOUR FILE STAYS IN YOUR BROWSER</div>
     </div>
   </div>
   <input id="fileInput" type="file" accept="*/*" hidden>

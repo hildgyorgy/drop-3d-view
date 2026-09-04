@@ -35,7 +35,7 @@ import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun } from "../view/ground-sun.js";
 import { inspectModel } from "../ui/inspector.js";
 import { setViewMode } from "../view/view-modes.js";
-import { setStatus } from "../ui/status.js";
+import { setStatus, resetStartMessage, showStartError } from "../ui/status.js";
 import { disposeSectionCap } from "../section/section-cap.js";
 import { updateSectionPlane } from "../section/section-plane.js";
 
@@ -77,6 +77,8 @@ if (demoButton) {
     demoButton.disabled =
       true;
 
+    resetStartMessage();
+
     try {
 
       const response =
@@ -106,8 +108,8 @@ if (demoButton) {
 
       console.error(error);
 
-      setStatus(
-        "The demo model could not be opened."
+      showStartError(
+        "THE DEMO MODEL COULD NOT BE OPENED. PLEASE TRY AGAIN."
       );
 
     }
@@ -200,6 +202,7 @@ window.addEventListener(
 export async function openFile(file) {
 
   disposeCurrentModel();
+  resetStartMessage();
 
 
   const extension =
@@ -217,8 +220,8 @@ export async function openFile(file) {
     ].includes(extension)
   ) {
 
-    setStatus(
-      "Unsupported file format."
+    showStartError(
+      "UNSUPPORTED FILE FORMAT. PLEASE USE GLB, FBX OR GLTF."
     );
 
     return;
@@ -301,8 +304,9 @@ export async function openFile(file) {
     );
 
 
-    setStatus(
-      "The model could not be opened."
+    disposeCurrentModel();
+    showStartError(
+      "THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE."
     );
 
   }
@@ -404,6 +408,12 @@ configureSun();
 
 
 export function disposeCurrentModel() {
+
+  // A failed loader can leave an object URL without a model to dispose.
+  if (State.currentObjectURL) {
+    URL.revokeObjectURL(State.currentObjectURL);
+    State.currentObjectURL = null;
+  }
 
   if (!State.model)
     return;
