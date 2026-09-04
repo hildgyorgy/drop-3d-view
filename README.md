@@ -1,5 +1,7 @@
 # Drop & View 1.0.1
 
+![Drop & View – 3D model viewer](demo/drop-and-view.png)
+
 A lightweight browser-based 3D model viewer by **György Hild**. Open a model, explore it, and share the file with a client who can view it without installing a desktop application or creating an account.
 
 **[Open the viewer](https://hildgyorgy.github.io/drop-3d-view/)** · **[Usage guide and support](https://hildgyorgy.github.io/app-support/drop-view/)**
