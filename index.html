@@ -68,10 +68,6 @@
         <input id="glassOpacity" type="range" min="15" max="70" value="32">
       </label>
       <label class="check-control" for="shadowToggle"><input id="shadowToggle" type="checkbox" checked> SHADOW</label>
-      <div class="controls-help">
-        <span>Drag to orbit · scroll/pinch to zoom</span>
-        <a href="https://hildgyorgy.github.io/app-support/drop-view/" target="_blank" rel="noopener">Support</a>
-      </div>
     </div>
     <button id="panelButton" class="menu-toggle" aria-expanded="false" aria-controls="sidePanel">CONTROLS <span class="menu-arrow" aria-hidden="true"></span></button>
   </div>
@@ -88,6 +84,8 @@
     </div>
     <input id="sectionSlider" type="range" min="0" max="1000" value="500" aria-label="Section position" hidden>
   </div>
+
+  <button id="showAllButton" class="menu-toggle show-all" title="Fit the whole model in the current view" hidden>SHOW ALL</button>
 
   <!-- Retained for later UI iterations; controls and inspector data stay wired. -->
   <div id="retainedControls" hidden>

@@ -17,6 +17,7 @@ import { State } from "../core/state.js";
 import { scene } from "../core/scene.js";
 import {
   startScreen,
+  showAllButton,
   openButton,
   demoButton,
   openAgain,
@@ -396,6 +397,8 @@ configureSun();
     State.currentMode
   );
 
+  showAllButton.hidden = false;
+
 
   setStatus(
     `${file.name} · drag to orbit · scroll/pinch to zoom`
@@ -408,6 +411,9 @@ configureSun();
 
 
 export function disposeCurrentModel() {
+
+  showAllButton.hidden = true;
+  ++State.cameraAnimation;
 
   // A failed loader can leave an object URL without a model to dispose.
   if (State.currentObjectURL) {

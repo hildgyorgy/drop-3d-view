@@ -14,6 +14,8 @@
 export const startScreen =
   document.querySelector("#startScreen");
 
+export const showAllButton = document.querySelector("#showAllButton");
+
 export const openButton =
   document.querySelector("#openButton");
 

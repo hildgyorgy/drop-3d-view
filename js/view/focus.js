@@ -87,13 +87,11 @@ renderer.domElement.addEventListener(
    SMOOTH TARGET
 ====================================================== */
 
-let focusAnimation = 0;
-
 export function animateTarget(
   destination
 ) {
 
-  const animation = ++focusAnimation;
+  const animation = ++State.cameraAnimation;
   const camera = State.camera;
   const controls = State.controls;
   // ORTHO focus preserves both preset and horizontally rotated elevations.
@@ -115,7 +113,7 @@ export function animateTarget(
   function step(now) {
 
     // A newer focus or a projection change supersedes this animation.
-    if (animation !== focusAnimation || State.controls !== controls || State.camera !== camera)
+    if (animation !== State.cameraAnimation || State.controls !== controls || State.camera !== camera)
       return;
 
     let t =
