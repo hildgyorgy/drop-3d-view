@@ -1,4 +1,4 @@
-# Drop & View 1.3 — szétbontott fájlstruktúra
+# Drop & View 1.0.1
 
 ## Hogyan indítsd el
 
