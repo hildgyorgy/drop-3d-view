@@ -1,0 +1,94 @@
+Drop & View — Free Web App Use / Proprietary Licence
+Copyright (c) 2026 György Hild
+
+1. Scope
+
+These terms apply to the original Drop & View application code,
+documentation and visual assets to the extent that their rights are held
+by György Hild (the "Author"). Third-party components and content are
+excluded and remain subject to their own licences and rights.
+
+This is a proprietary licence, not an open-source licence. Rights not
+expressly granted below are reserved, subject to applicable law.
+
+2. Free use of the published application
+
+You may access and use the application published by the Author at
+https://hildgyorgy.github.io/drop-3d-view/ free of charge for personal,
+educational and commercial purposes, including paid professional work
+and client presentations.
+
+This permission includes the downloading, caching and execution of files
+by your browser as necessary for ordinary use of the published web app.
+You may share links to the published application and its support page.
+No attribution is required in your client presentations or project images.
+
+3. Your models and output
+
+The Author claims no rights in models you load into the application.
+These terms do not restrict your use or sharing of screenshots or other
+images of your own models produced with the viewer. You remain responsible
+for any third-party rights in your models, textures and other content.
+
+4. Application code and redistribution
+
+Unless separately authorised in writing by the Author, and except as
+permitted by applicable law or the platform permissions described below,
+you may not:
+
+- reproduce or reuse the proprietary application code in another product;
+- distribute the application, its proprietary source code, or modified
+  versions of either;
+- host or deploy a copy of the application on another website or service;
+- sell, sublicense or otherwise supply copies of the proprietary
+  application to others; or
+- remove copyright, licence or attribution notices from copies where
+  those notices are required.
+
+Free use of the published web app does not grant a general right to
+modify, redistribute or rebrand the application. It also does not grant
+rights to redistribute demonstration models or third-party assets as
+standalone content.
+
+5. GitHub and statutory permissions
+
+Where this repository is public on GitHub, viewing and forking through
+GitHub are permitted to the extent provided by GitHub's Terms of Service.
+These terms do not withdraw or override those platform permissions.
+They do not grant additional rights to deploy or redistribute a fork.
+
+Nothing in these terms limits rights or exceptions that cannot lawfully
+be excluded, including any applicable software-use, backup, study,
+testing or interoperability rights. These terms do not claim ownership
+of general ideas, methods or functionality.
+
+6. Third-party components
+
+Third-party code and assets retain their respective licences. In
+particular, Three.js is licensed under the MIT License and Draco under
+the Apache License 2.0. These proprietary terms do not restrict rights
+granted by those licences. Any applicable third-party notices and
+licence requirements must be preserved.
+
+7. No warranty
+
+To the extent permitted by applicable law, the application is provided
+"as is" and "as available", without warranties of any kind. Model
+appearance, measurements, geometry and file compatibility are not
+guaranteed. The viewer is not a substitute for checking the original
+design documents or performing professional verification.
+
+8. Liability
+
+To the extent permitted by applicable law, the Author is not liable for
+loss or damage arising from use of or inability to use the application.
+Nothing in these terms excludes liability or user rights that cannot
+lawfully be excluded.
+
+9. Additional permission
+
+For permission to reuse code, distribute or host a copy, or for other
+licensing enquiries, contact:
+
+György Hild
+hild.gyorgy@freemail.hu
