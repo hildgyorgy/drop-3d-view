@@ -129,7 +129,7 @@ body.dragging .drop-title { color: var(--red); }
 @media (max-width: 600px) {
   :root { --edge: 18px; }
   .brand, .tool-button, .menu-toggle, .corner-menu, .section-heading { font-size: 10px; letter-spacing: .18em; }
-  .brand { gap: 8px; }
+  .brand { flex-direction: column; align-items: flex-start; gap: 8px; }
   .open-dot { width: 16px; height: 16px; font-size: 12px; }
   .tool-button + .tool-button { margin-left: 18px; }
   .tool-button + .tool-button::before { left: -11px; }
