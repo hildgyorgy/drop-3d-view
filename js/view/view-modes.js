@@ -13,11 +13,13 @@ import {
   wireMaterial,
   getRenaissanceMaterial,
   getWhiteMaterial,
-  isEntirelyGlass,
-  isGlassMaterial,
-  applyGlassAppearance
+  isEntirelyTransparent,
+  isTransparentMaterial,
+  applyTransparentAppearance
 } from "../model/materials.js";
 import { applyClipping } from "../section/section-plane.js";
+import { updateEnvironment } from "./environment.js";
+import { updateAO } from "./ambient-occlusion.js";
 
 let shadowSettingBeforeWireframe = null;
 
@@ -40,8 +42,8 @@ function updateGlassAppearance() {
 
       materials.forEach(
         material => {
-          if (isGlassMaterial(material))
-            applyGlassAppearance(material, opacity);
+          if (isTransparentMaterial(material))
+            applyTransparentAppearance(material, opacity);
         }
       );
 
@@ -87,6 +89,9 @@ export function setViewMode(mode) {
 
   State.currentMode =
     mode;
+
+  updateEnvironment();
+  updateAO();
 
   const wireframe = mode === "wireframe";
 
@@ -206,7 +211,7 @@ export function setViewMode(mode) {
 
           // Transparent glass must not cast an opaque shadow in Model mode.
           node.castShadow =
-            !isEntirelyGlass(original);
+            !isEntirelyTransparent(original);
 
           node.visible =
             true;
@@ -226,7 +231,7 @@ export function setViewMode(mode) {
 
 
           node.castShadow =
-            !isEntirelyGlass(original);
+            !isEntirelyTransparent(original);
 
           node.visible =
             true;
@@ -245,7 +250,7 @@ export function setViewMode(mode) {
             getWhiteMaterial(original);
 
           node.castShadow =
-            !isEntirelyGlass(original);
+            !isEntirelyTransparent(original);
 
           node.visible =
             true;
@@ -301,7 +306,7 @@ export function setViewMode(mode) {
   */
 
   node.castShadow =
-    !isEntirelyGlass(
+    !isEntirelyTransparent(
       original
     );
 

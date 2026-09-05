@@ -19,6 +19,7 @@
 import { State } from "./core/state.js";
 import { scene, renderer, perspectiveCamera } from "./core/scene.js";
 import { updateOrthoFrustum } from "./view/camera.js";
+import { renderViewer, resizeAO } from "./view/ambient-occlusion.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -62,6 +63,7 @@ window.addEventListener(
       width,
       height
     );
+    resizeAO(width, height);
 
   }
 );
@@ -75,10 +77,7 @@ function animate() {
   State.controls.update();
 
 
-  renderer.render(
-    scene,
-    State.camera
-  );
+  renderViewer();
 
 }
 

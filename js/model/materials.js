@@ -246,31 +246,44 @@ export const renaissanceGlassMaterial =
   });
 
 
-export function isGlassMaterial(material) {
+export function isTransparentMaterial(material) {
 
-  const name =
-    (material?.name || "")
-      .toLocaleLowerCase("hu");
+  if (!material)
+    return false;
 
+  const opacity = Number(material.opacity);
+  const transmission = Number(material.transmission);
+  const alphaTest = Number(material.alphaTest);
 
   return (
 
-    name.includes("üveg") ||
+    material.transparent === true ||
 
-    name.includes("uveg") ||
+    (
+      Number.isFinite(opacity) &&
+      opacity < 0.999
+    ) ||
 
-    name.includes("glass")
+    (
+      Number.isFinite(transmission) &&
+      transmission > 0
+    ) ||
+
+    (
+      Number.isFinite(alphaTest) &&
+      alphaTest > 0
+    )
 
   );
 
 }
 
-export function applyGlassAppearance(
+export function applyTransparentAppearance(
   material,
   opacity
 ) {
 
-  if (!material || !isGlassMaterial(material))
+  if (!material || !isTransparentMaterial(material))
     return;
 
   material.transparent =
@@ -296,16 +309,16 @@ export function applyGlassAppearance(
 
 }
 
-/* Keep transparent glass in White/Hidden while whitening other materials. */
+/* Keep transparent materials in White/Hidden while whitening other materials. */
 export function getWhiteMaterial(original) {
 
   if (Array.isArray(original)) {
     return original.map(material =>
-      isGlassMaterial(material) ? material : whiteMaterial
+      isTransparentMaterial(material) ? material : whiteMaterial
     );
   }
 
-  return isGlassMaterial(original) ? original : whiteMaterial;
+  return isTransparentMaterial(original) ? original : whiteMaterial;
 
 }
 
@@ -320,7 +333,7 @@ export function getRenaissanceMaterial(
 
     return original.map(
       material =>
-        isGlassMaterial(material)
+        isTransparentMaterial(material)
           ? renaissanceGlassMaterial
           : renaissanceMaterial
     );
@@ -328,14 +341,14 @@ export function getRenaissanceMaterial(
   }
 
 
-  return isGlassMaterial(original)
+  return isTransparentMaterial(original)
     ? renaissanceGlassMaterial
     : renaissanceMaterial;
 
 }
 
 
-export function isEntirelyGlass(
+export function isEntirelyTransparent(
   original
 ) {
 
@@ -348,7 +361,7 @@ export function isEntirelyGlass(
   return (
     materials.length > 0 &&
     materials.every(
-      isGlassMaterial
+      isTransparentMaterial
     )
   );
 

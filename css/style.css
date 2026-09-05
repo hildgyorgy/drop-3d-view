@@ -34,7 +34,10 @@ canvas { display: block; touch-action: none; }
   letter-spacing: .32em; line-height: 1.5;
 }
 .brand, .style-toolbar, .view-dock, .controls-dock, .section-dock { pointer-events: auto; }
-.brand { display: flex; align-items: center; gap: 16px; min-height: 36px; white-space: nowrap; }
+.brand { position: relative; display: flex; align-items: center; gap: 16px; min-height: 36px; white-space: nowrap; }
+#environmentToggle, #aoToggle { position: absolute; top: 42px; left: calc(100% - 23px); font-size: 9px; letter-spacing: .08em; min-height: 28px; }
+#aoToggle { top: 72px; }
+#environmentToggle[aria-pressed="true"], #aoToggle[aria-pressed="true"] { color: var(--red); }
 .brand button { min-height: 36px; letter-spacing: inherit; }
 .open-dot {
   width: 23px; height: 23px; border-radius: 50%; background: var(--red);
@@ -130,6 +133,8 @@ body.dragging .drop-title { color: var(--red); }
   :root { --edge: 18px; }
   .brand, .tool-button, .menu-toggle, .corner-menu, .section-heading { font-size: 10px; letter-spacing: .18em; }
   .brand { flex-direction: column; align-items: flex-start; gap: 8px; }
+  #environmentToggle { top: 66px; left: 0; }
+  #aoToggle { top: 96px; left: 0; }
   .open-dot { width: 16px; height: 16px; font-size: 12px; }
   .tool-button + .tool-button { margin-left: 18px; }
   .tool-button + .tool-button::before { left: -11px; }
