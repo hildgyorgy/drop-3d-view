@@ -29,6 +29,83 @@ export const whiteMaterial =
   });
 
 
+const whiteMaterialVariants =
+  new WeakMap();
+
+
+function getWhiteMaterialVariant(original) {
+
+  if (!original?.clone)
+    return whiteMaterial;
+
+  const cached =
+    whiteMaterialVariants.get(original);
+
+  if (cached)
+    return cached;
+
+  const material =
+    original.clone();
+
+  if (material.color)
+    material.color.set(0xf7f7f4);
+
+  if (material.emissive)
+    material.emissive.set(0x000000);
+
+  if ("roughness" in material)
+    material.roughness = .88;
+
+  if ("metalness" in material)
+    material.metalness = 0;
+
+  material.emissiveMap = null;
+
+  const baseProgramCacheKey =
+    material.customProgramCacheKey();
+
+  const baseOnBeforeCompile =
+    material.onBeforeCompile;
+
+  material.onBeforeCompile =
+    function(shader, renderer) {
+
+      baseOnBeforeCompile.call(
+        this,
+        shader,
+        renderer
+      );
+
+      shader.fragmentShader =
+        shader.fragmentShader.replace(
+          "#include <map_fragment>",
+          `
+          #include <map_fragment>
+          diffuseColor.rgb = vec3(
+            0.9301,
+            0.9301,
+            0.9110
+          );
+          `
+        );
+
+    };
+
+  material.customProgramCacheKey =
+    () =>
+      `${baseProgramCacheKey}|drop-view-white-alpha-preserving-1`;
+
+  material.needsUpdate = true;
+  whiteMaterialVariants.set(
+    original,
+    material
+  );
+
+  return material;
+
+}
+
+
 
 /* ------------------------------------------------------
    WIREFRAME
@@ -246,18 +323,14 @@ export const renaissanceGlassMaterial =
   });
 
 
-export function isTransparentMaterial(material) {
+export function isTranslucentMaterial(material) {
 
   if (!material)
     return false;
 
   const opacity = Number(material.opacity);
   const transmission = Number(material.transmission);
-  const alphaTest = Number(material.alphaTest);
-
   return (
-
-    material.transparent === true ||
 
     (
       Number.isFinite(opacity) &&
@@ -267,23 +340,18 @@ export function isTransparentMaterial(material) {
     (
       Number.isFinite(transmission) &&
       transmission > 0
-    ) ||
-
-    (
-      Number.isFinite(alphaTest) &&
-      alphaTest > 0
     )
 
   );
 
 }
 
-export function applyTransparentAppearance(
+export function applyTranslucentAppearance(
   material,
   opacity
 ) {
 
-  if (!material || !isTransparentMaterial(material))
+  if (!material || !isTranslucentMaterial(material))
     return;
 
   material.transparent =
@@ -309,16 +377,16 @@ export function applyTransparentAppearance(
 
 }
 
-/* Keep transparent materials in White/Hidden while whitening other materials. */
+/* Preserve every material's alpha while replacing all visible color with white. */
 export function getWhiteMaterial(original) {
 
   if (Array.isArray(original)) {
     return original.map(material =>
-      isTransparentMaterial(material) ? material : whiteMaterial
+      getWhiteMaterialVariant(material)
     );
   }
 
-  return isTransparentMaterial(original) ? original : whiteMaterial;
+  return getWhiteMaterialVariant(original);
 
 }
 
@@ -333,7 +401,7 @@ export function getRenaissanceMaterial(
 
     return original.map(
       material =>
-        isTransparentMaterial(material)
+        isTranslucentMaterial(material)
           ? renaissanceGlassMaterial
           : renaissanceMaterial
     );
@@ -341,14 +409,14 @@ export function getRenaissanceMaterial(
   }
 
 
-  return isTransparentMaterial(original)
+  return isTranslucentMaterial(original)
     ? renaissanceGlassMaterial
     : renaissanceMaterial;
 
 }
 
 
-export function isEntirelyTransparent(
+export function isEntirelyTranslucent(
   original
 ) {
 
@@ -361,7 +429,7 @@ export function isEntirelyTransparent(
   return (
     materials.length > 0 &&
     materials.every(
-      isTransparentMaterial
+      isTranslucentMaterial
     )
   );
 
