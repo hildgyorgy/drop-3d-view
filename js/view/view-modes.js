@@ -26,7 +26,10 @@ let shadowSettingBeforeWireframe = null;
 
 function updateTransparencyAppearance() {
 
-  if (!State.model || State.currentMode === "renaissance")
+  const transparencyEnabled =
+    ["original", "white", "hidden"].includes(State.currentMode);
+
+  if (!State.model || !transparencyEnabled)
     return;
 
   const opacity =
@@ -40,7 +43,17 @@ function updateTransparencyAppearance() {
           ? original
           : [original];
 
-      materials.forEach(
+      const visibleMaterial =
+        State.currentMode === "original"
+          ? []
+          : getWhiteMaterial(original);
+
+      const visibleMaterials =
+        Array.isArray(visibleMaterial)
+          ? visibleMaterial
+          : [visibleMaterial];
+
+      [...materials, ...visibleMaterials].forEach(
         material => {
           if (isTranslucentMaterial(material))
             applyTranslucentAppearance(material, opacity);
@@ -94,6 +107,11 @@ export function setViewMode(mode) {
   updateAO();
 
   const wireframe = mode === "wireframe";
+  const transparencyEnabled =
+    ["original", "white", "hidden"].includes(mode);
+
+  if (transparency)
+    transparency.disabled = !transparencyEnabled;
 
   if (wireframe && shadowSettingBeforeWireframe === null) {
     shadowSettingBeforeWireframe = shadowToggle.checked;

@@ -114,8 +114,8 @@ input[type="checkbox"]:checked, .circle-toggle.active { background: var(--red); 
 .axis-buttons { margin-bottom: 20px; }
 #sectionSlider { width: 100%; }
 .show-all { position: absolute; bottom: max(25px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); pointer-events: auto; white-space: nowrap; }
-#lightSection.disabled, .check-control:has(input:disabled) { opacity: .4; }
-#lightSection.disabled input:disabled { opacity: 1; }
+#lightSection.disabled, .check-control:has(input:disabled), .slider-control:has(input:disabled) { opacity: .4; }
+#lightSection.disabled input:disabled, .slider-control:has(input:disabled) input:disabled { opacity: 1; }
 #startScreen { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 #startScreen.hidden { display: none; }
 .empty-state-content { width: min(650px, calc(100vw - 40px)); text-align: center; }
