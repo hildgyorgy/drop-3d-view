@@ -17,8 +17,11 @@
     <div class="brand">
       <button id="openAgain" title="Open a 3D model">OPEN FILE</button>
       <a class="open-dot" href="https://hildgyorgy.github.io/app-support/drop-view/" target="_blank" rel="noopener" aria-label="About Drop & View — opens in a new tab" title="About Drop & View"><span aria-hidden="true">i</span></a>
-      <button id="environmentToggle" type="button" aria-pressed="false" title="Compare environment lighting in ORIGINAL mode">ENV OFF</button>
-      <button id="aoToggle" type="button" aria-pressed="false" title="Compare ambient occlusion in ORIGINAL mode">AO OFF</button>
+      <div class="diagnostics">
+        <button id="environmentToggle" type="button" aria-pressed="false" title="Compare environment lighting in ORIGINAL mode">ENV OFF</button>
+        <button id="aoToggle" type="button" aria-pressed="false" title="Compare ambient occlusion in ORIGINAL mode">AO OFF</button>
+        <output id="performanceStats">-- FPS • --.- ms</output>
+      </div>
     </div>
     <nav class="style-toolbar" aria-label="Display style">
       <button class="tool-button active" data-mode="original" aria-pressed="true">ORIGINAL</button>
@@ -66,8 +69,8 @@
       <label class="slider-control" for="cameraFov">CAMERA FOV
         <input id="cameraFov" type="range" min="35" max="60" value="42">
       </label>
-      <label class="slider-control" for="glassOpacity">GLASS TRANSPARENCY
-        <input id="glassOpacity" type="range" min="15" max="70" value="32">
+      <label class="slider-control" for="transparency">TRANSPARENCY
+        <input id="transparency" type="range" min="30" max="85" value="68">
       </label>
       <label class="check-control" for="shadowToggle"><input id="shadowToggle" type="checkbox" checked> SHADOW</label>
     </div>

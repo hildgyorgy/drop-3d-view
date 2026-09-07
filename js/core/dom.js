@@ -60,8 +60,8 @@ export const shadowToggle =
 export const cameraFov =
   document.querySelector("#cameraFov");
 
-export const glassOpacity =
-  document.querySelector("#glassOpacity");
+export const transparency =
+  document.querySelector("#transparency");
 
 export const lightSection =
   document.querySelector("#lightSection");

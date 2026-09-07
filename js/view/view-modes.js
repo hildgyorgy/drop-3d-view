@@ -8,7 +8,7 @@
 import * as THREE from "three";
 import { State } from "../core/state.js";
 import { hemi, DEFAULT_HEMI_INTENSITY } from "../core/scene.js";
-import { lightSection, sunAngle, sunHeight, shadowToggle, glassOpacity } from "../core/dom.js";
+import { lightSection, sunAngle, sunHeight, shadowToggle, transparency } from "../core/dom.js";
 import {
   wireMaterial,
   getRenaissanceMaterial,
@@ -24,13 +24,13 @@ import { updateAO } from "./ambient-occlusion.js";
 let shadowSettingBeforeWireframe = null;
 
 
-function updateGlassAppearance() {
+function updateTransparencyAppearance() {
 
   if (!State.model || State.currentMode === "renaissance")
     return;
 
   const opacity =
-    Number(glassOpacity.value) / 100;
+    1 - Number(transparency.value) / 100;
 
   State.originalMaterials.forEach(
     original => {
@@ -53,9 +53,9 @@ function updateGlassAppearance() {
 }
 
 
-glassOpacity?.addEventListener(
+transparency?.addEventListener(
   "input",
-  updateGlassAppearance
+  updateTransparencyAppearance
 );
 
 
@@ -323,7 +323,7 @@ export function setViewMode(mode) {
     }
   );
 
-  updateGlassAppearance();
+  updateTransparencyAppearance();
 
 
   applyClipping();

@@ -20,6 +20,7 @@ import { State } from "./core/state.js";
 import { scene, renderer, perspectiveCamera } from "./core/scene.js";
 import { updateOrthoFrustum } from "./view/camera.js";
 import { renderViewer, resizeAO } from "./view/ambient-occlusion.js";
+import { updatePerformanceStats } from "./ui/performance.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -72,12 +73,14 @@ window.addEventListener(
 
 
 
-function animate() {
+function animate(time) {
 
   State.controls.update();
 
 
   renderViewer();
+
+  updatePerformanceStats(time);
 
 }
 
