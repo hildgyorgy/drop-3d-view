@@ -8,7 +8,7 @@ import { State } from "../core/state.js";
 
 const button = document.getElementById("aoToggle");
 let enabled = false;
-let composer, renderPass, aoPass;
+let composer, renderPass, aoPass, outputPass;
 const size = new THREE.Vector2();
 
 // Pinned to Three r180: keep glass out of the normal/depth pass so it
@@ -54,18 +54,39 @@ function prepareComposer() {
   aoPass.blendIntensity = 0.35;
   composer.addPass(renderPass);
   composer.addPass(aoPass);
-  const output = new OutputPass();
-  output.uniforms.viewerBackground = { value: scene.background.clone() };
-  output.material.fragmentShader = output.material.fragmentShader
+  outputPass = new OutputPass();
+  outputPass.uniforms.viewerBackground = { value: scene.background.clone() };
+  outputPass.material.fragmentShader = outputPass.material.fragmentShader
     .replace("uniform sampler2D tDiffuse;", "uniform sampler2D tDiffuse;\nuniform vec3 viewerBackground;")
     .replace("// color space", `// Keep the flat UI background outside photographic tone mapping.
       gl_FragColor.rgb = mix(viewerBackground, gl_FragColor.rgb, gl_FragColor.a);
       gl_FragColor.a = 1.0;
       // color space`);
-  composer.addPass(output);
+  composer.addPass(outputPass);
+}
+
+function disposeComposer() {
+  if (!composer) return;
+
+  renderer.setRenderTarget(null);
+
+  aoPass?.dispose();
+  // GTAOPass r180 does not dispose these two shader materials itself.
+  aoPass?.gtaoMaterial?.dispose();
+  aoPass?.blendMaterial?.dispose();
+  outputPass?.dispose();
+  composer.dispose();
+
+  composer = null;
+  renderPass = null;
+  aoPass = null;
+  outputPass = null;
 }
 
 export function updateAO() {
+  if (!enabled || State.currentMode !== "original")
+    disposeComposer();
+
   button.disabled = State.currentMode !== "original";
   button.textContent = enabled ? "AO ON" : "AO OFF";
   button.setAttribute("aria-pressed", String(enabled));

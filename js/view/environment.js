@@ -22,9 +22,20 @@ function getEnvironment() {
   return environmentTarget.texture;
 }
 
+function disposeEnvironment() {
+  scene.environment = null;
+  environmentTarget?.dispose();
+  environmentTarget = null;
+}
+
 export function updateEnvironment() {
   const original = State.currentMode === "original";
-  scene.environment = enabled && original ? getEnvironment() : null;
+
+  if (enabled && original)
+    scene.environment = getEnvironment();
+  else
+    disposeEnvironment();
+
   scene.environmentIntensity = 0.1625;
   button.disabled = !original;
   button.textContent = enabled ? "ENV ON" : "ENV OFF";
