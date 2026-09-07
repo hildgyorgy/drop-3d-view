@@ -14,6 +14,10 @@ import { renderer } from "./scene.js";
 
 export function createControls(cam) {
 
+  const isTouchInterface =
+    window.matchMedia?.("(pointer: coarse)").matches ??
+    navigator.maxTouchPoints > 0;
+
   const c =
     new OrbitControls(
       cam,
@@ -21,10 +25,10 @@ export function createControls(cam) {
     );
 
   c.enableDamping =
-    true;
+    !isTouchInterface;
 
   c.dampingFactor =
-    .065;
+    .15;
 
   c.rotateSpeed =
     .55;
