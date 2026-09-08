@@ -34,8 +34,16 @@ scene.background =
 export const renderer =
   new THREE.WebGLRenderer({
     antialias: true,
-    stencil: true
+    stencil: true,
+    reversedDepthBuffer: true
   });
+
+console.info(
+  "Drop & View · reversed depth buffer:",
+  renderer.capabilities.reversedDepthBuffer
+    ? "enabled"
+    : "not supported"
+);
 
 renderer.setSize(
   window.innerWidth,
@@ -149,6 +157,5 @@ scene.add(
 scene.add(
   sun.target
 );
-
 
 
