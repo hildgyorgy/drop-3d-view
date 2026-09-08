@@ -45,6 +45,22 @@ export function createControls(cam) {
   c.zoomToCursor =
     true;
 
+  /*
+     Távolításkor álljunk meg még a kamera far vágósíkja
+     előtt, így a modell nem tud egyszerűen eltűnni.
+  */
+
+  c.maxDistance =
+    cam.far * .8;
+
+  /*
+     Az ortografikus kamerák távolítása nem a kamera
+     mozgatásával, hanem a zoom csökkentésével történik.
+  */
+
+  c.minZoom =
+    .1;
+
   c.minPolarAngle =
     .02;
 
