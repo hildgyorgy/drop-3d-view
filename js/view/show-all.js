@@ -57,7 +57,7 @@ export function showAll() {
     controls.target.lerpVectors(startTarget, frame.target, t);
     camera.position.lerpVectors(startPosition, endPosition, t);
     camera.zoom = THREE.MathUtils.lerp(startZoom, frame.zoom, t);
-    camera.near = Math.max(State.maxModelSize / 1000, .01);
+    camera.near = Math.max(State.maxModelSize / 200, .01);
     camera.far = State.maxModelSize * 10;
     camera.updateProjectionMatrix();
     controls.update();

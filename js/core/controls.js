@@ -65,13 +65,13 @@ export function createControls(cam) {
     .02;
 
   /*
-     A horizont alá legfeljebb 30 fokkal lehessen
+     A horizont alá legfeljebb 12 fokkal lehessen
      befordulni. Így az alsó csatlakozások is megnézhetők,
      de a kamera nem tud teljesen a modell alá kerülni.
   */
 
   c.maxPolarAngle =
-    Math.PI * 2 / 3;
+    Math.PI * 17 / 30;
 
   return c;
 

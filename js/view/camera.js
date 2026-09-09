@@ -98,7 +98,7 @@ export function fitCamera() {
 
   perspectiveCamera.near =
     Math.max(
-      State.maxModelSize / 1000,
+    State.maxModelSize / 200,
       .01
     );
 
@@ -188,7 +188,7 @@ export function updateOrthoFrustum() {
 
   orthoCamera.near =
     Math.max(
-      State.maxModelSize / 1000,
+    State.maxModelSize / 200,
       .01
     );
 
