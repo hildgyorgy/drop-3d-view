@@ -1,4 +1,4 @@
-# Drop & View 1.0.1
+# Drop & View
 
 ![Drop & View – 3D model viewer](demo/drop-and-view.png)
 
