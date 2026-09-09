@@ -50,7 +50,7 @@ const dracoLoader =
   new DRACOLoader();
 
 dracoLoader.setDecoderPath(
-  "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/"
+  "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/libs/draco/"
 );
 
 
