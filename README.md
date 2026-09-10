@@ -54,6 +54,12 @@ This is not an open-source licence. Except where applicable law or separate perm
 
 See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hild.gyorgy@freemail.hu](mailto:hild.gyorgy@freemail.hu).
 
+## Possible next steps
+
+- Real-world sun and shadow studies using the project's geographic location, orientation, date and time.
+- Proper image export directly from the viewer instead of relying on screenshots.
+- Optional model-element visibility controls. Whether these should follow layers, materials/textures or Archicad element types still needs investigation.
+
 ## Local preview
 
 For the author, authorised contributors, or anyone with separate permission to run a local copy, the project is a static HTML/CSS/JavaScript application with no build step:

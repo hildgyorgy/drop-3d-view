@@ -20,6 +20,7 @@ export const State = {
   cameraProjection: "perspective",
   cameraAnimation: 0,
   controls: createControls(perspectiveCamera),
+  navigationMode: "orbit",
 
   // --- betöltött modell ---
   model: null,

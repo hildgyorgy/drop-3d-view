@@ -43,6 +43,14 @@ canvas { display: block; touch-action: none; }
 .brand .diagnostics button { min-height: 0; letter-spacing: inherit; line-height: inherit; }
 #performanceStats { font: inherit; letter-spacing: inherit; color: inherit; }
 #environmentToggle[aria-pressed="true"], #aoToggle[aria-pressed="true"] { color: var(--red); }
+.navigation-mode { display: flex; align-items: center; gap: 11px; margin-top: 2px; white-space: nowrap; }
+.navigation-mode button {
+  position: relative; min-height: 0; font: inherit; letter-spacing: inherit; line-height: inherit;
+}
+.navigation-mode button + button::before {
+  content: "|"; position: absolute; left: -7px; color: var(--text);
+}
+.navigation-mode button.active { color: var(--red); }
 .brand button { min-height: 36px; letter-spacing: inherit; }
 .open-dot {
   width: 23px; height: 23px; border-radius: 50%; background: var(--red);

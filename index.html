@@ -21,6 +21,11 @@
         <button id="environmentToggle" type="button" aria-pressed="false" title="Compare environment lighting in ORIGINAL mode">ENV OFF</button>
         <button id="aoToggle" type="button" aria-pressed="false" title="Compare ambient occlusion in ORIGINAL mode">AO OFF</button>
         <output id="performanceStats">-- FPS • --.- ms</output>
+        <div id="navigationMode" class="navigation-mode" role="group" aria-label="Camera navigation mode">
+          <button type="button" class="active" data-navigation-mode="orbit" aria-pressed="true" title="Current orbit navigation">ORBIT</button>
+          <button type="button" data-navigation-mode="walk" aria-pressed="false" title="Orbit navigation with WASD or arrow-key walking">WALK</button>
+          <button type="button" data-navigation-mode="pointer" aria-pressed="false" title="First-person navigation; click the model to capture the pointer, Escape to release">FPS</button>
+        </div>
       </div>
     </div>
     <nav class="style-toolbar" aria-label="Display style">
