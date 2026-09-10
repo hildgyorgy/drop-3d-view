@@ -38,8 +38,8 @@ export function updateEnvironment() {
 
   scene.environmentIntensity = 0.1625;
   button.disabled = !original;
-  button.textContent = enabled ? "ENV ON" : "ENV OFF";
   button.setAttribute("aria-pressed", String(enabled));
+  button.setAttribute("aria-label", `Environment lighting ${enabled ? "on" : "off"}`);
 }
 
 button.addEventListener("click", () => {

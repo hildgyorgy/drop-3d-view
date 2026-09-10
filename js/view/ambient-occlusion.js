@@ -88,8 +88,8 @@ export function updateAO() {
     disposeComposer();
 
   button.disabled = State.currentMode !== "original";
-  button.textContent = enabled ? "AO ON" : "AO OFF";
   button.setAttribute("aria-pressed", String(enabled));
+  button.setAttribute("aria-label", `Ambient occlusion ${enabled ? "on" : "off"}`);
 }
 
 button.addEventListener("click", () => {
