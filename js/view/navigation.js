@@ -2,8 +2,7 @@
    NAVIGATION MODES
 
    ORBIT   the viewer's normal OrbitControls navigation
-   WALK    OrbitControls plus horizontal keyboard movement; camera and target move together
-   FPS     Three.js PointerLockControls with free 3D flight; E/Q also move vertically
+   FLY     Three.js PointerLockControls with free 3D flight; E/Q also move vertically
 */
 
 import * as THREE from "three";
@@ -14,9 +13,7 @@ import { renderer } from "../core/scene.js";
 const modeButtons = document.querySelectorAll("[data-navigation-mode]");
 const pressedKeys = new Set();
 const direction = new THREE.Vector3();
-const right = new THREE.Vector3();
 const movement = new THREE.Vector3();
-const worldUp = new THREE.Vector3(0, 1, 0);
 
 let pointerControls = null;
 let pointerCamera = null;
@@ -59,7 +56,7 @@ function syncOrbitTargetToCamera() {
   State.controls.target.copy(State.camera.position).addScaledVector(direction, pointerLookDistance);
 }
 
-function leavePointerMode() {
+function leaveFlyMode() {
   if (!pointerControls) return;
   syncOrbitTargetToCamera();
   if (pointerControls.isLocked) pointerControls.unlock();
@@ -68,13 +65,13 @@ function leavePointerMode() {
 function setMode(mode) {
   if (mode === State.navigationMode) return;
 
-  if (State.navigationMode === "pointer") leavePointerMode();
+  if (State.navigationMode === "fly") leaveFlyMode();
 
   pressedKeys.clear();
   State.navigationMode = mode;
-  State.controls.enabled = mode !== "pointer";
+  State.controls.enabled = mode !== "fly";
 
-  if (mode === "pointer") {
+  if (mode === "fly") {
     ensurePointerControls();
     State.controls.enabled = false;
   } else {
@@ -93,7 +90,7 @@ modeButtons.forEach(button => {
 });
 
 renderer.domElement.addEventListener("click", () => {
-  if (State.navigationMode !== "pointer" || !State.model) return;
+  if (State.navigationMode !== "fly" || !State.model) return;
   ensurePointerControls().lock();
 });
 
@@ -118,22 +115,7 @@ function keyboardAxes() {
   return { forward, sideways, vertical };
 }
 
-function updateWalk(delta, forward, sideways) {
-  State.camera.getWorldDirection(direction);
-  direction.y = 0;
-  if (direction.lengthSq() < 1e-8) direction.set(0, 0, -1);
-  else direction.normalize();
-
-  right.crossVectors(direction, worldUp).normalize();
-  movement.copy(direction).multiplyScalar(forward).addScaledVector(right, sideways);
-  if (movement.lengthSq() > 1) movement.normalize();
-  movement.multiplyScalar(Math.max(State.maxModelSize, 1) * .35 * delta);
-
-  State.camera.position.add(movement);
-  State.controls.target.add(movement);
-}
-
-function updatePointer(delta, forward, sideways, vertical) {
+function updateFly(delta, forward, sideways, vertical) {
   const controls = ensurePointerControls();
   State.controls.enabled = false;
 
@@ -157,11 +139,10 @@ export function updateNavigation(time) {
   previousTime = time;
 
   // Camera projection changes replace OrbitControls. Reapply the selected mode immediately.
-  State.controls.enabled = State.navigationMode !== "pointer";
+  State.controls.enabled = State.navigationMode !== "fly";
 
   if (State.navigationMode === "orbit" || !State.model) return;
 
   const { forward, sideways, vertical } = keyboardAxes();
-  if (State.navigationMode === "walk") updateWalk(delta, forward, sideways);
-  else updatePointer(delta, forward, sideways, vertical);
+  updateFly(delta, forward, sideways, vertical);
 }
