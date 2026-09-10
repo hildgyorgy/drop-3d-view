@@ -22,7 +22,7 @@
       <div class="navigation-status">
         <div id="navigationMode" class="navigation-mode" role="group" aria-label="Camera navigation mode">
           <button type="button" class="active" data-navigation-mode="orbit" aria-pressed="true" title="Current orbit navigation">ORBIT</button>
-          <button type="button" data-navigation-mode="fly" aria-pressed="false" title="Free-flight navigation; WASD/arrows move, E/Q change height, Escape releases the pointer">FLY</button>
+          <button type="button" data-navigation-mode="fly" aria-pressed="false" title="Start free flight; WASD/arrows move, E/Q change height, Escape releases the pointer">FLY</button>
         </div>
         <output id="performanceStats">-- FPS • --.- ms</output>
       </div>
@@ -75,6 +75,9 @@
       </label>
       <label class="slider-control" for="transparency">TRANSPARENCY
         <input id="transparency" type="range" min="30" max="85" value="68">
+      </label>
+      <label class="slider-control" for="flySpeed">FLY SPEED
+        <input id="flySpeed" type="range" min="5" max="50" value="18" disabled>
       </label>
       <div class="lighting-toggles" role="group" aria-label="Lighting options">
         <label class="check-control" for="shadowToggle"><input id="shadowToggle" type="checkbox" checked> SHADOW</label>

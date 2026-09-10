@@ -11,6 +11,7 @@ import { State } from "../core/state.js";
 import { renderer } from "../core/scene.js";
 
 const modeButtons = document.querySelectorAll("[data-navigation-mode]");
+const flySpeed = document.getElementById("flySpeed");
 const pressedKeys = new Set();
 const direction = new THREE.Vector3();
 const movement = new THREE.Vector3();
@@ -70,6 +71,7 @@ function setMode(mode) {
   pressedKeys.clear();
   State.navigationMode = mode;
   State.controls.enabled = mode !== "fly";
+  if (flySpeed) flySpeed.disabled = mode !== "fly";
 
   if (mode === "fly") {
     ensurePointerControls();
@@ -86,7 +88,15 @@ function setMode(mode) {
 }
 
 modeButtons.forEach(button => {
-  button.addEventListener("click", () => setMode(button.dataset.navigationMode));
+  button.addEventListener("click", () => {
+    const mode = button.dataset.navigationMode;
+    setMode(mode);
+    if (mode === "fly" && State.model) ensurePointerControls().lock();
+  });
+});
+
+flySpeed?.addEventListener("input", () => {
+  State.flySpeed = Number(flySpeed.value) / 100;
 });
 
 renderer.domElement.addEventListener("click", () => {
@@ -120,7 +130,7 @@ function updateFly(delta, forward, sideways, vertical) {
   State.controls.enabled = false;
 
   if (controls.isLocked) {
-    const distance = Math.max(State.maxModelSize, 1) * .35 * delta;
+    const distance = Math.max(State.maxModelSize, 1) * State.flySpeed * delta;
     movement.set(sideways, vertical, -forward);
     if (movement.lengthSq() > 1) movement.normalize();
 

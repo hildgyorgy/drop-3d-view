@@ -21,6 +21,7 @@ export const State = {
   cameraAnimation: 0,
   controls: createControls(perspectiveCamera),
   navigationMode: "orbit",
+  flySpeed: .18,
 
   // --- betöltött modell ---
   model: null,
