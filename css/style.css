@@ -36,7 +36,7 @@ canvas { display: block; touch-action: none; }
 .brand, .style-toolbar, .view-dock, .controls-dock, .section-dock { pointer-events: auto; }
 .brand { position: relative; display: flex; align-items: flex-start; gap: 34px; min-height: 36px; white-space: nowrap; }
 .brand-primary { display: flex; align-items: center; gap: 16px; min-height: 36px; }
-.navigation-status { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-top: 8px; }
+.navigation-status { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-top: 0; }
 .navigation-mode { display: flex; align-items: center; gap: 18px; white-space: nowrap; }
 .navigation-mode button {
   position: relative; min-height: 0; font: inherit; letter-spacing: inherit; line-height: inherit;
@@ -45,7 +45,12 @@ canvas { display: block; touch-action: none; }
   content: "|"; position: absolute; left: -11px; color: var(--text);
 }
 .navigation-mode button.active { color: var(--red); }
-#performanceStats { font: 9px/1.45 var(--mono); letter-spacing: .16em; color: inherit; }
+.navigation-mode button.active::after {
+  content: ""; position: absolute; top: -9px; left: calc(50% - 6px);
+  border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-top: 10px solid #111;
+}
+#performanceStats { font: inherit; letter-spacing: inherit; line-height: inherit; color: inherit; }
 .brand button { min-height: 36px; letter-spacing: inherit; }
 .open-dot {
   width: 23px; height: 23px; border-radius: 50%; background: var(--red);
@@ -150,7 +155,6 @@ body.dragging .drop-title { color: var(--red); }
   .navigation-status { gap: 5px; padding-top: 0; }
   .navigation-mode { gap: 14px; }
   .navigation-mode button + button::before { left: -9px; }
-  #performanceStats { font-size: 8px; }
   .open-dot { width: 16px; height: 16px; font-size: 12px; }
   .tool-button + .tool-button { margin-left: 18px; }
   .tool-button + .tool-button::before { left: -11px; }
