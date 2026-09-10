@@ -3,7 +3,7 @@
 
    ORBIT   the viewer's normal OrbitControls navigation
    WALK    OrbitControls plus horizontal keyboard movement; camera and target move together
-   FPS     Three.js PointerLockControls; click the canvas to capture the pointer, Escape releases it
+   FPS     Three.js PointerLockControls with free 3D flight; E/Q also move vertically
 */
 
 import * as THREE from "three";
@@ -31,7 +31,10 @@ function editableTarget(target) {
 }
 
 function navigationKey(event) {
-  return ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code);
+  return [
+    "KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyQ",
+    "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"
+  ].includes(event.code);
 }
 
 function ensurePointerControls() {
@@ -45,6 +48,8 @@ function ensurePointerControls() {
   pointerCamera = State.camera;
   pointerControls = new PointerLockControls(State.camera, renderer.domElement);
   pointerControls.pointerSpeed = .7;
+  pointerControls.minPolarAngle = .01;
+  pointerControls.maxPolarAngle = Math.PI - .01;
   pointerLookDistance = Math.max(State.camera.position.distanceTo(State.controls.target), .01);
   return pointerControls;
 }
@@ -109,7 +114,8 @@ function keyboardAxes() {
     Number(pressedKeys.has("KeyS") || pressedKeys.has("ArrowDown"));
   const sideways = Number(pressedKeys.has("KeyD") || pressedKeys.has("ArrowRight")) -
     Number(pressedKeys.has("KeyA") || pressedKeys.has("ArrowLeft"));
-  return { forward, sideways };
+  const vertical = Number(pressedKeys.has("KeyE")) - Number(pressedKeys.has("KeyQ"));
+  return { forward, sideways, vertical };
 }
 
 function updateWalk(delta, forward, sideways) {
@@ -127,14 +133,20 @@ function updateWalk(delta, forward, sideways) {
   State.controls.target.add(movement);
 }
 
-function updatePointer(delta, forward, sideways) {
+function updatePointer(delta, forward, sideways, vertical) {
   const controls = ensurePointerControls();
   State.controls.enabled = false;
 
   if (controls.isLocked) {
     const distance = Math.max(State.maxModelSize, 1) * .35 * delta;
-    if (forward) controls.moveForward(forward * distance);
-    if (sideways) controls.moveRight(sideways * distance);
+    movement.set(sideways, vertical, -forward);
+    if (movement.lengthSq() > 1) movement.normalize();
+
+    // Camera-local X/Z makes W/S follow the full viewing direction,
+    // including its vertical component. E/Q remains world-vertical.
+    if (movement.x) State.camera.translateX(movement.x * distance);
+    if (movement.z) State.camera.translateZ(movement.z * distance);
+    if (movement.y) State.camera.position.y += movement.y * distance;
   }
 
   syncOrbitTargetToCamera();
@@ -149,7 +161,7 @@ export function updateNavigation(time) {
 
   if (State.navigationMode === "orbit" || !State.model) return;
 
-  const { forward, sideways } = keyboardAxes();
+  const { forward, sideways, vertical } = keyboardAxes();
   if (State.navigationMode === "walk") updateWalk(delta, forward, sideways);
-  else updatePointer(delta, forward, sideways);
+  else updatePointer(delta, forward, sideways, vertical);
 }
