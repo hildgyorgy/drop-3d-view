@@ -159,7 +159,7 @@ body.dragging .drop-title { color: var(--red); }
 }
 @media (max-width: 600px) {
   :root { --edge: 18px; }
-  .brand, .tool-button, .menu-toggle, .corner-menu, .section-heading { font-size: 10px; letter-spacing: .12em; }
+  .brand, .tool-button, .menu-toggle, .corner-menu, .section-heading { font-size: 10px; letter-spacing: .2em; }
   .brand { flex-direction: column; align-items: flex-start; gap: 4px; }
   .navigation-status { gap: 5px; padding-top: 0; }
   .navigation-mode { gap: 14px; }
