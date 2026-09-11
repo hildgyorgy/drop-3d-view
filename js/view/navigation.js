@@ -31,7 +31,8 @@ function editableTarget(target) {
 function navigationKey(event) {
   return [
     "KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyQ",
-    "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"
+    "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+    "ShiftLeft", "ShiftRight"
   ].includes(event.code);
 }
 
@@ -96,12 +97,19 @@ modeButtons.forEach(button => {
 });
 
 flySpeed?.addEventListener("input", () => {
-  State.flySpeed = Number(flySpeed.value) / 100;
+  State.flySpeed = Number(flySpeed.value) / 200;
 });
 
 renderer.domElement.addEventListener("click", () => {
   if (State.navigationMode !== "fly" || !State.model) return;
-  ensurePointerControls().lock();
+  const controls = ensurePointerControls();
+  if (controls.isLocked) {
+    // A click pauses FLY and gives the pointer back without changing mode.
+    controls.unlock();
+  } else {
+    // Clicking the canvas again resumes FLY.
+    controls.lock();
+  }
 });
 
 window.addEventListener("keydown", event => {
@@ -130,7 +138,8 @@ function updateFly(delta, forward, sideways, vertical) {
   State.controls.enabled = false;
 
   if (controls.isLocked) {
-    const distance = Math.max(State.maxModelSize, 1) * State.flySpeed * delta;
+    const speedMultiplier = pressedKeys.has("ShiftLeft") || pressedKeys.has("ShiftRight") ? 2 : 1;
+    const distance = Math.max(State.maxModelSize, 1) * State.flySpeed * speedMultiplier * delta;
     movement.set(sideways, vertical, -forward);
     if (movement.lengthSq() > 1) movement.normalize();
 

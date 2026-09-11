@@ -21,7 +21,8 @@ export const State = {
   cameraAnimation: 0,
   controls: createControls(perspectiveCamera),
   navigationMode: "orbit",
-  flySpeed: .18,
+  // Base flight speed. The Shift modifier temporarily doubles this value.
+  flySpeed: .15,
 
   // --- betöltött modell ---
   model: null,
