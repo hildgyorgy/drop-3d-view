@@ -11,6 +11,7 @@ import { State } from "../core/state.js";
 import { renderer } from "../core/scene.js";
 
 const modeButtons = document.querySelectorAll("[data-navigation-mode]");
+const flyButton = document.querySelector('[data-navigation-mode="fly"]');
 const flySpeed = document.getElementById("flySpeed");
 const pressedKeys = new Set();
 const direction = new THREE.Vector3();
@@ -20,6 +21,16 @@ let pointerControls = null;
 let pointerCamera = null;
 let pointerLookDistance = 1;
 let previousTime = null;
+
+const isTouchInterface =
+  Boolean(window.matchMedia?.("(pointer: coarse)").matches) ||
+  navigator.maxTouchPoints > 0;
+
+if (isTouchInterface && flyButton) {
+  flyButton.disabled = true;
+  flyButton.setAttribute("aria-disabled", "true");
+  flyButton.title = "FLY navigation is unavailable on touch devices";
+}
 
 function editableTarget(target) {
   return target instanceof HTMLInputElement ||
@@ -65,6 +76,7 @@ function leaveFlyMode() {
 }
 
 function setMode(mode) {
+  if (mode === "fly" && isTouchInterface) return;
   if (mode === State.navigationMode) return;
 
   if (State.navigationMode === "fly") leaveFlyMode();
