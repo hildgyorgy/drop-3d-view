@@ -31,7 +31,7 @@ canvas { display: block; touch-action: none; }
 }
 .brand, .tool-button, .menu-toggle, .corner-menu, .section-heading {
   font-family: var(--mono); font-size: 12px; font-weight: 400;
-  letter-spacing: .32em; line-height: 1.5;
+  letter-spacing: .28em; line-height: 1.2;
 }
 .brand, .style-toolbar, .view-dock, .controls-dock, .section-dock { pointer-events: auto; }
 .brand { position: relative; display: flex; align-items: flex-start; gap: 34px; min-height: 36px; white-space: nowrap; }
@@ -106,8 +106,14 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-moz-range-thumb {
   width: 11px; height: 11px; border: 0; border-radius: 50%; background: var(--red); box-shadow: 1px 2px 3px #0005;
 }
-.lighting-toggles { display: flex; align-items: center; gap: 24px; width: max-content; white-space: nowrap; }
-.check-control { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.lighting-toggles {
+  display: flex; align-items: center; gap: 24px; width: max-content; white-space: nowrap;
+  font: inherit; letter-spacing: inherit; line-height: inherit;
+}
+.check-control {
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+  font: inherit; letter-spacing: inherit; line-height: inherit;
+}
 input[type="checkbox"], .circle-toggle {
   appearance: none; -webkit-appearance: none;
   width: 12px; height: 12px; flex-shrink: 0; margin: 0;
@@ -147,6 +153,9 @@ body.dragging .drop-title { color: var(--red); }
   .style-toolbar { left: auto; right: 0; transform: none; }
   .view-dock { position: fixed; top: 85px; right: var(--edge); }
   #topbar { top: 24px; }
+}
+@media (min-width: 601px) and (max-width: 1100px) {
+  .navigation-status { position: fixed; top: 85px; left: var(--edge); }
 }
 @media (max-width: 600px) {
   :root { --edge: 18px; }
