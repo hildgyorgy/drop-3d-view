@@ -137,7 +137,7 @@ export const edgeMaterial =
 
 export const sectionCapMaterial =
   new THREE.MeshBasicMaterial({
-    color: 0xe32620,
+    color: 0xff3b30,
     side: THREE.DoubleSide,
     depthWrite: true,
     depthTest: true,
@@ -155,7 +155,7 @@ export const sectionDebugLineMaterial =
 
 export const sectionEdgeMaterial =
   new LineMaterial({
-    color: 0xe32620,
+    color: 0xff3b30,
     linewidth: 1,
     worldUnits: false,
     vertexColors: false,

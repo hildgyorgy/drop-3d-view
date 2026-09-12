@@ -89,16 +89,31 @@
   </div>
 
   <div class="section-dock">
-    <div id="sectionMenu" class="corner-menu axis-buttons" hidden role="group" aria-label="Section axis">
-      <button data-axis="x" aria-pressed="false">X</button>
-      <button data-axis="y" class="active" aria-pressed="true">Y</button>
-      <button data-axis="z" aria-pressed="false">Z</button>
+    <div id="sectionMenu" class="corner-menu section-menu" hidden role="group" aria-label="Section controls">
+      <div class="axis-buttons" role="group" aria-label="Section axis">
+        <button data-axis="x" aria-pressed="false">X</button>
+        <button data-axis="y" class="active" aria-pressed="true">Y</button>
+        <button data-axis="z" aria-pressed="false">Z</button>
+      </div>
+      <div class="section-color-control" role="group" aria-label="Section edge colour">
+        <div class="section-control-label">COLOR</div>
+        <div class="section-colors">
+          <button data-section-color="#ff3b30" class="active" style="--swatch: #ff3b30" aria-label="Red" aria-pressed="true"></button>
+          <button data-section-color="#007aff" style="--swatch: #007aff" aria-label="Blue" aria-pressed="false"></button>
+          <button data-section-color="#34c759" style="--swatch: #34c759" aria-label="Green" aria-pressed="false"></button>
+          <button data-section-color="#ffcc00" style="--swatch: #ffcc00" aria-label="Yellow" aria-pressed="false"></button>
+          <button data-section-color="#000000" style="--swatch: #000000" aria-label="Black" aria-pressed="false"></button>
+          <button data-section-color="#ffffff" style="--swatch: #ffffff" aria-label="White" aria-pressed="false"></button>
+        </div>
+      </div>
+      <label class="slider-control section-plane-control" for="sectionSlider">PLANE
+        <input id="sectionSlider" type="range" min="0" max="1000" value="500" aria-label="Section plane position">
+      </label>
     </div>
     <div class="section-heading">
+      <button id="sectionMenuButton" class="menu-toggle" aria-expanded="false" aria-controls="sectionMenu"><span class="menu-arrow" aria-hidden="true"></span>SECTION</button>
       <button id="sectionButton" class="circle-toggle" aria-label="Enable section" aria-pressed="false"></button>
-      <button id="sectionMenuButton" class="menu-toggle" aria-expanded="false" aria-controls="sectionMenu">SECTION</button>
     </div>
-    <input id="sectionSlider" type="range" min="0" max="1000" value="500" aria-label="Section position" hidden>
   </div>
 
   <button id="showAllButton" class="menu-toggle show-all" title="Fit the whole model in the current view" hidden>SHOW ALL</button>
@@ -107,14 +122,6 @@
   <div id="retainedControls" hidden>
     <button id="openButton">OPEN FILE</button>
     <input id="sectionFlip" type="checkbox">
-    <div class="section-colors">
-      <button data-section-color="#000000" aria-label="Black"></button>
-      <button data-section-color="#ff3b30" class="active" aria-label="Red"></button>
-      <button data-section-color="#34c759" aria-label="Green"></button>
-      <button data-section-color="#007aff" aria-label="Blue"></button>
-      <button data-section-color="#ffcc00" aria-label="Yellow"></button>
-      <button data-section-color="#ffffff" aria-label="White"></button>
-    </div>
     <input id="sectionDebug" type="checkbox">
     <input id="sectionFill" type="checkbox">
     <div id="sectionDebugStats"></div>

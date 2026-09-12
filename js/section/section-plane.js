@@ -133,6 +133,7 @@ sectionColorButtons.forEach(button => {
 
     sectionColorButtons.forEach(swatch => {
       swatch.classList.toggle("active", swatch === button);
+      swatch.setAttribute("aria-pressed", String(swatch === button));
     });
 
     scheduleSectionCapRebuild();

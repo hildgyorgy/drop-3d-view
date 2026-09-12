@@ -1,9 +1,8 @@
 import {
   panelButton, sidePanel, orthoButton, orthoMenu,
-  sectionMenuButton, sectionMenu, sectionButton, sectionSlider,
+  sectionMenuButton, sectionMenu,
   perspectiveButton, axonButton
 } from "../core/dom.js";
-import { State } from "../core/state.js";
 
 const menus = [
   { button: panelButton, panel: sidePanel, dock: panelButton.closest(".controls-dock") },
@@ -14,8 +13,6 @@ const menus = [
 function setMenu(menu, open) {
   menu.panel.hidden = !open;
   menu.button.setAttribute("aria-expanded", String(open));
-  if (menu.panel === sectionMenu)
-    sectionSlider.hidden = !open && !State.sectionEnabled;
 }
 
 for (const menu of menus) {
@@ -27,10 +24,6 @@ for (const menu of menus) {
     setMenu(menu, menu.panel.hidden);
   });
 }
-
-sectionButton.addEventListener("click", () => {
-  setMenu(menus[2], State.sectionEnabled);
-});
 
 [perspectiveButton, axonButton].forEach(button => {
   button.addEventListener("click", () => setMenu(menus[1], false));
