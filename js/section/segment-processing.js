@@ -52,10 +52,8 @@ export function splitEdgesAtExistingPoints(points, edges, tolerance) {
 
     const useX = Math.abs(dx) <= Math.abs(dy);
     const order = useX ? byX : byY;
-    const minCoordinate =
-      Math.min(useX ? p0.x : p0.y, useX ? p1.x : p1.y) - tolerance;
-    const maxCoordinate =
-      Math.max(useX ? p0.x : p0.y, useX ? p1.x : p1.y) + tolerance;
+    const minCoordinate = Math.min(useX ? p0.x : p0.y, useX ? p1.x : p1.y) - tolerance;
+    const maxCoordinate = Math.max(useX ? p0.x : p0.y, useX ? p1.x : p1.y) + tolerance;
 
     const cuts = [
       { t: 0, index: start },
@@ -86,9 +84,7 @@ export function splitEdgesAtExistingPoints(points, edges, tolerance) {
       const cross = dx * (point.y - p0.y) - dy * (point.x - p0.x);
       if (cross * cross > tolerance * tolerance * lengthSquared) continue;
 
-      const t =
-        ((point.x - p0.x) * dx + (point.y - p0.y) * dy) /
-        lengthSquared;
+      const t = ((point.x - p0.x) * dx + (point.y - p0.y) * dy) / lengthSquared;
       const endpointMargin = tolerance / Math.sqrt(lengthSquared);
 
       if (t <= endpointMargin || t >= 1 - endpointMargin) continue;

@@ -33,61 +33,33 @@ import "./view/focus.js";
 import "./view/show-all.js";
 import "./ui/panel.js";
 
-
 /* ======================================================
    RESIZE
 ====================================================== */
 
-window.addEventListener(
-  "resize",
-  () => {
+window.addEventListener("resize", () => {
+  const width = window.innerWidth;
 
-    const width =
-      window.innerWidth;
+  const height = window.innerHeight;
 
-    const height =
-      window.innerHeight;
+  perspectiveCamera.aspect = width / height;
 
+  perspectiveCamera.updateProjectionMatrix();
 
-    perspectiveCamera.aspect =
-      width /
-      height;
+  updateOrthoFrustum();
 
-
-    perspectiveCamera
-      .updateProjectionMatrix();
-
-
-    updateOrthoFrustum();
-
-
-    renderer.setSize(
-      width,
-      height
-    );
-    resizeAO(width, height);
-
-  }
-);
-
-
-
-
+  renderer.setSize(width, height);
+  resizeAO(width, height);
+});
 
 function animate(time) {
-
   updateNavigation(time);
 
   State.controls.update();
 
-
   renderViewer();
 
   updatePerformanceStats(time);
-
 }
 
-
-renderer.setAnimationLoop(
-  animate
-);
+renderer.setAnimationLoop(animate);

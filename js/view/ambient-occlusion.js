@@ -27,8 +27,12 @@ class ViewerGTAOPass extends GTAOPass {
     super._overrideVisibility();
     scene.traverse(object => {
       if (!object.isMesh || !object.visible) return;
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      if (materials.every(material => material.transparent || material.depthWrite === false)) {
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+      if (
+        materials.every(material => material.transparent || material.depthWrite === false)
+      ) {
         object.visible = false;
         this._visibilityCache.push(object);
       }
@@ -57,11 +61,17 @@ function prepareComposer() {
   outputPass = new OutputPass();
   outputPass.uniforms.viewerBackground = { value: scene.background.clone() };
   outputPass.material.fragmentShader = outputPass.material.fragmentShader
-    .replace("uniform sampler2D tDiffuse;", "uniform sampler2D tDiffuse;\nuniform vec3 viewerBackground;")
-    .replace("// color space", `// Keep the flat UI background outside photographic tone mapping.
+    .replace(
+      "uniform sampler2D tDiffuse;",
+      "uniform sampler2D tDiffuse;\nuniform vec3 viewerBackground;"
+    )
+    .replace(
+      "// color space",
+      `// Keep the flat UI background outside photographic tone mapping.
       gl_FragColor.rgb = mix(viewerBackground, gl_FragColor.rgb, gl_FragColor.a);
       gl_FragColor.a = 1.0;
-      // color space`);
+      // color space`
+    );
   composer.addPass(outputPass);
 }
 
@@ -84,8 +94,7 @@ function disposeComposer() {
 }
 
 export function updateAO() {
-  if (!enabled || State.currentMode !== "original")
-    disposeComposer();
+  if (!enabled || State.currentMode !== "original") disposeComposer();
 
   button.disabled = State.currentMode !== "original";
   button.setAttribute("aria-pressed", String(enabled));

@@ -15,7 +15,6 @@ import { createSectionFillPositions } from "./section-fill.js";
 import { createSectionGroup, disposeSectionGroup } from "./section-renderer.js";
 import { buildSectionTopology } from "./topology.js";
 
-
 export function scheduleSectionCapRebuild() {
   if (State.sectionCapFrame !== null) return;
 
@@ -25,7 +24,6 @@ export function scheduleSectionCapRebuild() {
   });
 }
 
-
 export function disposeSectionCap() {
   sectionDebugStats.textContent = "";
   if (!State.sectionCapGroup) return;
@@ -34,7 +32,6 @@ export function disposeSectionCap() {
   disposeSectionGroup(State.sectionCapGroup);
   State.sectionCapGroup = null;
 }
-
 
 export function rebuildSectionCap() {
   disposeSectionCap();
@@ -52,12 +49,8 @@ export function rebuildSectionCap() {
     Math.abs(planeNormal.y) < 0.9
       ? new THREE.Vector3(0, 1, 0)
       : new THREE.Vector3(1, 0, 0);
-  const axisU = new THREE.Vector3()
-    .crossVectors(helper, planeNormal)
-    .normalize();
-  const axisV = new THREE.Vector3()
-    .crossVectors(planeNormal, axisU)
-    .normalize();
+  const axisU = new THREE.Vector3().crossVectors(helper, planeNormal).normalize();
+  const axisV = new THREE.Vector3().crossVectors(planeNormal, axisU).normalize();
 
   const debugEnabled = sectionDebug.checked;
   const needsPlanarGraph = sectionFill.checked || debugEnabled;
@@ -92,14 +85,13 @@ export function rebuildSectionCap() {
   let openChainCount = 0;
 
   if (needsPlanarGraph) {
-    ({ loops, degrees, degree1Count, branchCount, openChainCount } =
-      buildPlanarLoops({
-        points: points2D,
-        pointComponentIds,
-        edges,
-        tolerance: worldTolerance,
-        includeDiagnostics: debugEnabled
-      }));
+    ({ loops, degrees, degree1Count, branchCount, openChainCount } = buildPlanarLoops({
+      points: points2D,
+      pointComponentIds,
+      edges,
+      tolerance: worldTolerance,
+      includeDiagnostics: debugEnabled
+    }));
   }
 
   const positions = sectionFill.checked

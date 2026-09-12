@@ -24,9 +24,7 @@ export function collectSectionSegments({
   const intersectedComponents = new Set();
 
   function pointKey(x, y, componentId) {
-    return `${componentId}|${Math.round(x / tolerance)},${Math.round(
-      y / tolerance
-    )}`;
+    return `${componentId}|${Math.round(x / tolerance)},${Math.round(y / tolerance)}`;
   }
 
   function getPointIndex(worldPoint, componentId) {
@@ -50,14 +48,7 @@ export function collectSectionSegments({
   }
 
   function addSegment(start, end, mesh, componentId) {
-    rawSegmentPositions.push(
-      start.x,
-      start.y,
-      start.z,
-      end.x,
-      end.y,
-      end.z
-    );
+    rawSegmentPositions.push(start.x, start.y, start.z, end.x, end.y, end.z);
 
     if (includeDiagnostics) {
       intersectedMeshes.add(mesh);
@@ -112,13 +103,7 @@ export function collectSectionSegments({
       b.fromBufferAttribute(position, indexB);
       c.fromBufferAttribute(position, indexC);
 
-      const intersection = intersectTriangleWithPlane(
-        a,
-        b,
-        c,
-        localPlane,
-        localEpsilon
-      );
+      const intersection = intersectTriangleWithPlane(a, b, c, localPlane, localEpsilon);
       if (!intersection) continue;
 
       worldStart
@@ -129,12 +114,7 @@ export function collectSectionSegments({
         .applyMatrix4(mesh.matrixWorld);
 
       if (worldStart.distanceToSquared(worldEnd) > tolerance * tolerance) {
-        addSegment(
-          worldStart,
-          worldEnd,
-          mesh,
-          components?.[triangle] ?? -1
-        );
+        addSegment(worldStart, worldEnd, mesh, components?.[triangle] ?? -1);
       }
     }
   });

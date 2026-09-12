@@ -22,56 +22,28 @@ export function showStartError(text) {
   startScreen.classList.remove("hidden");
 }
 
-
 export function setStatus(text) {
+  if (!statusElement) return;
 
-  if (!statusElement)
-    return;
+  statusElement.textContent = text;
 
-  statusElement.textContent =
-    text;
+  statusElement.style.opacity = "1";
 
+  clearTimeout(setStatus.timeout);
 
-  statusElement.style.opacity =
-    "1";
-
-
-  clearTimeout(
-    setStatus.timeout
-  );
-
-
-  setStatus.timeout =
-    setTimeout(
-      () => {
-
-        statusElement.style.opacity =
-          ".38";
-
-      },
-      5000
-    );
-
+  setStatus.timeout = setTimeout(() => {
+    statusElement.style.opacity = ".38";
+  }, 5000);
 }
-
-
 
 /* ======================================================
    ESCAPE HTML
 ====================================================== */
 
 export function escapeHTML(text) {
+  const div = document.createElement("div");
 
-  const div =
-    document.createElement(
-      "div"
-    );
-
-
-  div.textContent =
-    text;
-
+  div.textContent = text;
 
   return div.innerHTML;
-
 }

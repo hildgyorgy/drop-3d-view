@@ -10,76 +10,52 @@
 import * as THREE from "three";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
-
 /* ======================================================
    SHARED MATERIALS
 ====================================================== */
-
 
 /* ------------------------------------------------------
    WHITE
 ------------------------------------------------------ */
 
-export const whiteMaterial =
-  new THREE.MeshStandardMaterial({
-    color: 0xf7f7f4,
-    roughness: .88,
-    metalness: 0,
-    side: THREE.DoubleSide
-  });
+export const whiteMaterial = new THREE.MeshStandardMaterial({
+  color: 0xf7f7f4,
+  roughness: 0.88,
+  metalness: 0,
+  side: THREE.DoubleSide
+});
 
-
-const whiteMaterialVariants =
-  new WeakMap();
-
+const whiteMaterialVariants = new WeakMap();
 
 function getWhiteMaterialVariant(original) {
+  if (!original?.clone) return whiteMaterial;
 
-  if (!original?.clone)
-    return whiteMaterial;
+  const cached = whiteMaterialVariants.get(original);
 
-  const cached =
-    whiteMaterialVariants.get(original);
+  if (cached) return cached;
 
-  if (cached)
-    return cached;
+  const material = original.clone();
 
-  const material =
-    original.clone();
+  if (material.color) material.color.set(0xf7f7f4);
 
-  if (material.color)
-    material.color.set(0xf7f7f4);
+  if (material.emissive) material.emissive.set(0x000000);
 
-  if (material.emissive)
-    material.emissive.set(0x000000);
+  if ("roughness" in material) material.roughness = 0.88;
 
-  if ("roughness" in material)
-    material.roughness = .88;
-
-  if ("metalness" in material)
-    material.metalness = 0;
+  if ("metalness" in material) material.metalness = 0;
 
   material.emissiveMap = null;
 
-  const baseProgramCacheKey =
-    material.customProgramCacheKey();
+  const baseProgramCacheKey = material.customProgramCacheKey();
 
-  const baseOnBeforeCompile =
-    material.onBeforeCompile;
+  const baseOnBeforeCompile = material.onBeforeCompile;
 
-  material.onBeforeCompile =
-    function(shader, renderer) {
+  material.onBeforeCompile = function (shader, renderer) {
+    baseOnBeforeCompile.call(this, shader, renderer);
 
-      baseOnBeforeCompile.call(
-        this,
-        shader,
-        renderer
-      );
-
-      shader.fragmentShader =
-        shader.fragmentShader.replace(
-          "#include <map_fragment>",
-          `
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <map_fragment>",
+      `
           #include <map_fragment>
           diffuseColor.rgb = vec3(
             0.9301,
@@ -87,88 +63,68 @@ function getWhiteMaterialVariant(original) {
             0.9110
           );
           `
-        );
+    );
+  };
 
-    };
-
-  material.customProgramCacheKey =
-    () =>
-      `${baseProgramCacheKey}|drop-view-white-alpha-preserving-1`;
+  material.customProgramCacheKey = () =>
+    `${baseProgramCacheKey}|drop-view-white-alpha-preserving-1`;
 
   material.needsUpdate = true;
-  whiteMaterialVariants.set(
-    original,
-    material
-  );
+  whiteMaterialVariants.set(original, material);
 
   return material;
-
 }
-
-
 
 /* ------------------------------------------------------
    WIREFRAME
 ------------------------------------------------------ */
 
-export const wireMaterial =
-  new THREE.MeshBasicMaterial({
-    color: 0x111111,
-    wireframe: true,
-    side: THREE.DoubleSide
-  });
-
-
+export const wireMaterial = new THREE.MeshBasicMaterial({
+  color: 0x111111,
+  wireframe: true,
+  side: THREE.DoubleSide
+});
 
 /* ------------------------------------------------------
    EDGES
 ------------------------------------------------------ */
 
-export const edgeMaterial =
-  new THREE.LineBasicMaterial({
-    color: 0x111111
-  });
-
-
+export const edgeMaterial = new THREE.LineBasicMaterial({
+  color: 0x111111
+});
 
 /* ------------------------------------------------------
    SECTION CAP
 ------------------------------------------------------ */
 
-export const sectionCapMaterial =
-  new THREE.MeshBasicMaterial({
-    color: 0xff3b30,
-    side: THREE.DoubleSide,
-    depthWrite: true,
-    depthTest: true,
-    toneMapped: false
-  });
+export const sectionCapMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff3b30,
+  side: THREE.DoubleSide,
+  depthWrite: true,
+  depthTest: true,
+  toneMapped: false
+});
 
+export const sectionDebugLineMaterial = new THREE.LineBasicMaterial({
+  color: 0x00eaff,
+  depthTest: false,
+  depthWrite: false,
+  toneMapped: false
+});
 
-export const sectionDebugLineMaterial =
-  new THREE.LineBasicMaterial({
-    color: 0x00eaff,
-    depthTest: false,
-    depthWrite: false,
-    toneMapped: false
-  });
-
-export const sectionEdgeMaterial =
-  new LineMaterial({
-    color: 0xff3b30,
-    linewidth: 1,
-    worldUnits: false,
-    vertexColors: false,
-    dashed: false,
-    alphaToCoverage: true,
-    transparent: false,
-    depthTest: false,
-    depthWrite: false
-  });
-
+export const sectionEdgeMaterial = new LineMaterial({
+  color: 0xff3b30,
+  linewidth: 1,
+  worldUnits: false,
+  vertexColors: false,
+  dashed: false,
+  alphaToCoverage: true,
+  transparent: false,
+  depthTest: false,
+  depthWrite: false
+});
 
 export function createSectionDebugPointMaterial(color) {
-
   return new THREE.PointsMaterial({
     color,
     size: 6,
@@ -177,26 +133,13 @@ export function createSectionDebugPointMaterial(color) {
     depthWrite: false,
     toneMapped: false
   });
-
 }
 
+export const sectionDebugDegree2Material = createSectionDebugPointMaterial(0x20d96b);
 
-export const sectionDebugDegree2Material =
-  createSectionDebugPointMaterial(
-    0x20d96b
-  );
+export const sectionDebugDegree1Material = createSectionDebugPointMaterial(0xff2b2b);
 
-export const sectionDebugDegree1Material =
-  createSectionDebugPointMaterial(
-    0xff2b2b
-  );
-
-export const sectionDebugBranchMaterial =
-  createSectionDebugPointMaterial(
-    0xff00d4
-  );
-
-
+export const sectionDebugBranchMaterial = createSectionDebugPointMaterial(0xff00d4);
 
 /* ======================================================
    RENAISSANCE / B&W MATERIAL
@@ -222,28 +165,19 @@ export const sectionDebugBranchMaterial =
 
 */
 
+export const renaissanceMaterial = new THREE.MeshLambertMaterial({
+  color: 0xffffff,
 
-export const renaissanceMaterial =
-  new THREE.MeshLambertMaterial({
+  emissive: 0x000000,
 
-    color: 0xffffff,
+  side: THREE.DoubleSide
+});
 
-    emissive: 0x000000,
+renaissanceMaterial.onBeforeCompile = shader => {
+  shader.fragmentShader = shader.fragmentShader.replace(
+    "#include <dithering_fragment>",
 
-    side: THREE.DoubleSide
-
-  });
-
-
-renaissanceMaterial.onBeforeCompile =
-  shader => {
-
-    shader.fragmentShader =
-      shader.fragmentShader.replace(
-
-        "#include <dithering_fragment>",
-
-        `
+    `
 
         /*
            Csak két tónus létezhet.
@@ -292,145 +226,79 @@ renaissanceMaterial.onBeforeCompile =
         #include <dithering_fragment>
 
         `
+  );
+};
 
-      );
-
-  };
-
-
-renaissanceMaterial.customProgramCacheKey =
-  () => "drop-view-renaissance-1.1";
+renaissanceMaterial.customProgramCacheKey = () => "drop-view-renaissance-1.1";
 
 /* ======================================================
    RENAISSANCE GLASS
 ====================================================== */
 
-export const renaissanceGlassMaterial =
-  new THREE.MeshBasicMaterial({
+export const renaissanceGlassMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
 
-    color: 0xffffff,
+  transparent: true,
 
-    transparent: true,
+  opacity: 0.18,
 
-    opacity: 0.18,
+  side: THREE.DoubleSide,
 
-    side: THREE.DoubleSide,
+  depthWrite: false,
 
-    depthWrite: false,
-
-    toneMapped: false
-
-  });
-
+  toneMapped: false
+});
 
 export function isTranslucentMaterial(material) {
-
-  if (!material)
-    return false;
+  if (!material) return false;
 
   const opacity = Number(material.opacity);
   const transmission = Number(material.transmission);
   return (
-
-    (
-      Number.isFinite(opacity) &&
-      opacity < 0.999
-    ) ||
-
-    (
-      Number.isFinite(transmission) &&
-      transmission > 0
-    )
-
+    (Number.isFinite(opacity) && opacity < 0.999) ||
+    (Number.isFinite(transmission) && transmission > 0)
   );
-
 }
 
-export function applyTranslucentAppearance(
-  material,
-  opacity
-) {
+export function applyTranslucentAppearance(material, opacity) {
+  if (!material || !isTranslucentMaterial(material)) return;
 
-  if (!material || !isTranslucentMaterial(material))
-    return;
+  material.transparent = true;
 
-  material.transparent =
-    true;
+  material.opacity = opacity;
 
-  material.opacity =
-    opacity;
+  material.depthWrite = false;
 
-  material.depthWrite =
-    false;
+  if ("roughness" in material) material.roughness = 0.16;
 
-  if ("roughness" in material)
-    material.roughness = .16;
+  if ("metalness" in material) material.metalness = 0.02;
 
-  if ("metalness" in material)
-    material.metalness = .02;
+  if ("shininess" in material) material.shininess = 90;
 
-  if ("shininess" in material)
-    material.shininess = 90;
-
-  material.needsUpdate =
-    true;
-
+  material.needsUpdate = true;
 }
 
 /* Preserve every material's alpha while replacing all visible color with white. */
 export function getWhiteMaterial(original) {
-
   if (Array.isArray(original)) {
-    return original.map(material =>
-      getWhiteMaterialVariant(material)
-    );
+    return original.map(material => getWhiteMaterialVariant(material));
   }
 
   return getWhiteMaterialVariant(original);
-
 }
 
-
-export function getRenaissanceMaterial(
-  original
-) {
-
-  if (
-    Array.isArray(original)
-  ) {
-
-    return original.map(
-      material =>
-        isTranslucentMaterial(material)
-          ? renaissanceGlassMaterial
-          : renaissanceMaterial
+export function getRenaissanceMaterial(original) {
+  if (Array.isArray(original)) {
+    return original.map(material =>
+      isTranslucentMaterial(material) ? renaissanceGlassMaterial : renaissanceMaterial
     );
-
   }
 
-
-  return isTranslucentMaterial(original)
-    ? renaissanceGlassMaterial
-    : renaissanceMaterial;
-
+  return isTranslucentMaterial(original) ? renaissanceGlassMaterial : renaissanceMaterial;
 }
 
+export function isEntirelyTranslucent(original) {
+  const materials = Array.isArray(original) ? original : [original];
 
-export function isEntirelyTranslucent(
-  original
-) {
-
-  const materials =
-    Array.isArray(original)
-      ? original
-      : [original];
-
-
-  return (
-    materials.length > 0 &&
-    materials.every(
-      isTranslucentMaterial
-    )
-  );
-
+  return materials.length > 0 && materials.every(isTranslucentMaterial);
 }

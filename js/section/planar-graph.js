@@ -8,9 +8,7 @@
 import { signedPolygonArea } from "./polygon-utils.js";
 
 function clonePoint(point) {
-  return typeof point.clone === "function"
-    ? point.clone()
-    : { x: point.x, y: point.y };
+  return typeof point.clone === "function" ? point.clone() : { x: point.x, y: point.y };
 }
 
 function edgeKey(a, b) {
@@ -60,9 +58,7 @@ export function buildPlanarLoops({
         visitedOpenEdges.add(firstKey);
 
         while (degrees[current] === 2) {
-          const next = [...neighbours[current]].find(
-            index => index !== previous
-          );
+          const next = [...neighbours[current]].find(index => index !== previous);
           if (next === undefined) break;
 
           const nextKey = edgeKey(current, next);
@@ -114,8 +110,7 @@ export function buildPlanarLoops({
         const incomingIndex = list.indexOf(previous);
         if (incomingIndex < 0) break;
 
-        const next =
-          list[(incomingIndex - 1 + list.length) % list.length];
+        const next = list[(incomingIndex - 1 + list.length) % list.length];
         previous = current;
         current = next;
 
@@ -132,8 +127,7 @@ export function buildPlanarLoops({
 
       const cleaned = [];
       for (let i = 0; i < polygon.length; i++) {
-        const previousPoint =
-          polygon[(i - 1 + polygon.length) % polygon.length];
+        const previousPoint = polygon[(i - 1 + polygon.length) % polygon.length];
         const point = polygon[i];
         const nextPoint = polygon[(i + 1) % polygon.length];
         const firstX = point.x - previousPoint.x;

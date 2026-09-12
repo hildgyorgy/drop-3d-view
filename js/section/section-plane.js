@@ -20,108 +20,49 @@ import {
 import { scheduleSectionCapRebuild } from "./section-cap.js";
 import { sectionCapMaterial, sectionEdgeMaterial } from "../model/materials.js";
 
-
 /* ======================================================
    SECTION
 ====================================================== */
 
-sectionButton.addEventListener(
-  "click",
-  () => {
+sectionButton.addEventListener("click", () => {
+  State.sectionEnabled = !State.sectionEnabled;
 
-    State.sectionEnabled =
-      !State.sectionEnabled;
+  sectionButton.classList.toggle("active", State.sectionEnabled);
+  sectionButton.setAttribute("aria-pressed", String(State.sectionEnabled));
 
-
-    sectionButton.classList.toggle(
-      "active",
-      State.sectionEnabled
-    );
-    sectionButton.setAttribute("aria-pressed", String(State.sectionEnabled));
-
-
-    /*
+  /*
        Bekapcsoláskor a csúszka aktuális értékéből azonnal
        állítsuk elő a síkot. Enélkül az első kattintás még a
        State-ben lévő (kezdetben alsó) síkot használja.
     */
-    if (State.sectionEnabled)
-      updateSectionPlane();
-    else
-      applyClipping();
+  if (State.sectionEnabled) updateSectionPlane();
+  else applyClipping();
+});
 
-  }
-);
+document.querySelectorAll("[data-axis]").forEach(button => {
+  button.addEventListener("click", () => {
+    State.sectionAxis = button.dataset.axis;
 
+    document.querySelectorAll("[data-axis]").forEach(b => {
+      b.classList.toggle("active", b === button);
+      b.setAttribute("aria-pressed", String(b === button));
+    });
 
-document
-  .querySelectorAll(
-    "[data-axis]"
-  )
-  .forEach(
-    button => {
+    updateSectionPlane();
+  });
+});
 
-      button.addEventListener(
-        "click",
-        () => {
+sectionSlider.addEventListener("input", updateSectionPlane);
 
-          State.sectionAxis =
-            button.dataset.axis;
+sectionFlip.addEventListener("change", updateSectionPlane);
 
+sectionDebug.addEventListener("change", () => {
+  scheduleSectionCapRebuild();
+});
 
-          document
-            .querySelectorAll(
-              "[data-axis]"
-            )
-            .forEach(
-              b => {
-
-                b.classList.toggle(
-                  "active",
-                  b === button
-                );
-                b.setAttribute("aria-pressed", String(b === button));
-
-              }
-            );
-
-
-          updateSectionPlane();
-
-        }
-      );
-
-    }
-  );
-
-
-sectionSlider.addEventListener(
-  "input",
-  updateSectionPlane
-);
-
-
-sectionFlip.addEventListener(
-  "change",
-  updateSectionPlane
-);
-
-
-sectionDebug.addEventListener(
-  "change",
-  () => {
-
-    scheduleSectionCapRebuild();
-
-  }
-);
-
-sectionFill.addEventListener(
-  "change",
-  () => {
-    scheduleSectionCapRebuild();
-  }
-);
+sectionFill.addEventListener("change", () => {
+  scheduleSectionCapRebuild();
+});
 
 sectionColorButtons.forEach(button => {
   button.addEventListener("click", () => {
@@ -141,217 +82,91 @@ sectionColorButtons.forEach(button => {
   });
 });
 
-
-
 /* ======================================================
    SECTION PLANE
 ====================================================== */
 
 export function updateSectionPlane() {
+  if (!State.modelBounds) return;
 
-  if (!State.modelBounds)
-    return;
-
-
-  const fraction =
-    Number(
-      sectionSlider.value
-    ) /
-    1000;
-
+  const fraction = Number(sectionSlider.value) / 1000;
 
   let min;
   let max;
 
+  const normal = new THREE.Vector3();
 
-  const normal =
-    new THREE.Vector3();
+  if (State.sectionAxis === "x") {
+    min = State.modelBounds.min.x;
 
+    max = State.modelBounds.max.x;
 
-  if (
-    State.sectionAxis === "x"
-  ) {
-
-    min =
-      State.modelBounds.min.x;
-
-    max =
-      State.modelBounds.max.x;
-
-    normal.set(
-      -1,
-      0,
-      0
-    );
-
+    normal.set(-1, 0, 0);
   }
 
+  if (State.sectionAxis === "y") {
+    min = State.modelBounds.min.y;
 
-  if (
-    State.sectionAxis === "y"
-  ) {
+    max = State.modelBounds.max.y;
 
-    min =
-      State.modelBounds.min.y;
-
-    max =
-      State.modelBounds.max.y;
-
-    normal.set(
-      0,
-      -1,
-      0
-    );
-
+    normal.set(0, -1, 0);
   }
 
+  if (State.sectionAxis === "z") {
+    min = State.modelBounds.min.z;
 
-  if (
-    State.sectionAxis === "z"
-  ) {
+    max = State.modelBounds.max.z;
 
-    min =
-      State.modelBounds.min.z;
-
-    max =
-      State.modelBounds.max.z;
-
-    normal.set(
-      0,
-      0,
-      -1
-    );
-
+    normal.set(0, 0, -1);
   }
 
-
-  if (
-    sectionFlip.checked
-  ) {
-
-    normal.multiplyScalar(
-      -1
-    );
-
+  if (sectionFlip.checked) {
+    normal.multiplyScalar(-1);
   }
 
+  const position = THREE.MathUtils.lerp(min, max, fraction);
 
-  const position =
-    THREE.MathUtils.lerp(
-      min,
-      max,
-      fraction
-    );
+  const point = new THREE.Vector3();
 
+  if (State.sectionAxis === "x") point.x = position;
 
-  const point =
-    new THREE.Vector3();
+  if (State.sectionAxis === "y") point.y = position;
 
+  if (State.sectionAxis === "z") point.z = position;
 
-  if (
-    State.sectionAxis === "x"
-  )
-    point.x =
-      position;
-
-
-  if (
-    State.sectionAxis === "y"
-  )
-    point.y =
-      position;
-
-
-  if (
-    State.sectionAxis === "z"
-  )
-    point.z =
-      position;
-
-
-  State.sectionPlane
-    .setFromNormalAndCoplanarPoint(
-      normal,
-      point
-    );
-
+  State.sectionPlane.setFromNormalAndCoplanarPoint(normal, point);
 
   applyClipping();
-
 }
-
-
 
 /* ======================================================
    APPLY CLIPPING
 ====================================================== */
 
 export function applyClipping() {
+  if (!State.model) return;
 
-  if (!State.model)
-    return;
+  forEachMesh(State.model, node => {
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
 
+    materials.forEach(material => {
+      material.clippingPlanes = State.sectionEnabled ? [State.sectionPlane] : [];
 
-  forEachMesh(
-    State.model,
-    node => {
+      material.clipShadows = true;
 
-
-      const materials =
-        Array.isArray(
-          node.material
-        )
-        ? node.material
-        : [node.material];
-
-
-      materials.forEach(
-        material => {
-
-          material.clippingPlanes =
-            State.sectionEnabled
-            ? [State.sectionPlane]
-            : [];
-
-
-          material.clipShadows =
-            true;
-
-
-          material.needsUpdate =
-            true;
-
-        }
-      );
-
-    }
-  );
-
+      material.needsUpdate = true;
+    });
+  });
 
   if (State.edgeGroup) {
+    State.edgeGroup.traverse(node => {
+      if (!node.material) return;
 
-    State.edgeGroup.traverse(
-      node => {
+      node.material.clippingPlanes = State.sectionEnabled ? [State.sectionPlane] : [];
 
-        if (!node.material)
-          return;
-
-
-        node.material.clippingPlanes =
-          State.sectionEnabled
-          ? [State.sectionPlane]
-          : [];
-
-
-        node.material.needsUpdate =
-          true;
-
-      }
-    );
-
+      node.material.needsUpdate = true;
+    });
   }
 
-
   scheduleSectionCapRebuild();
-
 }

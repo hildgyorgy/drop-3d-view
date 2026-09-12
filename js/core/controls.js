@@ -11,58 +11,41 @@
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { renderer } from "./scene.js";
 
-
 export function createControls(cam) {
-
   const isTouchInterface =
-    window.matchMedia?.("(pointer: coarse)").matches ??
-    navigator.maxTouchPoints > 0;
+    window.matchMedia?.("(pointer: coarse)").matches ?? navigator.maxTouchPoints > 0;
 
-  const c =
-    new OrbitControls(
-      cam,
-      renderer.domElement
-    );
+  const c = new OrbitControls(cam, renderer.domElement);
 
-  c.enableDamping =
-    !isTouchInterface;
+  c.enableDamping = !isTouchInterface;
 
-  c.dampingFactor =
-    .15;
+  c.dampingFactor = 0.15;
 
-  c.rotateSpeed =
-    .55;
+  c.rotateSpeed = 0.55;
 
-  c.zoomSpeed =
-    .8;
+  c.zoomSpeed = 0.8;
 
-  c.panSpeed =
-    .7;
+  c.panSpeed = 0.7;
 
-  c.screenSpacePanning =
-    true;
+  c.screenSpacePanning = true;
 
-  c.zoomToCursor =
-    true;
+  c.zoomToCursor = true;
 
   /*
      Távolításkor álljunk meg még a kamera far vágósíkja
      előtt, így a modell nem tud egyszerűen eltűnni.
   */
 
-  c.maxDistance =
-    cam.far * .8;
+  c.maxDistance = cam.far * 0.8;
 
   /*
      Az ortografikus kamerák távolítása nem a kamera
      mozgatásával, hanem a zoom csökkentésével történik.
   */
 
-  c.minZoom =
-    .1;
+  c.minZoom = 0.1;
 
-  c.minPolarAngle =
-    .02;
+  c.minPolarAngle = 0.02;
 
   /*
      A horizont alá legfeljebb 12 fokkal lehessen
@@ -70,9 +53,7 @@ export function createControls(cam) {
      de a kamera nem tud teljesen a modell alá kerülni.
   */
 
-  c.maxPolarAngle =
-    Math.PI * 17 / 30;
+  c.maxPolarAngle = (Math.PI * 17) / 30;
 
   return c;
-
 }

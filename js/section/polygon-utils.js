@@ -8,9 +8,11 @@
 export function signedPolygonArea(polygon) {
   let area = 0;
 
-  for (let previous = polygon.length - 1, current = 0;
+  for (
+    let previous = polygon.length - 1, current = 0;
     current < polygon.length;
-    previous = current++) {
+    previous = current++
+  ) {
     const a = polygon[previous];
     const b = polygon[current];
     area += a.x * b.y - b.x * a.y;
@@ -27,11 +29,8 @@ export function pointInPolygon(point, polygon) {
     const pj = polygon[j];
 
     const intersects =
-      (pi.y > point.y) !== (pj.y > point.y) &&
-      point.x <
-        ((pj.x - pi.x) * (point.y - pi.y)) /
-          (pj.y - pi.y) +
-          pi.x;
+      pi.y > point.y !== pj.y > point.y &&
+      point.x < ((pj.x - pi.x) * (point.y - pi.y)) / (pj.y - pi.y) + pi.x;
 
     if (intersects) inside = !inside;
   }

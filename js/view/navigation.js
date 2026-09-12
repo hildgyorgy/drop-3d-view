@@ -33,17 +33,28 @@ if (isTouchInterface && flyButton) {
 }
 
 function editableTarget(target) {
-  return target instanceof HTMLInputElement ||
+  return (
+    target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement ||
-    target?.isContentEditable;
+    target?.isContentEditable
+  );
 }
 
 function navigationKey(event) {
   return [
-    "KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyQ",
-    "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
-    "ShiftLeft", "ShiftRight"
+    "KeyW",
+    "KeyA",
+    "KeyS",
+    "KeyD",
+    "KeyE",
+    "KeyQ",
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+    "ShiftLeft",
+    "ShiftRight"
   ].includes(event.code);
 }
 
@@ -57,16 +68,21 @@ function ensurePointerControls() {
 
   pointerCamera = State.camera;
   pointerControls = new PointerLockControls(State.camera, renderer.domElement);
-  pointerControls.pointerSpeed = .7;
-  pointerControls.minPolarAngle = .01;
-  pointerControls.maxPolarAngle = Math.PI - .01;
-  pointerLookDistance = Math.max(State.camera.position.distanceTo(State.controls.target), .01);
+  pointerControls.pointerSpeed = 0.7;
+  pointerControls.minPolarAngle = 0.01;
+  pointerControls.maxPolarAngle = Math.PI - 0.01;
+  pointerLookDistance = Math.max(
+    State.camera.position.distanceTo(State.controls.target),
+    0.01
+  );
   return pointerControls;
 }
 
 function syncOrbitTargetToCamera() {
   State.camera.getWorldDirection(direction);
-  State.controls.target.copy(State.camera.position).addScaledVector(direction, pointerLookDistance);
+  State.controls.target
+    .copy(State.camera.position)
+    .addScaledVector(direction, pointerLookDistance);
 }
 
 function leaveFlyMode() {
@@ -125,7 +141,12 @@ renderer.domElement.addEventListener("click", () => {
 });
 
 window.addEventListener("keydown", event => {
-  if (State.navigationMode === "orbit" || editableTarget(event.target) || !navigationKey(event)) return;
+  if (
+    State.navigationMode === "orbit" ||
+    editableTarget(event.target) ||
+    !navigationKey(event)
+  )
+    return;
   pressedKeys.add(event.code);
   event.preventDefault();
 });
@@ -137,9 +158,11 @@ window.addEventListener("keyup", event => {
 window.addEventListener("blur", () => pressedKeys.clear());
 
 function keyboardAxes() {
-  const forward = Number(pressedKeys.has("KeyW") || pressedKeys.has("ArrowUp")) -
+  const forward =
+    Number(pressedKeys.has("KeyW") || pressedKeys.has("ArrowUp")) -
     Number(pressedKeys.has("KeyS") || pressedKeys.has("ArrowDown"));
-  const sideways = Number(pressedKeys.has("KeyD") || pressedKeys.has("ArrowRight")) -
+  const sideways =
+    Number(pressedKeys.has("KeyD") || pressedKeys.has("ArrowRight")) -
     Number(pressedKeys.has("KeyA") || pressedKeys.has("ArrowLeft"));
   const vertical = Number(pressedKeys.has("KeyE")) - Number(pressedKeys.has("KeyQ"));
   return { forward, sideways, vertical };
@@ -150,8 +173,10 @@ function updateFly(delta, forward, sideways, vertical) {
   State.controls.enabled = false;
 
   if (controls.isLocked) {
-    const speedMultiplier = pressedKeys.has("ShiftLeft") || pressedKeys.has("ShiftRight") ? 2 : 1;
-    const distance = Math.max(State.maxModelSize, 1) * State.flySpeed * speedMultiplier * delta;
+    const speedMultiplier =
+      pressedKeys.has("ShiftLeft") || pressedKeys.has("ShiftRight") ? 2 : 1;
+    const distance =
+      Math.max(State.maxModelSize, 1) * State.flySpeed * speedMultiplier * delta;
     movement.set(sideways, vertical, -forward);
     if (movement.lengthSq() > 1) movement.normalize();
 
@@ -166,7 +191,7 @@ function updateFly(delta, forward, sideways, vertical) {
 }
 
 export function updateNavigation(time) {
-  const delta = previousTime === null ? 0 : Math.min((time - previousTime) / 1000, .05);
+  const delta = previousTime === null ? 0 : Math.min((time - previousTime) / 1000, 0.05);
   previousTime = time;
 
   // Camera projection changes replace OrbitControls. Reapply the selected mode immediately.

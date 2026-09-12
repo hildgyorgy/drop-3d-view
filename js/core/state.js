@@ -13,7 +13,6 @@ import { perspectiveCamera } from "./scene.js";
 import { createControls } from "./controls.js";
 
 export const State = {
-
   // --- kamera ---
   camera: perspectiveCamera,
   cameraMode: "perspective",
@@ -22,7 +21,7 @@ export const State = {
   controls: createControls(perspectiveCamera),
   navigationMode: "orbit",
   // Base flight speed. The Shift modifier temporarily doubles this value.
-  flySpeed: .15,
+  flySpeed: 0.15,
 
   // --- betöltött modell ---
   model: null,
@@ -36,10 +35,7 @@ export const State = {
   // --- metszés (section) ---
   sectionEnabled: false,
   sectionAxis: "y",
-  sectionPlane: new THREE.Plane(
-    new THREE.Vector3(0, -1, 0),
-    0
-  ),
+  sectionPlane: new THREE.Plane(new THREE.Vector3(0, -1, 0), 0),
   sectionTriangleComponents: new WeakMap(),
   sectionTopologyComponentCount: 0,
   sectionTopologyReady: false,
@@ -51,5 +47,4 @@ export const State = {
   originalCastShadow: new Map(),
   edgeGroup: null,
   ground: null
-
 };

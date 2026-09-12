@@ -16,129 +16,57 @@ import {
 } from "../core/dom.js";
 import { escapeHTML } from "./status.js";
 
-
 export function inspectModel(file) {
-
   // The inspector is intentionally retained for a later UI iteration. Avoid
   // traversing large models while its complete DOM block is hidden.
-  if (retainedControls.hidden)
-    return;
+  if (retainedControls.hidden) return;
 
-  let meshCount =
-    0;
+  let meshCount = 0;
 
-  let triangleCount =
-    0;
+  let triangleCount = 0;
 
-  let vertexCount =
-    0;
+  let vertexCount = 0;
 
+  const materials = new Map();
 
-  const materials =
-    new Map();
+  const elementTypes = new Map();
 
-  const elementTypes =
-    new Map();
+  forEachMesh(State.model, node => {
+    const typeName = node.name || "(unnamed)";
 
-  forEachMesh(
-    State.model,
-    node => {
-      const typeName =
-        node.name ||
-        "(unnamed)";
+    const meshes = elementTypes.get(typeName) || new Set();
 
-      const meshes =
-        elementTypes.get(typeName) ||
-        new Set();
+    meshes.add(node);
+    elementTypes.set(typeName, meshes);
 
-      meshes.add(node);
-      elementTypes.set(typeName, meshes);
+    meshCount++;
 
+    const geometry = node.geometry;
 
-      meshCount++;
-
-
-      const geometry =
-        node.geometry;
-
-
-      if (
-        geometry.attributes.position
-      ) {
-
-        vertexCount +=
-          geometry
-            .attributes
-            .position
-            .count;
-
-      }
-
-
-      if (
-        geometry.index
-      ) {
-
-        triangleCount +=
-          geometry.index.count /
-          3;
-
-      }
-
-      else if (
-        geometry.attributes.position
-      ) {
-
-        triangleCount +=
-          geometry
-            .attributes
-            .position
-            .count /
-          3;
-
-      }
-
-
-      const mats =
-        Array.isArray(
-          node.material
-        )
-        ? node.material
-        : [node.material];
-
-
-      mats.forEach(
-        material => {
-
-          if (!material)
-            return;
-
-
-          const name =
-            material.name ||
-            "(unnamed)";
-
-
-          materials.set(
-            name,
-            (materials.get(name) || 0) + 1
-          );
-
-        }
-      );
-
+    if (geometry.attributes.position) {
+      vertexCount += geometry.attributes.position.count;
     }
-  );
 
+    if (geometry.index) {
+      triangleCount += geometry.index.count / 3;
+    } else if (geometry.attributes.position) {
+      triangleCount += geometry.attributes.position.count / 3;
+    }
 
-  const mb =
-    file.size /
-    1024 /
-    1024;
+    const mats = Array.isArray(node.material) ? node.material : [node.material];
 
+    mats.forEach(material => {
+      if (!material) return;
 
-  modelStats.innerHTML =
-    `
+      const name = material.name || "(unnamed)";
+
+      materials.set(name, (materials.get(name) || 0) + 1);
+    });
+  });
+
+  const mb = file.size / 1024 / 1024;
+
+  modelStats.innerHTML = `
 
     <div class="model-stat">
       <span>File</span>
@@ -172,113 +100,51 @@ export function inspectModel(file) {
 
     `;
 
-
-  materialList.innerHTML =
-    "";
-
+  materialList.innerHTML = "";
 
   [...materials.entries()]
-    .sort(
-      (a,b) =>
-        a[0].localeCompare(
-          b[0],
-          "hu"
-        )
-    )
-    .forEach(
-      ([name,count]) => {
+    .sort((a, b) => a[0].localeCompare(b[0], "hu"))
+    .forEach(([name, count]) => {
+      const item = document.createElement("div");
 
-        const item =
-          document.createElement(
-            "div"
-          );
+      item.className = "material-item";
 
+      item.textContent = `${name} · ${count}`;
 
-        item.className =
-          "material-item";
+      materialList.appendChild(item);
+    });
 
-
-        item.textContent =
-          `${name} · ${count}`;
-
-
-        materialList.appendChild(
-          item
-        );
-
-      }
-    );
-
-  elementTypeList.innerHTML =
-    "";
+  elementTypeList.innerHTML = "";
 
   if (!elementTypes.size) {
-
-    elementTypeList.textContent =
-      "No named element groups found in this export.";
-
+    elementTypeList.textContent = "No named element groups found in this export.";
   }
 
   [...elementTypes.entries()]
-    .sort(
-      (a,b) =>
-        a[0].localeCompare(
-          b[0],
-          "hu"
-        )
-    )
-    .forEach(
-      ([name,meshes]) => {
+    .sort((a, b) => a[0].localeCompare(b[0], "hu"))
+    .forEach(([name, meshes]) => {
+      const item = document.createElement("label");
 
-        const item =
-          document.createElement(
-            "label"
-          );
+      item.className = "element-type-item";
 
-        item.className =
-          "element-type-item";
+      const toggle = document.createElement("input");
 
-        const toggle =
-          document.createElement(
-            "input"
-          );
+      toggle.type = "checkbox";
 
-        toggle.type =
-          "checkbox";
+      toggle.checked = true;
 
-        toggle.checked =
-          true;
+      toggle.addEventListener("change", () => {
+        meshes.forEach(mesh => {
+          mesh.visible = toggle.checked;
+        });
+      });
 
-        toggle.addEventListener(
-          "change",
-          () => {
-            meshes.forEach(
-              mesh => {
-                mesh.visible =
-                  toggle.checked;
-              }
-            );
-          }
-        );
+      const text = document.createElement("span");
 
-        const text =
-          document.createElement(
-            "span"
-          );
+      text.textContent = `${name} · ${meshes.size}`;
 
-        text.textContent =
-          `${name} · ${meshes.size}`;
+      item.append(toggle, text);
 
-        item.append(
-          toggle,
-          text
-        );
-
-        elementTypeList.appendChild(
-          item
-        );
-
-      }
-    );
-
+      elementTypeList.appendChild(item);
+    });
 }

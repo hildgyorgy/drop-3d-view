@@ -12,197 +12,94 @@ import { perspectiveCamera, orthoCamera } from "../core/scene.js";
 import { createControls } from "../core/controls.js";
 import { perspectiveButton, axonButton, orthoButton, cameraFov } from "../core/dom.js";
 
+cameraFov?.addEventListener("input", () => {
+  perspectiveCamera.fov = Number(cameraFov.value);
 
-cameraFov?.addEventListener(
-  "input",
-  () => {
-
-    perspectiveCamera.fov =
-      Number(cameraFov.value);
-
-    perspectiveCamera.updateProjectionMatrix();
-
-  }
-);
-
+  perspectiveCamera.updateProjectionMatrix();
+});
 
 export function centreModel() {
+  let box = new THREE.Box3().setFromObject(State.model);
 
-  let box =
-    new THREE.Box3()
-      .setFromObject(State.model);
+  const centre = box.getCenter(new THREE.Vector3());
 
+  State.model.position.x -= centre.x;
 
-  const centre =
-    box.getCenter(
-      new THREE.Vector3()
-    );
+  State.model.position.z -= centre.z;
 
+  State.model.position.y -= box.min.y;
 
-  State.model.position.x -=
-    centre.x;
+  State.model.updateMatrixWorld(true);
 
-  State.model.position.z -=
-    centre.z;
+  box = new THREE.Box3().setFromObject(State.model);
 
-  State.model.position.y -=
-    box.min.y;
+  State.modelBounds = box;
 
+  State.modelSize = box.getSize(new THREE.Vector3());
 
-  State.model.updateMatrixWorld(
-    true
-  );
+  State.modelCenter = box.getCenter(new THREE.Vector3());
 
-
-  box =
-    new THREE.Box3()
-      .setFromObject(State.model);
-
-
-  State.modelBounds =
-    box;
-
-
-  State.modelSize =
-    box.getSize(
-      new THREE.Vector3()
-    );
-
-
-  State.modelCenter =
-    box.getCenter(
-      new THREE.Vector3()
-    );
-
-
-  State.maxModelSize =
-    Math.max(
-      State.modelSize.x,
-      State.modelSize.y,
-      State.modelSize.z
-    );
-
+  State.maxModelSize = Math.max(State.modelSize.x, State.modelSize.y, State.modelSize.z);
 }
-
-
 
 /* ======================================================
    CAMERA FIT
 ====================================================== */
 
 export function fitCamera() {
+  const distance = State.maxModelSize * 1.55;
 
-  const distance =
-    State.maxModelSize * 1.55;
+  perspectiveCamera.near = Math.max(State.maxModelSize / 200, 0.01);
 
+  perspectiveCamera.far = State.maxModelSize * 10;
 
-  perspectiveCamera.near =
-    Math.max(
-    State.maxModelSize / 200,
-      .01
-    );
+  perspectiveCamera.position.set(distance, distance * 0.72, distance);
 
-
-  perspectiveCamera.far =
-    State.maxModelSize * 10;
-
-
-  perspectiveCamera.position.set(
-    distance,
-    distance * .72,
-    distance
-  );
-
-
-  perspectiveCamera
-    .updateProjectionMatrix();
-
+  perspectiveCamera.updateProjectionMatrix();
 
   updateOrthoFrustum();
 
+  orthoCamera.position.copy(perspectiveCamera.position);
 
-  orthoCamera.position.copy(
-    perspectiveCamera.position
-  );
-
-
-  State.controls.target.copy(
-    State.modelCenter
-  );
-
+  State.controls.target.copy(State.modelCenter);
 
   State.controls.update();
   setProjection(projection, true);
-
 }
-
-
 
 /* ======================================================
    ORTHOGRAPHIC FRUSTUM
 ====================================================== */
 
 export function updateOrthoFrustum() {
+  const aspect = window.innerWidth / window.innerHeight;
 
-  const aspect =
-    window.innerWidth /
-    window.innerHeight;
-
-
-  const half =
-    State.maxModelSize * .72;
-
+  const half = State.maxModelSize * 0.72;
 
   if (aspect >= 1) {
+    orthoCamera.left = -half * aspect;
 
-    orthoCamera.left =
-      -half * aspect;
+    orthoCamera.right = half * aspect;
 
-    orthoCamera.right =
-      half * aspect;
+    orthoCamera.top = half;
 
-    orthoCamera.top =
-      half;
+    orthoCamera.bottom = -half;
+  } else {
+    orthoCamera.left = -half;
 
-    orthoCamera.bottom =
-      -half;
+    orthoCamera.right = half;
 
+    orthoCamera.top = half / aspect;
+
+    orthoCamera.bottom = -half / aspect;
   }
 
-  else {
+  orthoCamera.near = Math.max(State.maxModelSize / 200, 0.01);
 
-    orthoCamera.left =
-      -half;
+  orthoCamera.far = State.maxModelSize * 10;
 
-    orthoCamera.right =
-      half;
-
-    orthoCamera.top =
-      half / aspect;
-
-    orthoCamera.bottom =
-      -half / aspect;
-
-  }
-
-
-  orthoCamera.near =
-    Math.max(
-    State.maxModelSize / 200,
-      .01
-    );
-
-
-  orthoCamera.far =
-    State.maxModelSize * 10;
-
-
-  orthoCamera
-    .updateProjectionMatrix();
-
+  orthoCamera.updateProjectionMatrix();
 }
-
-
 
 /* ======================================================
    CAMERA MODE
@@ -211,7 +108,7 @@ export function updateOrthoFrustum() {
 // AXON orbits freely; ORTHO elevations orbit horizontally, TOP stays fixed.
 let projection = "perspective";
 let preset = "front";
-const orbitDirection = new THREE.Vector3(1, .72, 1).normalize();
+const orbitDirection = new THREE.Vector3(1, 0.72, 1).normalize();
 const presetDirections = {
   top: new THREE.Vector3(0, 1, 0),
   front: new THREE.Vector3(0, 0, 1),
@@ -225,7 +122,8 @@ const currentViewDirection = new THREE.Vector3();
 function updateOrthoSelection() {
   currentViewDirection.copy(State.camera.position).sub(State.controls.target).normalize();
   document.querySelectorAll("[data-view]").forEach(button => {
-    const active = projection === "ortho" &&
+    const active =
+      projection === "ortho" &&
       currentViewDirection.dot(presetDirections[button.dataset.view]) > 1 - 1e-8;
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
@@ -246,7 +144,7 @@ document.querySelectorAll("[data-view]").forEach(button => {
 
 function setProjection(next, refit = false) {
   const target = State.controls.target.clone();
-  let distance = Math.max(State.camera.position.distanceTo(target), .01);
+  let distance = Math.max(State.camera.position.distanceTo(target), 0.01);
   const oldCamera = State.camera;
   if (projection !== "ortho")
     orbitDirection.copy(oldCamera.position).sub(target).normalize();
@@ -285,11 +183,14 @@ function setProjection(next, refit = false) {
   }
   State.controls.update();
 
-  [[perspectiveButton, "perspective"], [axonButton, "axon"], [orthoButton, "ortho"]]
-    .forEach(([button, value]) => {
-      button.classList.toggle("active", value === next);
-      button.setAttribute("aria-pressed", String(value === next));
-    });
+  [
+    [perspectiveButton, "perspective"],
+    [axonButton, "axon"],
+    [orthoButton, "ortho"]
+  ].forEach(([button, value]) => {
+    button.classList.toggle("active", value === next);
+    button.setAttribute("aria-pressed", String(value === next));
+  });
   updateOrthoSelection();
   cameraFov.disabled = next !== "perspective";
 }

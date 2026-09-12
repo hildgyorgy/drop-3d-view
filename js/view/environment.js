@@ -31,10 +31,8 @@ function disposeEnvironment() {
 export function updateEnvironment() {
   const original = State.currentMode === "original";
 
-  if (enabled && original)
-    scene.environment = getEnvironment();
-  else
-    disposeEnvironment();
+  if (enabled && original) scene.environment = getEnvironment();
+  else disposeEnvironment();
 
   scene.environmentIntensity = 0.1625;
   button.disabled = !original;

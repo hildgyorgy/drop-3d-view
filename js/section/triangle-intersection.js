@@ -59,10 +59,7 @@ export function intersectTriangleWithPlane(p0, p1, p2, plane, epsilon) {
 
   for (let i = 0; i < intersections.length; i++) {
     for (let j = i + 1; j < intersections.length; j++) {
-      const candidateDistance = distanceSquared(
-        intersections[i],
-        intersections[j]
-      );
+      const candidateDistance = distanceSquared(intersections[i], intersections[j]);
       if (candidateDistance > bestDistance) {
         bestDistance = candidateDistance;
         bestA = i;

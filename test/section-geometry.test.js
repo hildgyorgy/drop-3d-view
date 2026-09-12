@@ -1,10 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  pointInPolygon,
-  signedPolygonArea
-} from "../js/section/polygon-utils.js";
+import { pointInPolygon, signedPolygonArea } from "../js/section/polygon-utils.js";
 import { buildPlanarLoops } from "../js/section/planar-graph.js";
 import { splitEdgesAtExistingPoints } from "../js/section/segment-processing.js";
 import { intersectTriangleWithPlane } from "../js/section/triangle-intersection.js";
@@ -98,10 +95,7 @@ test("splitEdgesAtExistingPoints splits a segment at a real endpoint", () => {
   );
 
   assert.equal(splitCount, 1);
-  assert.deepEqual(
-    [...edges.keys()].sort(),
-    ["0:2", "1:2", "2:3"]
-  );
+  assert.deepEqual([...edges.keys()].sort(), ["0:2", "1:2", "2:3"]);
 });
 
 const xPlane = {

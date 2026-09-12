@@ -9,10 +9,8 @@ function interiorPoint(loop) {
   if (triangles.length) {
     const triangle = triangles[0];
     return new THREE.Vector2(
-      (loop[triangle[0]].x + loop[triangle[1]].x + loop[triangle[2]].x) /
-        3,
-      (loop[triangle[0]].y + loop[triangle[1]].y + loop[triangle[2]].y) /
-        3
+      (loop[triangle[0]].x + loop[triangle[1]].x + loop[triangle[2]].x) / 3,
+      (loop[triangle[0]].y + loop[triangle[1]].y + loop[triangle[2]].y) / 3
     );
   }
 

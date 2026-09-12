@@ -1,13 +1,22 @@
 import {
-  panelButton, sidePanel, orthoButton, orthoMenu,
-  sectionMenuButton, sectionMenu,
-  perspectiveButton, axonButton
+  panelButton,
+  sidePanel,
+  orthoButton,
+  orthoMenu,
+  sectionMenuButton,
+  sectionMenu,
+  perspectiveButton,
+  axonButton
 } from "../core/dom.js";
 
 const menus = [
   { button: panelButton, panel: sidePanel, dock: panelButton.closest(".controls-dock") },
   { button: orthoButton, panel: orthoMenu, dock: orthoButton.closest(".view-dock") },
-  { button: sectionMenuButton, panel: sectionMenu, dock: sectionMenuButton.closest(".section-dock") }
+  {
+    button: sectionMenuButton,
+    panel: sectionMenu,
+    dock: sectionMenuButton.closest(".section-dock")
+  }
 ];
 
 function setMenu(menu, open) {
@@ -32,8 +41,7 @@ for (const menu of menus) {
 document.addEventListener("pointerdown", event => {
   if (menus.some(menu => menu.dock.contains(event.target))) return;
   menus.forEach(menu => {
-    if (!menu.panel.hidden && !menu.dock.contains(event.target))
-      setMenu(menu, false);
+    if (!menu.panel.hidden && !menu.dock.contains(event.target)) setMenu(menu, false);
   });
 });
 document.addEventListener("keydown", event => {

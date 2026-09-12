@@ -5,16 +5,25 @@ import { showAllButton } from "../core/dom.js";
 // A bounding sphere fits from every direction, including narrow portrait views.
 export function getModelFrame(camera, bounds) {
   const sphere = bounds.getBoundingSphere(new THREE.Sphere());
-  const radius = Math.max(sphere.radius, .001);
+  const radius = Math.max(sphere.radius, 0.001);
   const paddedRadius = radius * 1.12;
   if (camera.isPerspectiveCamera) {
     const vertical = THREE.MathUtils.degToRad(camera.getEffectiveFOV()) / 2;
     const horizontal = Math.atan(Math.tan(vertical) * camera.aspect);
-    return { target: sphere.center, radius, distance: paddedRadius / Math.sin(Math.min(vertical, horizontal)), zoom: camera.zoom };
+    return {
+      target: sphere.center,
+      radius,
+      distance: paddedRadius / Math.sin(Math.min(vertical, horizontal)),
+      zoom: camera.zoom
+    };
   }
   return {
-    target: sphere.center, radius, distance: paddedRadius * 2,
-    zoom: Math.min(camera.right - camera.left, camera.top - camera.bottom) / (2 * paddedRadius)
+    target: sphere.center,
+    radius,
+    distance: paddedRadius * 2,
+    zoom:
+      Math.min(camera.right - camera.left, camera.top - camera.bottom) /
+      (2 * paddedRadius)
   };
 }
 
@@ -42,13 +51,22 @@ export function showAll() {
   const endPosition = frame.target.clone().addScaledVector(direction, frame.distance);
   const startZoom = camera.zoom;
   const started = performance.now();
-  const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 350;
+  const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? 0
+    : 350;
   let interrupted = false;
-  const interrupt = () => { interrupted = true; };
+  const interrupt = () => {
+    interrupted = true;
+  };
   controls.addEventListener("start", interrupt);
 
   function step(now) {
-    if (interrupted || State.cameraAnimation !== animation || State.controls !== controls || State.model !== model) {
+    if (
+      interrupted ||
+      State.cameraAnimation !== animation ||
+      State.controls !== controls ||
+      State.model !== model
+    ) {
       controls.removeEventListener("start", interrupt);
       return;
     }
@@ -57,7 +75,7 @@ export function showAll() {
     controls.target.lerpVectors(startTarget, frame.target, t);
     camera.position.lerpVectors(startPosition, endPosition, t);
     camera.zoom = THREE.MathUtils.lerp(startZoom, frame.zoom, t);
-    camera.near = Math.max(State.maxModelSize / 200, .01);
+    camera.near = Math.max(State.maxModelSize / 200, 0.01);
     camera.far = State.maxModelSize * 10;
     camera.updateProjectionMatrix();
     controls.update();

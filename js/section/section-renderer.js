@@ -35,10 +35,7 @@ export function createSectionGroup({
 
   if (fillEnabled && fillPositions.length > 0) {
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(fillPositions, 3)
-    );
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(fillPositions, 3));
 
     const capMesh = new THREE.Mesh(geometry, sectionCapMaterial);
     capMesh.renderOrder = 10500;
@@ -67,10 +64,7 @@ export function createSectionGroup({
     new THREE.Float32BufferAttribute(rawSegmentPositions, 3)
   );
 
-  const rawLines = new THREE.LineSegments(
-    rawGeometry,
-    sectionDebugLineMaterial
-  );
+  const rawLines = new THREE.LineSegments(rawGeometry, sectionDebugLineMaterial);
   rawLines.renderOrder = 10510;
   rawLines.raycast = () => {};
   group.add(rawLines);

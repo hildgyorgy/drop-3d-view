@@ -11,70 +11,32 @@ import { scene } from "../core/scene.js";
 import { forEachMesh } from "../core/model-utils.js";
 import { edgeMaterial } from "../model/materials.js";
 
-
 /* ======================================================
    EDGES
 ====================================================== */
 
 export function buildEdges() {
+  if (State.edgeGroup) scene.remove(State.edgeGroup);
 
-  if (State.edgeGroup)
-    scene.remove(
-      State.edgeGroup
-    );
+  State.edgeGroup = new THREE.Group();
 
+  State.model.updateMatrixWorld(true);
 
-  State.edgeGroup =
-    new THREE.Group();
+  forEachMesh(State.model, object => {
+    const geometry = new THREE.EdgesGeometry(object.geometry, 25);
 
+    const line = new THREE.LineSegments(geometry, edgeMaterial);
 
-  State.model.updateMatrixWorld(
-    true
-  );
+    line.renderOrder = 11000;
 
+    line.matrixAutoUpdate = false;
 
-  forEachMesh(
-    State.model,
-    object => {
+    line.matrix.copy(object.matrixWorld);
 
-      const geometry =
-        new THREE.EdgesGeometry(
-          object.geometry,
-          25
-        );
+    State.edgeGroup.add(line);
+  });
 
+  scene.add(State.edgeGroup);
 
-      const line =
-        new THREE.LineSegments(
-          geometry,
-          edgeMaterial
-        );
-
-      line.renderOrder = 11000;
-
-      line.matrixAutoUpdate =
-        false;
-
-
-      line.matrix.copy(
-        object.matrixWorld
-      );
-
-
-      State.edgeGroup.add(
-        line
-      );
-
-    }
-  );
-
-
-  scene.add(
-    State.edgeGroup
-  );
-
-
-  State.edgeGroup.visible =
-    false;
-
+  State.edgeGroup.visible = false;
 }

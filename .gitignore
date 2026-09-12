@@ -1,2 +1,6 @@
 # macOS Finder metadata (all directories)
 .DS_Store
+
+# Local JavaScript dependencies and pnpm cache
+node_modules/
+.pnpm-store/

@@ -40,305 +40,145 @@ import { setStatus, resetStartMessage, showStartError } from "../ui/status.js";
 import { disposeSectionCap } from "../section/section-cap.js";
 import { updateSectionPlane } from "../section/section-plane.js";
 
-
 /*
    Draco decoder for compressed GLB/GLTF files.
    The decoder files are served from the same Three.js CDN version as the
    import map, so compressed geometry is transparently decoded in-browser.
 */
-const dracoLoader =
-  new DRACOLoader();
+const dracoLoader = new DRACOLoader();
 
 dracoLoader.setDecoderPath(
   "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/"
 );
 
-
 /* ======================================================
    OPEN
 ====================================================== */
 
-openButton.onclick =
-openAgain.onclick =
-() => {
-
-  fileInput.value =
-    "";
+openButton.onclick = openAgain.onclick = () => {
+  fileInput.value = "";
 
   fileInput.click();
-
 };
 
-
 if (demoButton) {
-
-  demoButton.onclick =
-  async () => {
-
-    demoButton.disabled =
-      true;
+  demoButton.onclick = async () => {
+    demoButton.disabled = true;
 
     resetStartMessage();
 
     try {
+      const response = await fetch("demo/demo_house.glb");
 
-      const response =
-        await fetch(
-          "demo/demo_house.glb"
-        );
+      if (!response.ok) throw new Error(`Demo model request failed (${response.status})`);
 
-      if (!response.ok)
-        throw new Error(
-          `Demo model request failed (${response.status})`
-        );
-
-      const blob =
-        await response.blob();
+      const blob = await response.blob();
 
       await openFile(
-        new File(
-          [blob],
-          "demo_house.glb",
-          { type: "application/octet-stream" }
-        )
+        new File([blob], "demo_house.glb", { type: "application/octet-stream" })
       );
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
       console.error(error);
 
-      showStartError(
-        "THE DEMO MODEL COULD NOT BE OPENED. PLEASE TRY AGAIN."
-      );
-
+      showStartError("THE DEMO MODEL COULD NOT BE OPENED. PLEASE TRY AGAIN.");
+    } finally {
+      demoButton.disabled = false;
     }
-
-    finally {
-
-      demoButton.disabled =
-        false;
-
-    }
-
   };
-
 }
 
+fileInput.addEventListener("change", event => {
+  const file = event.target.files?.[0];
 
-fileInput.addEventListener(
-  "change",
-  event => {
-
-    const file =
-      event.target.files?.[0];
-
-    if (file)
-      openFile(file);
-
-  }
-);
-
-
+  if (file) openFile(file);
+});
 
 /* ======================================================
    DRAG & DROP
 ====================================================== */
 
-window.addEventListener(
-  "dragover",
-  event => {
+window.addEventListener("dragover", event => {
+  event.preventDefault();
 
-    event.preventDefault();
+  document.body.classList.add("dragging");
+});
 
-    document.body
-      .classList
-      .add("dragging");
+window.addEventListener("dragleave", () => {
+  document.body.classList.remove("dragging");
+});
 
-  }
-);
+window.addEventListener("drop", event => {
+  event.preventDefault();
 
+  document.body.classList.remove("dragging");
 
-window.addEventListener(
-  "dragleave",
-  () => {
+  const file = event.dataTransfer.files?.[0];
 
-    document.body
-      .classList
-      .remove("dragging");
-
-  }
-);
-
-
-window.addEventListener(
-  "drop",
-  event => {
-
-    event.preventDefault();
-
-    document.body
-      .classList
-      .remove("dragging");
-
-
-    const file =
-      event.dataTransfer
-        .files?.[0];
-
-
-    if (file)
-      openFile(file);
-
-  }
-);
-
-
+  if (file) openFile(file);
+});
 
 /* ======================================================
    OPEN MODEL
 ====================================================== */
 
 export async function openFile(file) {
-
   disposeCurrentModel();
   resetStartMessage();
 
+  const extension = file.name.split(".").pop().toLowerCase();
 
-  const extension =
-    file.name
-      .split(".")
-      .pop()
-      .toLowerCase();
-
-
-  if (
-    ![
-      "glb",
-      "gltf",
-      "fbx"
-    ].includes(extension)
-  ) {
-
-    showStartError(
-      "UNSUPPORTED FILE FORMAT. PLEASE USE GLB, FBX OR GLTF."
-    );
+  if (!["glb", "gltf", "fbx"].includes(extension)) {
+    showStartError("UNSUPPORTED FILE FORMAT. PLEASE USE GLB, FBX OR GLTF.");
 
     return;
-
   }
 
+  setStatus(`Opening ${file.name}…`);
 
-  setStatus(
-    `Opening ${file.name}…`
-  );
+  startScreen.classList.add("hidden");
 
-
-  startScreen.classList.add(
-    "hidden"
-  );
-
-
-  State.currentObjectURL =
-    URL.createObjectURL(file);
-
+  State.currentObjectURL = URL.createObjectURL(file);
 
   try {
-
     let object;
 
+    if (extension === "glb" || extension === "gltf") {
+      const loader = new GLTFLoader();
 
-    if (
-      extension === "glb" ||
-      extension === "gltf"
-    ) {
+      loader.setDRACOLoader(dracoLoader);
 
-      const loader =
-        new GLTFLoader();
+      const result = await loader.loadAsync(State.currentObjectURL);
 
-      loader.setDRACOLoader(
-        dracoLoader
-      );
+      object = result.scene;
+    } else if (extension === "fbx") {
+      const loader = new FBXLoader();
 
-
-      const result =
-        await loader.loadAsync(
-          State.currentObjectURL
-        );
-
-
-      object =
-        result.scene;
-
+      object = await loader.loadAsync(State.currentObjectURL);
     }
 
-
-    else if (
-      extension === "fbx"
-    ) {
-
-      const loader =
-        new FBXLoader();
-
-
-      object =
-        await loader.loadAsync(
-          State.currentObjectURL
-        );
-
-    }
-
-
-    prepareModel(
-      object,
-      file
-    );
-
-  }
-
-
-  catch(error) {
-
-    console.error(
-      error
-    );
-
+    prepareModel(object, file);
+  } catch (error) {
+    console.error(error);
 
     disposeCurrentModel();
-    showStartError(
-      "THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE."
-    );
-
+    showStartError("THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE.");
   }
-
 }
-
-
 
 /* ======================================================
    PREPARE MODEL
 ====================================================== */
 
-export function prepareModel(
-  object,
-  file
-) {
-
-  State.model =
-    object;
-
+export function prepareModel(object, file) {
+  State.model = object;
 
   State.originalMaterials.clear();
-
 
   forEachMesh(State.model, node => {
     node.castShadow = true;
     node.receiveShadow = true;
 
-    const materials = Array.isArray(node.material)
-      ? node.material
-      : [node.material];
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
 
     materials.forEach(material => {
       if (!material) return;
@@ -349,18 +189,13 @@ export function prepareModel(
     State.originalMaterials.set(node.uuid, node.material);
   });
 
-
-  scene.add(
-    State.model
-  );
-
+  scene.add(State.model);
 
   centreModel();
 
   buildEdges();
 
   createGround();
-
 
   configureSun();
 
@@ -369,26 +204,14 @@ export function prepareModel(
   fitCamera();
   updateSectionPlane();
 
-
-  setViewMode(
-    State.currentMode
-  );
+  setViewMode(State.currentMode);
 
   showAllButton.hidden = false;
 
-
-  setStatus(
-    `${file.name} · drag to orbit · scroll/pinch to zoom`
-  );
-
+  setStatus(`${file.name} · drag to orbit · scroll/pinch to zoom`);
 }
 
-
-
-
-
 export function disposeCurrentModel() {
-
   showAllButton.hidden = true;
   ++State.cameraAnimation;
 
@@ -398,9 +221,7 @@ export function disposeCurrentModel() {
     State.currentObjectURL = null;
   }
 
-  if (!State.model)
-    return;
-
+  if (!State.model) return;
 
   if (State.sectionCapFrame !== null) {
     cancelAnimationFrame(State.sectionCapFrame);
@@ -408,121 +229,67 @@ export function disposeCurrentModel() {
   }
 
   disposeSectionCap();
-  scene.remove(
-    State.model
-  );
+  scene.remove(State.model);
 
+  forEachMesh(State.model, node => {
+    node.geometry?.dispose();
 
-  forEachMesh(
-    State.model,
-    node => {
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
 
+    materials.forEach(material => {
+      if (!material) return;
 
-      node.geometry?.dispose();
-
-
-      const materials =
-        Array.isArray(
-          node.material
-        )
-        ? node.material
-        : [node.material];
-
-
-      materials.forEach(
-        material => {
-
-          if (!material)
-            return;
-
-
-          /*
+      /*
              A megosztott viewer-materialokat
              nem akarjuk itt eldobni.
           */
 
-          if (
-            material === whiteMaterial ||
-            material === wireMaterial ||
-            material === renaissanceMaterial ||
-            material === renaissanceGlassMaterial ||
-            material === sectionCapMaterial
-          )
-            return;
+      if (
+        material === whiteMaterial ||
+        material === wireMaterial ||
+        material === renaissanceMaterial ||
+        material === renaissanceGlassMaterial ||
+        material === sectionCapMaterial
+      )
+        return;
 
+      material.map?.dispose();
 
-          material.map?.dispose();
-
-          material.dispose();
-
-        }
-      );
-
-    }
-  );
-
+      material.dispose();
+    });
+  });
 
   if (State.edgeGroup) {
+    scene.remove(State.edgeGroup);
 
-    scene.remove(
-      State.edgeGroup
-    );
-
-    State.edgeGroup =
-      null;
-
+    State.edgeGroup = null;
   }
 
-
   if (State.ground) {
-
-    scene.remove(
-      State.ground
-    );
-
+    scene.remove(State.ground);
 
     State.ground.geometry.dispose();
 
     State.ground.material.dispose();
 
-
-    State.ground =
-      null;
-
+    State.ground = null;
   }
 
+  if (State.currentObjectURL) {
+    URL.revokeObjectURL(State.currentObjectURL);
 
-  if (
-    State.currentObjectURL
-  ) {
-
-    URL.revokeObjectURL(
-      State.currentObjectURL
-    );
-
-
-    State.currentObjectURL =
-      null;
-
+    State.currentObjectURL = null;
   }
-
 
   State.originalMaterials.clear();
-  
+
   State.originalCastShadow.clear();
 
+  State.sectionTriangleComponents = new WeakMap();
 
-  State.sectionTriangleComponents =
-    new WeakMap();
+  State.sectionTopologyComponentCount = 0;
 
-  State.sectionTopologyComponentCount =
-    0;
+  State.sectionTopologyReady = false;
 
-  State.sectionTopologyReady =
-    false;
-
-
-  State.model =
-    null;
-
+  State.model = null;
 }

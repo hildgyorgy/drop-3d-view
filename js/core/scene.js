@@ -9,144 +9,74 @@
    kamera az aktív), az a core/state.js-ben van.
 */
 
-
 import * as THREE from "three";
-
 
 /* ======================================================
    SCENE
 ====================================================== */
 
-export const scene =
-  new THREE.Scene();
+export const scene = new THREE.Scene();
 
-scene.background =
-  new THREE.Color(0xefefed);
-
-
-
-
+scene.background = new THREE.Color(0xefefed);
 
 /* ======================================================
    RENDERER
 ====================================================== */
 
-export const renderer =
-  new THREE.WebGLRenderer({
-    antialias: true,
-    stencil: true
-  });
+export const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  stencil: true
+});
 
-renderer.setSize(
-  window.innerWidth,
-  window.innerHeight
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+renderer.toneMappingExposure = 1;
+
+renderer.shadowMap.enabled = true;
+
+renderer.shadowMap.type = THREE.PCFShadowMap;
+
+renderer.localClippingEnabled = true;
+
+document.body.appendChild(renderer.domElement);
+
+export const perspectiveCamera = new THREE.PerspectiveCamera(
+  42,
+  window.innerWidth / window.innerHeight,
+  0.01,
+  100000
 );
 
-renderer.setPixelRatio(
-  Math.min(
-    window.devicePixelRatio,
-    2
-  )
-);
+perspectiveCamera.position.set(10, 8, 10);
 
-renderer.outputColorSpace =
-  THREE.SRGBColorSpace;
-
-renderer.toneMapping =
-  THREE.ACESFilmicToneMapping;
-
-renderer.toneMappingExposure =
-  1;
-
-renderer.shadowMap.enabled =
-  true;
-
-renderer.shadowMap.type =
-  THREE.PCFShadowMap;
-
-renderer.localClippingEnabled =
-  true;
-
-document.body.appendChild(
-  renderer.domElement
-);
-
-
-
-
-
-export const perspectiveCamera =
-  new THREE.PerspectiveCamera(
-    42,
-    window.innerWidth /
-    window.innerHeight,
-    .01,
-    100000
-  );
-
-perspectiveCamera.position.set(
-  10,
-  8,
-  10
-);
-
-
-export const orthoCamera =
-  new THREE.OrthographicCamera(
-    -10,
-    10,
-    10,
-    -10,
-    .01,
-    100000
-  );
-
+export const orthoCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.01, 100000);
 
 /* ======================================================
    LIGHTING
 ====================================================== */
 
-export const DEFAULT_HEMI_INTENSITY =
-  1.15;
+export const DEFAULT_HEMI_INTENSITY = 1.15;
 
+export const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, DEFAULT_HEMI_INTENSITY);
 
-export const hemi =
-  new THREE.HemisphereLight(
-    0xffffff,
-    0x888888,
-    DEFAULT_HEMI_INTENSITY
-  );
+scene.add(hemi);
 
-scene.add(
-  hemi
-);
+export const sun = new THREE.DirectionalLight(0xffffff, 3.3);
 
+sun.castShadow = true;
 
-export const sun =
-  new THREE.DirectionalLight(
-    0xffffff,
-    3.3
-  );
+sun.shadow.mapSize.set(8192, 8192);
 
-sun.castShadow =
-  true;
+sun.shadow.bias = -0.0001;
 
-sun.shadow.mapSize.set(
-  8192,
-  8192
-);
+sun.shadow.normalBias = 0.02;
 
-sun.shadow.bias =
-  -.0001;
+scene.add(sun);
 
-sun.shadow.normalBias =
-  .02;
-
-scene.add(
-  sun
-);
-
-scene.add(
-  sun.target
-);
-
+scene.add(sun.target);

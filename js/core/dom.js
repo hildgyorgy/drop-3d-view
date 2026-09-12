@@ -6,95 +6,67 @@
    modul innen importálja őket, ha kellenek neki.
 */
 
-
 /* ======================================================
    DOM
 ====================================================== */
 
-export const startScreen =
-  document.querySelector("#startScreen");
+export const startScreen = document.querySelector("#startScreen");
 
 export const showAllButton = document.querySelector("#showAllButton");
 
-export const openButton =
-  document.querySelector("#openButton");
+export const openButton = document.querySelector("#openButton");
 
-export const demoButton =
-  document.querySelector("#demoButton");
+export const demoButton = document.querySelector("#demoButton");
 
-export const openAgain =
-  document.querySelector("#openAgain");
+export const openAgain = document.querySelector("#openAgain");
 
-export const fileInput =
-  document.querySelector("#fileInput");
+export const fileInput = document.querySelector("#fileInput");
 
-export const sidePanel =
-  document.querySelector("#sidePanel");
+export const sidePanel = document.querySelector("#sidePanel");
 
-export const panelButton =
-  document.querySelector("#panelButton");
+export const panelButton = document.querySelector("#panelButton");
 
-export const perspectiveButton =
-  document.querySelector("#perspectiveButton");
+export const perspectiveButton = document.querySelector("#perspectiveButton");
 
-export const axonButton =
-  document.querySelector("#axonButton");
+export const axonButton = document.querySelector("#axonButton");
 
 export const orthoButton = document.querySelector("#orthoButton");
 export const orthoMenu = document.querySelector("#orthoMenu");
 export const sectionMenu = document.querySelector("#sectionMenu");
 export const sectionMenuButton = document.querySelector("#sectionMenuButton");
 
-export const sectionButton =
-  document.querySelector("#sectionButton");
+export const sectionButton = document.querySelector("#sectionButton");
 
-export const sunAngle =
-  document.querySelector("#sunAngle");
+export const sunAngle = document.querySelector("#sunAngle");
 
-export const sunHeight =
-  document.querySelector("#sunHeight");
+export const sunHeight = document.querySelector("#sunHeight");
 
-export const shadowToggle =
-  document.querySelector("#shadowToggle");
+export const shadowToggle = document.querySelector("#shadowToggle");
 
-export const cameraFov =
-  document.querySelector("#cameraFov");
+export const cameraFov = document.querySelector("#cameraFov");
 
-export const transparency =
-  document.querySelector("#transparency");
+export const transparency = document.querySelector("#transparency");
 
-export const lightSection =
-  document.querySelector("#lightSection");
+export const lightSection = document.querySelector("#lightSection");
 
-export const sectionSlider =
-  document.querySelector("#sectionSlider");
+export const sectionSlider = document.querySelector("#sectionSlider");
 
-export const sectionFlip =
-  document.querySelector("#sectionFlip");
+export const sectionFlip = document.querySelector("#sectionFlip");
 
-export const sectionDebug =
-  document.querySelector("#sectionDebug");
+export const sectionDebug = document.querySelector("#sectionDebug");
 
-export const sectionFill =
-  document.querySelector("#sectionFill");
+export const sectionFill = document.querySelector("#sectionFill");
 
-export const sectionColorButtons =
-  document.querySelectorAll("[data-section-color]");
+export const sectionColorButtons = document.querySelectorAll("[data-section-color]");
 
-export const sectionDebugStats =
-  document.querySelector("#sectionDebugStats");
+export const sectionDebugStats = document.querySelector("#sectionDebugStats");
 
-export const statusElement =
-  document.querySelector("#status");
+export const statusElement = document.querySelector("#status");
 
-export const modelStats =
-  document.querySelector("#modelStats");
+export const modelStats = document.querySelector("#modelStats");
 
-export const materialList =
-  document.querySelector("#materialList");
+export const materialList = document.querySelector("#materialList");
 
-export const elementTypeList =
-  document.querySelector("#elementTypeList");
+export const elementTypeList = document.querySelector("#elementTypeList");
 
-export const retainedControls =
-  document.querySelector("#retainedControls");
+export const retainedControls = document.querySelector("#retainedControls");
