@@ -15,6 +15,7 @@ import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 
 import { State } from "../core/state.js";
 import { scene } from "../core/scene.js";
+import { forEachMesh } from "../core/model-utils.js";
 import {
   startScreen,
   showAllButton,
@@ -31,7 +32,6 @@ import {
   sectionCapMaterial
 } from "../model/materials.js";
 import { centreModel, fitCamera } from "../view/camera.js";
-import { buildSectionTopology } from "../section/topology.js";
 import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun } from "../view/ground-sun.js";
 import { inspectModel } from "../ui/inspector.js";
@@ -332,43 +332,22 @@ export function prepareModel(
   State.originalMaterials.clear();
 
 
-  State.model.traverse(
-  node => {
+  forEachMesh(State.model, node => {
+    node.castShadow = true;
+    node.receiveShadow = true;
 
-    if (!node.isMesh)
-      return;
-
-    node.castShadow =
-      true;
-
-    node.receiveShadow =
-      true;
-
-    const materials =
-      Array.isArray(node.material)
-        ? node.material
-        : [node.material];
+    const materials = Array.isArray(node.material)
+      ? node.material
+      : [node.material];
 
     materials.forEach(material => {
-
-      if (!material)
-        return;
-
-      material.side =
-        THREE.DoubleSide;
-
-      material.needsUpdate =
-        true;
-
+      if (!material) return;
+      material.side = THREE.DoubleSide;
+      material.needsUpdate = true;
     });
 
-    State.originalMaterials.set(
-      node.uuid,
-      node.material
-    );
-
-  }
-);
+    State.originalMaterials.set(node.uuid, node.material);
+  });
 
 
   scene.add(
@@ -378,14 +357,12 @@ export function prepareModel(
 
   centreModel();
 
-  buildSectionTopology();
+  buildEdges();
 
-buildEdges();
-
-createGround();
+  createGround();
 
 
-configureSun();
+  configureSun();
 
   inspectModel(file);
 
@@ -425,7 +402,7 @@ export function disposeCurrentModel() {
     return;
 
 
-if (State.sectionCapFrame !== null) {
+  if (State.sectionCapFrame !== null) {
     cancelAnimationFrame(State.sectionCapFrame);
     State.sectionCapFrame = null;
   }
@@ -436,11 +413,9 @@ if (State.sectionCapFrame !== null) {
   );
 
 
-  State.model.traverse(
+  forEachMesh(
+    State.model,
     node => {
-
-      if (!node.isMesh)
-        return;
 
 
       node.geometry?.dispose();
@@ -542,6 +517,9 @@ if (State.sectionCapFrame !== null) {
 
   State.sectionTopologyComponentCount =
     0;
+
+  State.sectionTopologyReady =
+    false;
 
 
   State.model =

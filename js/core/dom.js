@@ -95,3 +95,6 @@ export const materialList =
 
 export const elementTypeList =
   document.querySelector("#elementTypeList");
+
+export const retainedControls =
+  document.querySelector("#retainedControls");

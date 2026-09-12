@@ -9,6 +9,7 @@
 
 import * as THREE from "three";
 import { State } from "../core/state.js";
+import { forEachMesh } from "../core/model-utils.js";
 
 
 export function buildSectionTopology() {
@@ -18,6 +19,9 @@ export function buildSectionTopology() {
 
   State.sectionTopologyComponentCount =
     0;
+
+  State.sectionTopologyReady =
+    false;
 
 
   if (!State.model)
@@ -43,13 +47,10 @@ export function buildSectionTopology() {
     0;
 
 
-  State.model.traverse(
+  forEachMesh(
+    State.model,
     mesh => {
-
-      if (
-        !mesh.isMesh ||
-        !mesh.geometry?.attributes?.position
-      )
+      if (!mesh.geometry?.attributes?.position)
         return;
 
 
@@ -443,5 +444,9 @@ export function buildSectionTopology() {
     }
 
   }
+
+
+  State.sectionTopologyReady =
+    true;
 
 }

@@ -42,6 +42,7 @@ export const State = {
   ),
   sectionTriangleComponents: new WeakMap(),
   sectionTopologyComponentCount: 0,
+  sectionTopologyReady: false,
   sectionCapGroup: null,
   sectionCapFrame: null,
 

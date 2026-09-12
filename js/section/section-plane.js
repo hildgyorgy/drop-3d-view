@@ -8,6 +8,7 @@
 
 import * as THREE from "three";
 import { State } from "../core/state.js";
+import { forEachMesh } from "../core/model-utils.js";
 import {
   sectionButton,
   sectionSlider,
@@ -291,11 +292,9 @@ export function applyClipping() {
     return;
 
 
-  State.model.traverse(
+  forEachMesh(
+    State.model,
     node => {
-
-      if (!node.isMesh)
-        return;
 
 
       const materials =

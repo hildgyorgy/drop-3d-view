@@ -8,6 +8,7 @@
 import * as THREE from "three";
 import { State } from "../core/state.js";
 import { hemi, DEFAULT_HEMI_INTENSITY } from "../core/scene.js";
+import { forEachMesh } from "../core/model-utils.js";
 import { lightSection, sunAngle, sunHeight, shadowToggle, transparency } from "../core/dom.js";
 import {
   wireMaterial,
@@ -202,11 +203,9 @@ export function setViewMode(mode) {
 
 
 
-  State.model.traverse(
+  forEachMesh(
+    State.model,
     node => {
-
-      if (!node.isMesh)
-        return;
 
 
       const original =

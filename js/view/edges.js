@@ -8,6 +8,7 @@
 import * as THREE from "three";
 import { State } from "../core/state.js";
 import { scene } from "../core/scene.js";
+import { forEachMesh } from "../core/model-utils.js";
 import { edgeMaterial } from "../model/materials.js";
 
 
@@ -32,12 +33,9 @@ export function buildEdges() {
   );
 
 
-  State.model.traverse(
+  forEachMesh(
+    State.model,
     object => {
-
-      if (!object.isMesh)
-        return;
-
 
       const geometry =
         new THREE.EdgesGeometry(
@@ -52,7 +50,7 @@ export function buildEdges() {
           edgeMaterial
         );
 
-line.renderOrder = 11000;
+      line.renderOrder = 11000;
 
       line.matrixAutoUpdate =
         false;

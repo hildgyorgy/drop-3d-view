@@ -70,6 +70,12 @@ python3 -m http.server 8000
 
 Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.html` directly with a `file://` URL is not sufficient. Network access is needed for CDN dependencies unless they are already cached.
 
+The section geometry has dependency-free automated tests. With Node.js installed, run:
+
+```sh
+npm test
+```
+
 ## Project layout
 
 - `index.html` — viewer interface and Three.js import map
@@ -77,9 +83,10 @@ Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.
 - `js/core/` — scene, cameras, controls and application state
 - `js/model/` — model loading and materials
 - `js/view/` — display modes, navigation, framing, lighting and edges
-- `js/section/` — clipping and section geometry
+- `js/section/` — clipping, intersection collection, planar contours, fill triangulation and section rendering
 - `js/ui/` — menus, messages and model inspection helpers
 - `demo/` — sample model used by the viewer
+- `test/` — automated tests for the section geometry's pure algorithms
 
 ## Third-party components
 

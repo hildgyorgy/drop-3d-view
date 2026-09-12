@@ -1,0 +1,8 @@
+{
+  "name": "drop-3d-view",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

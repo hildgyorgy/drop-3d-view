@@ -7,11 +7,22 @@
 */
 
 import { State } from "../core/state.js";
-import { modelStats, materialList, elementTypeList } from "../core/dom.js";
+import { forEachMesh } from "../core/model-utils.js";
+import {
+  retainedControls,
+  modelStats,
+  materialList,
+  elementTypeList
+} from "../core/dom.js";
 import { escapeHTML } from "./status.js";
 
 
 export function inspectModel(file) {
+
+  // The inspector is intentionally retained for a later UI iteration. Avoid
+  // traversing large models while its complete DOM block is hidden.
+  if (retainedControls.hidden)
+    return;
 
   let meshCount =
     0;
@@ -29,11 +40,9 @@ export function inspectModel(file) {
   const elementTypes =
     new Map();
 
-  State.model.traverse(
+  forEachMesh(
+    State.model,
     node => {
-      if (!node.isMesh)
-        return;
-
       const typeName =
         node.name ||
         "(unnamed)";
