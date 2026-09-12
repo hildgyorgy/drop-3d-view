@@ -2,6 +2,7 @@
 
 import * as THREE from "three";
 import { forEachMesh } from "../core/model-utils.js";
+import { isObjectVisibleInHierarchy } from "../model/groups.js";
 import { intersectTriangleWithPlane } from "./triangle-intersection.js";
 
 export function collectSectionSegments({
@@ -74,6 +75,7 @@ export function collectSectionSegments({
   const worldEnd = new THREE.Vector3();
 
   forEachMesh(model, mesh => {
+    if (!isObjectVisibleInHierarchy(mesh, model)) return;
     if (!mesh.geometry?.attributes?.position) return;
 
     const geometry = mesh.geometry;

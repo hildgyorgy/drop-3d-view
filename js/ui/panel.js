@@ -6,7 +6,9 @@ import {
   sectionMenuButton,
   sectionMenu,
   perspectiveButton,
-  axonButton
+  axonButton,
+  groupMenuButton,
+  groupMenu
 } from "../core/dom.js";
 
 const menus = [
@@ -16,6 +18,11 @@ const menus = [
     button: sectionMenuButton,
     panel: sectionMenu,
     dock: sectionMenuButton.closest(".section-dock")
+  },
+  {
+    button: groupMenuButton,
+    panel: groupMenu,
+    dock: groupMenuButton.closest(".groups-dock")
   }
 ];
 

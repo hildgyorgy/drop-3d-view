@@ -35,6 +35,7 @@ import { centreModel, fitCamera } from "../view/camera.js";
 import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun } from "../view/ground-sun.js";
 import { inspectModel } from "../ui/inspector.js";
+import { buildGroupFilter, clearGroupFilter } from "../ui/group-filter.js";
 import { setViewMode } from "../view/view-modes.js";
 import { setStatus, resetStartMessage, showStartError } from "../ui/status.js";
 import { disposeSectionCap } from "../section/section-cap.js";
@@ -50,6 +51,20 @@ const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath(
   "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/"
 );
+
+function preserveGLTFGroupLabels(result) {
+  const parser = result.parser;
+  const nodes = parser?.json?.nodes || [];
+  const sceneNodeIndexes = parser?.json?.scenes?.[parser.json.scene ?? 0]?.nodes || [];
+
+  result.scene.children.forEach((object, index) => {
+    const association = parser?.associations?.get(object);
+    const nodeIndex = association?.nodes ?? sceneNodeIndexes[index];
+    const sourceName = nodes[nodeIndex]?.name;
+
+    if (sourceName) object.userData.groupLabel = sourceName;
+  });
+}
 
 /* ======================================================
    OPEN
@@ -149,6 +164,8 @@ export async function openFile(file) {
 
       const result = await loader.loadAsync(State.currentObjectURL);
 
+      preserveGLTFGroupLabels(result);
+
       object = result.scene;
     } else if (extension === "fbx") {
       const loader = new FBXLoader();
@@ -191,6 +208,8 @@ export function prepareModel(object, file) {
 
   scene.add(State.model);
 
+  buildGroupFilter(State.model);
+
   centreModel();
 
   buildEdges();
@@ -213,6 +232,7 @@ export function prepareModel(object, file) {
 
 export function disposeCurrentModel() {
   showAllButton.hidden = true;
+  clearGroupFilter();
   ++State.cameraAnimation;
 
   // A failed loader can leave an object URL without a model to dispose.

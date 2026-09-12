@@ -27,6 +27,7 @@ import {
 import { applyClipping } from "../section/section-plane.js";
 import { updateEnvironment } from "./environment.js";
 import { updateAO } from "./ambient-occlusion.js";
+import { applyGroupVisibility } from "../ui/group-filter.js";
 
 let shadowSettingBeforeWireframe = null;
 
@@ -212,6 +213,10 @@ export function setViewMode(mode) {
   });
 
   updateTransparencyAppearance();
+
+  // Display modes may touch mesh visibility; restore the exported top-level
+  // group switches afterwards, including direct top-level Mesh objects.
+  applyGroupVisibility();
 
   applyClipping();
 }

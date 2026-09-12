@@ -31,6 +31,7 @@ import "./view/view-modes.js";
 import "./view/ground-sun.js";
 import "./view/focus.js";
 import "./view/show-all.js";
+import "./ui/group-filter.js";
 import "./ui/panel.js";
 
 /* ======================================================

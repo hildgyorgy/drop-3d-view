@@ -14,6 +14,16 @@ export const startScreen = document.querySelector("#startScreen");
 
 export const showAllButton = document.querySelector("#showAllButton");
 
+export const groupMenu = document.querySelector("#groupMenu");
+
+export const groupMenuButton = document.querySelector("#groupMenuButton");
+
+export const groupList = document.querySelector("#groupList");
+
+export const showAllGroupsButton = document.querySelector("#showAllGroupsButton");
+
+export const hideAllGroupsButton = document.querySelector("#hideAllGroupsButton");
+
 export const openButton = document.querySelector("#openButton");
 
 export const demoButton = document.querySelector("#demoButton");

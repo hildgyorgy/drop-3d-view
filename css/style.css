@@ -82,7 +82,8 @@ canvas {
 .style-toolbar,
 .view-dock,
 .controls-dock,
-.section-dock {
+.section-dock,
+.model-dock {
   pointer-events: auto;
 }
 .brand {
@@ -416,12 +417,63 @@ input[type="checkbox"]:checked,
 #sectionSlider {
   width: 100%;
 }
-.show-all {
+.model-dock {
   position: absolute;
   bottom: max(25px, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
-  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  white-space: nowrap;
+}
+.groups-dock {
+  position: relative;
+}
+.group-menu {
+  position: absolute;
+  bottom: calc(100% + 18px);
+  left: 50%;
+  width: min(320px, calc(100vw - 36px));
+  max-height: min(52dvh, 520px);
+  padding: 14px 12px;
+  overflow: hidden;
+  transform: translateX(-50%);
+  border-top: 1px solid #17171755;
+  border-bottom: 1px solid #17171755;
+  background: rgba(239, 239, 237, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.group-filter-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #17171733;
+}
+.group-filter-actions button {
+  font: inherit;
+  letter-spacing: inherit;
+}
+.group-filter-list {
+  max-height: calc(min(52dvh, 520px) - 58px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.group-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 27px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+}
+.group-filter-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 #lightSection.disabled,
@@ -570,6 +622,18 @@ body.dragging .drop-title {
   .section-dock {
     width: 112px;
   }
+  .model-dock {
+    gap: 18px;
+  }
+  .group-menu {
+    left: auto;
+    right: 0;
+    transform: none;
+    max-height: 42dvh;
+  }
+  .group-filter-list {
+    max-height: calc(42dvh - 58px);
+  }
   .view-menu button.active::after,
   .axis-buttons button.active::after {
     right: -12px;
@@ -577,7 +641,7 @@ body.dragging .drop-title {
   }
 }
 @media (max-width: 380px) {
-  .show-all {
+  .model-dock {
     bottom: max(65px, calc(env(safe-area-inset-bottom) + 40px));
   }
 }

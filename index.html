@@ -286,14 +286,40 @@
         </div>
       </div>
 
-      <button
-        id="showAllButton"
-        class="menu-toggle show-all"
-        title="Fit the whole model in the current view"
-        hidden
-      >
-        SHOW ALL
-      </button>
+      <div class="model-dock">
+        <button
+          id="showAllButton"
+          class="menu-toggle"
+          title="Fit the whole model in the current view"
+          hidden
+        >
+          SHOW ALL
+        </button>
+        <div class="groups-dock">
+          <div
+            id="groupMenu"
+            class="corner-menu group-menu"
+            hidden
+            role="group"
+            aria-label="Model groups"
+          >
+            <div class="group-filter-actions">
+              <button id="showAllGroupsButton" type="button">ALL ON</button>
+              <button id="hideAllGroupsButton" type="button">ALL OFF</button>
+            </div>
+            <div id="groupList" class="group-filter-list"></div>
+          </div>
+          <button
+            id="groupMenuButton"
+            class="menu-toggle"
+            aria-expanded="false"
+            aria-controls="groupMenu"
+            hidden
+          >
+            GROUPS <span class="menu-arrow" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
 
       <!-- Retained for later UI iterations. Inspector work pauses while hidden. -->
       <div id="retainedControls" hidden>

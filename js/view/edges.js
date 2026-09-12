@@ -33,10 +33,22 @@ export function buildEdges() {
 
     line.matrix.copy(object.matrixWorld);
 
+    let groupObject = object;
+    while (groupObject.parent && groupObject.parent !== State.model) {
+      groupObject = groupObject.parent;
+    }
+    line.userData.modelGroup = groupObject;
+
     State.edgeGroup.add(line);
   });
 
   scene.add(State.edgeGroup);
 
   State.edgeGroup.visible = false;
+}
+
+export function syncEdgeGroupVisibility() {
+  State.edgeGroup?.children.forEach(line => {
+    line.visible = line.userData.modelGroup?.visible !== false;
+  });
 }
