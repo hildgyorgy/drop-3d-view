@@ -30,6 +30,7 @@ export const State = {
   modelBounds: null,
   maxModelSize: 10,
   currentObjectURL: null,
+  currentFileName: null,
   currentMode: "original",
 
   // --- metszés (section) ---

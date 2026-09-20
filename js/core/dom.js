@@ -57,6 +57,8 @@ export const cameraFov = document.querySelector("#cameraFov");
 
 export const transparency = document.querySelector("#transparency");
 
+export const photo1Button = document.querySelector("#photo1Button");
+
 export const lightSection = document.querySelector("#lightSection");
 
 export const sectionSlider = document.querySelector("#sectionSlider");

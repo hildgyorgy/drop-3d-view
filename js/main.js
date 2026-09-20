@@ -22,6 +22,11 @@ import { updateOrthoFrustum } from "./view/camera.js";
 import { renderViewer, resizeAO } from "./view/ambient-occlusion.js";
 import { updatePerformanceStats } from "./ui/performance.js";
 import { updateNavigation } from "./view/navigation.js";
+import {
+  getPhoto1Stats,
+  renderPhoto1,
+  resizePhoto1
+} from "./view/photo1.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -51,6 +56,7 @@ window.addEventListener("resize", () => {
 
   renderer.setSize(width, height);
   resizeAO(width, height);
+  resizePhoto1();
 });
 
 function animate(time) {
@@ -58,9 +64,9 @@ function animate(time) {
 
   State.controls.update();
 
-  renderViewer();
+  if (!renderPhoto1()) renderViewer();
 
-  updatePerformanceStats(time);
+  updatePerformanceStats(time, getPhoto1Stats());
 }
 
 renderer.setAnimationLoop(animate);

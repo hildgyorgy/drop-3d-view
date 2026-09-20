@@ -19,12 +19,14 @@ import {
 } from "../core/dom.js";
 import { scheduleSectionCapRebuild } from "./section-cap.js";
 import { sectionCapMaterial, sectionEdgeMaterial } from "../model/materials.js";
+import { deactivatePhoto1, updatePhoto1Availability } from "../view/photo1.js";
 
 /* ======================================================
    SECTION
 ====================================================== */
 
 sectionButton.addEventListener("click", () => {
+  deactivatePhoto1();
   State.sectionEnabled = !State.sectionEnabled;
 
   sectionButton.classList.toggle("active", State.sectionEnabled);
@@ -37,6 +39,8 @@ sectionButton.addEventListener("click", () => {
     */
   if (State.sectionEnabled) updateSectionPlane();
   else applyClipping();
+
+  updatePhoto1Availability();
 });
 
 document.querySelectorAll("[data-axis]").forEach(button => {

@@ -69,6 +69,7 @@ canvas {
 }
 .brand,
 .tool-button,
+.photo-button,
 .menu-toggle,
 .corner-menu,
 .section-heading {
@@ -175,6 +176,33 @@ canvas {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  align-items: flex-start;
+}
+.original-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.photo-button {
+  position: relative;
+  min-height: 20px;
+  margin-top: 1px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+}
+.photo-button.active {
+  color: var(--red);
+}
+.photo-button.active::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  width: 4px;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--red);
 }
 .tool-button {
   position: relative;
@@ -183,7 +211,17 @@ canvas {
 .tool-button + .tool-button {
   margin-left: 26px;
 }
+.original-mode + .tool-button {
+  margin-left: 26px;
+}
 .tool-button + .tool-button::before {
+  content: "|";
+  position: absolute;
+  left: -17px;
+  color: var(--text);
+  font-weight: 400;
+}
+.original-mode + .tool-button::before {
   content: "|";
   position: absolute;
   left: -17px;
@@ -561,6 +599,7 @@ body.dragging .drop-title {
   }
   .brand,
   .tool-button,
+  .photo-button,
   .menu-toggle,
   .corner-menu,
   .section-heading {
@@ -590,8 +629,18 @@ body.dragging .drop-title {
   .tool-button + .tool-button {
     margin-left: 18px;
   }
+  .original-mode + .tool-button {
+    margin-left: 18px;
+  }
   .tool-button + .tool-button::before {
     left: -11px;
+  }
+  .original-mode + .tool-button::before {
+    left: -11px;
+  }
+  .photo-button {
+    font-size: 8px;
+    letter-spacing: 0.12em;
   }
   .view-dock {
     top: 75px;

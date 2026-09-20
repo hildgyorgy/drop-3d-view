@@ -28,6 +28,7 @@ import { applyClipping } from "../section/section-plane.js";
 import { updateEnvironment } from "./environment.js";
 import { updateAO } from "./ambient-occlusion.js";
 import { applyGroupVisibility } from "../ui/group-filter.js";
+import { deactivatePhoto1 } from "./photo1.js";
 
 let shadowSettingBeforeWireframe = null;
 
@@ -67,6 +68,7 @@ document.querySelectorAll("[data-mode]").forEach(button => {
 });
 
 export function setViewMode(mode) {
+  deactivatePhoto1();
   State.currentMode = mode;
 
   updateEnvironment();

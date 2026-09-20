@@ -11,12 +11,14 @@ import {
 import { createModelGroups, setModelGroupVisible } from "../model/groups.js";
 import { syncEdgeGroupVisibility } from "../view/edges.js";
 import { scheduleSectionCapRebuild } from "../section/section-cap.js";
+import { invalidatePhoto1Scene } from "../view/photo1.js";
 
 let groups = [];
 
 function refreshDerivedGeometry() {
   syncEdgeGroupVisibility();
   if (State.sectionEnabled) scheduleSectionCapRebuild();
+  invalidatePhoto1Scene();
 }
 
 function updateGroup(group, visible, checkbox) {

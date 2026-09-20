@@ -40,6 +40,10 @@ import { setViewMode } from "../view/view-modes.js";
 import { setStatus, resetStartMessage, showStartError } from "../ui/status.js";
 import { disposeSectionCap } from "../section/section-cap.js";
 import { updateSectionPlane } from "../section/section-plane.js";
+import {
+  deactivatePhoto1,
+  updatePhoto1Availability
+} from "../view/photo1.js";
 
 /*
    Draco decoder for compressed GLB/GLTF files.
@@ -140,6 +144,8 @@ export async function openFile(file) {
   disposeCurrentModel();
   resetStartMessage();
 
+  State.currentFileName = file.name;
+
   const extension = file.name.split(".").pop().toLowerCase();
 
   if (!["glb", "gltf", "fbx"].includes(extension)) {
@@ -228,12 +234,17 @@ export function prepareModel(object, file) {
   showAllButton.hidden = false;
 
   setStatus(`${file.name} · drag to orbit · scroll/pinch to zoom`);
+  updatePhoto1Availability();
 }
 
 export function disposeCurrentModel() {
+  deactivatePhoto1({ restoreStatus: false });
   showAllButton.hidden = true;
   clearGroupFilter();
   ++State.cameraAnimation;
+
+  State.currentFileName = null;
+  updatePhoto1Availability();
 
   // A failed loader can leave an object URL without a model to dispose.
   if (State.currentObjectURL) {

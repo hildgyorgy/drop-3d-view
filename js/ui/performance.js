@@ -6,8 +6,18 @@ const MAX_FRAME_GAP = 1000;
 let intervalStart = null;
 let frameCount = 0;
 
-export function updatePerformanceStats(time) {
+export function updatePerformanceStats(time, renderStats = null) {
   if (!output || !Number.isFinite(time)) return;
+
+  if (renderStats) {
+    if (renderStats.preparing) output.textContent = "PHOTO • PREPARING";
+    else if (renderStats.compiling) output.textContent = "PHOTO • COMPILING";
+    else output.textContent = `PHOTO • ${Math.floor(renderStats.samples)} SPP`;
+
+    intervalStart = time;
+    frameCount = 0;
+    return;
+  }
 
   if (intervalStart === null) {
     intervalStart = time;
