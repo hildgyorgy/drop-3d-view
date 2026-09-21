@@ -122,7 +122,9 @@ function getPhotoEnvironmentRotation() {
   const desiredSunAzimuth = THREE.MathUtils.degToRad(
     Number(sunAngle?.value ?? 45)
   );
-  return desiredSunAzimuth - photoEnvironmentSunAzimuth;
+  // THREE.RotationY uses the opposite positive direction to the viewer's
+  // X/Z azimuth convention, so rotate source minus target here.
+  return photoEnvironmentSunAzimuth - desiredSunAzimuth;
 }
 
 function withPhotoEnvironment(callback) {
