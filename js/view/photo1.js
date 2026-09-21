@@ -14,6 +14,7 @@ import {
   shadowToggle,
   transparency
 } from "../core/dom.js";
+import { isTranslucentMaterial } from "../model/materials.js";
 import { setStatus } from "../ui/status.js";
 
 const environmentButton = document.getElementById("environmentToggle");
@@ -30,6 +31,7 @@ let pathTracer = null;
 let photoEnvironment = null;
 let photoGroundMaterial = null;
 let convertedMaterials = [];
+let convertedGlassMaterials = [];
 let convertedMaterialCache = new WeakMap();
 let cameraSignature = "";
 let lightSignature = "";
@@ -95,13 +97,96 @@ async function loadPhotoEnvironment(HDRLoader, GradientEquirectTexture) {
   }
 }
 
+function getFallbackGlassTransmission() {
+  const minimum = Number(transparency?.min ?? 30);
+  const maximum = Number(transparency?.max ?? 85);
+  const value = Number(transparency?.value ?? 68);
+  const range = Math.max(1, maximum - minimum);
+  const normalized = THREE.MathUtils.clamp((value - minimum) / range, 0, 1);
+
+  // The regular viewer's percentage controls alpha coverage. Physical glass
+  // needs to stay mostly transmissive so its reflections do not disappear.
+  return THREE.MathUtils.lerp(0.86, 0.98, normalized);
+}
+
+function isPhotoGlassCandidate(material) {
+  const namedAsGlass =
+    /(?:glass|glazing|window|crystal|verre|vitre|üveg)/i.test(material.name || "");
+  const textureBackedTransparency =
+    material.transparent && material.map && !namedAsGlass;
+
+  return (
+    (namedAsGlass || isTranslucentMaterial(material)) &&
+    !material.alphaMap &&
+    !(material.alphaTest > 0) &&
+    !textureBackedTransparency
+  );
+}
+
+function createPhotoGlassMaterial(material) {
+  const authoredTransmission = Number(material.transmission);
+  const hasAuthoredTransmission =
+    Number.isFinite(authoredTransmission) && authoredTransmission > 0;
+  const roughness = hasAuthoredTransmission
+    ? THREE.MathUtils.clamp(Number(material.roughness ?? 0.08), 0, 1)
+    : 0.08;
+
+  const converted = new THREE.MeshPhysicalMaterial({
+    color: material.color?.clone() ?? new THREE.Color(0xf7fbff),
+    map: material.map ?? null,
+    normalMap: material.normalMap ?? null,
+    normalScale: material.normalScale?.clone() ?? new THREE.Vector2(1, 1),
+    bumpMap: material.bumpMap ?? null,
+    bumpScale: material.bumpScale ?? 1,
+    roughness,
+    metalness: 0,
+    transmission: hasAuthoredTransmission
+      ? authoredTransmission
+      : getFallbackGlassTransmission(),
+    ior: Number(material.ior) || 1.5,
+    thickness: hasAuthoredTransmission ? Number(material.thickness) || 0 : 0,
+    attenuationColor:
+      material.attenuationColor?.clone() ?? new THREE.Color(0xffffff),
+    attenuationDistance:
+      Number.isFinite(material.attenuationDistance)
+        ? material.attenuationDistance
+        : Infinity,
+    specularIntensity: Number(material.specularIntensity) || 1,
+    opacity: 1,
+    transparent: false,
+    side: material.side ?? THREE.DoubleSide,
+    vertexColors: material.vertexColors ?? false,
+    depthWrite: true
+  });
+
+  converted.name = `${material.name || material.type} (PHOTO GLASS)`;
+  converted.userData.photoFallbackGlass = !hasAuthoredTransmission;
+  convertedMaterialCache.set(material, converted);
+  convertedMaterials.push(converted);
+  convertedGlassMaterials.push(converted);
+  return converted;
+}
+
+function updatePhotoGlassTransmission() {
+  const transmission = getFallbackGlassTransmission();
+  convertedGlassMaterials.forEach(material => {
+    if (material.userData.photoFallbackGlass) {
+      material.transmission = transmission;
+    }
+  });
+}
+
 function convertMaterial(material) {
-  if (!material || material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) {
-    return material;
-  }
+  if (!material) return material;
 
   const cached = convertedMaterialCache.get(material);
   if (cached) return cached;
+
+  if (isPhotoGlassCandidate(material)) {
+    return createPhotoGlassMaterial(material);
+  }
+
+  if (material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) return material;
 
   const converted = new THREE.MeshStandardMaterial({
     color: material.color?.clone() ?? new THREE.Color(0xffffff),
@@ -205,6 +290,7 @@ function disposePhotoResources() {
   photoGroundMaterial = null;
   convertedMaterials.forEach(material => material.dispose());
   convertedMaterials = [];
+  convertedGlassMaterials = [];
   convertedMaterialCache = new WeakMap();
 }
 
@@ -293,7 +379,10 @@ photo1Button?.addEventListener("click", () => {
 transparency?.addEventListener("input", () => {
   // The regular material appearance listener runs in the same event turn.
   queueMicrotask(() => {
-    if (active && pathTracer) pathTracer.updateMaterials();
+    if (active && pathTracer) {
+      updatePhotoGlassTransmission();
+      pathTracer.updateMaterials();
+    }
   });
 });
 
