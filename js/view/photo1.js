@@ -12,6 +12,8 @@ import { scene, renderer, sun } from "../core/scene.js";
 import {
   photo1Button,
   shadowToggle,
+  sunAngle,
+  sunHeight,
   transparency
 } from "../core/dom.js";
 import { isTranslucentMaterial } from "../model/materials.js";
@@ -34,7 +36,7 @@ let convertedMaterials = [];
 let convertedGlassMaterials = [];
 let convertedMaterialCache = new WeakMap();
 let cameraSignature = "";
-let lightSignature = "";
+let photoEnvironmentSunAzimuth = 0;
 let sceneDirty = false;
 
 function matrixSignature(matrix) {
@@ -49,18 +51,6 @@ function getCameraSignature() {
   )}`;
 }
 
-function getLightSignature() {
-  sun.updateMatrixWorld();
-  sun.target.updateMatrixWorld();
-  return [
-    matrixSignature(sun.matrixWorld),
-    matrixSignature(sun.target.matrixWorld),
-    sun.color.getHexString(),
-    sun.intensity,
-    sun.visible
-  ].join("|");
-}
-
 function createFallbackEnvironment(GradientEquirectTexture) {
   const environment = new GradientEquirectTexture(512);
   environment.topColor.set(0xb9d5f5);
@@ -68,6 +58,33 @@ function createFallbackEnvironment(GradientEquirectTexture) {
   environment.exponent = 1.65;
   environment.update();
   return environment;
+}
+
+function findEnvironmentSunAzimuth(environment) {
+  const { data, width, height } = environment.image ?? {};
+  if (!(data instanceof Float32Array) || !width || !height) {
+    return THREE.MathUtils.degToRad(Number(sunAngle?.value ?? 45));
+  }
+
+  const pixelCount = width * height;
+  const stride = Math.max(3, Math.floor(data.length / pixelCount));
+  let brightestPixel = 0;
+  let brightestLuminance = -Infinity;
+
+  for (let pixel = 0; pixel < pixelCount; pixel += 1) {
+    const offset = pixel * stride;
+    const luminance =
+      0.2126 * data[offset] +
+      0.7152 * data[offset + 1] +
+      0.0722 * data[offset + 2];
+    if (luminance > brightestLuminance) {
+      brightestLuminance = luminance;
+      brightestPixel = pixel;
+    }
+  }
+
+  const x = brightestPixel % width;
+  return ((x + 0.5) / width - 0.5) * Math.PI * 2;
 }
 
 function clampEnvironmentForHalfFloat(environment) {
@@ -88,13 +105,51 @@ async function loadPhotoEnvironment(HDRLoader, GradientEquirectTexture) {
     const environment = await new HDRLoader()
       .setDataType(THREE.FloatType)
       .loadAsync(photoEnvironmentUrl);
+    photoEnvironmentSunAzimuth = findEnvironmentSunAzimuth(environment);
     clampEnvironmentForHalfFloat(environment);
     environment.mapping = THREE.EquirectangularReflectionMapping;
     return environment;
   } catch (error) {
     console.warn("PHOTO HDRI could not be loaded; using gradient lighting", error);
+    photoEnvironmentSunAzimuth = THREE.MathUtils.degToRad(
+      Number(sunAngle?.value ?? 45)
+    );
     return createFallbackEnvironment(GradientEquirectTexture);
   }
+}
+
+function getPhotoEnvironmentRotation() {
+  const desiredSunAzimuth = THREE.MathUtils.degToRad(
+    Number(sunAngle?.value ?? 45)
+  );
+  return desiredSunAzimuth - photoEnvironmentSunAzimuth;
+}
+
+function withPhotoEnvironment(callback) {
+  const previousEnvironment = scene.environment;
+  const previousIntensity = scene.environmentIntensity;
+  const previousRotation = scene.environmentRotation.clone();
+  const previousSunVisibility = sun.visible;
+
+  scene.environment = photoEnvironment;
+  scene.environmentIntensity = 0.8;
+  scene.environmentRotation.set(0, getPhotoEnvironmentRotation(), 0);
+  // The HDRI already contains a real sun, so never add a second one.
+  sun.visible = false;
+
+  try {
+    return callback();
+  } finally {
+    scene.environment = previousEnvironment;
+    scene.environmentIntensity = previousIntensity;
+    scene.environmentRotation.copy(previousRotation);
+    sun.visible = previousSunVisibility;
+  }
+}
+
+function updatePhotoEnvironmentDirection() {
+  if (!active || !pathTracer || !photoEnvironment) return;
+  withPhotoEnvironment(() => pathTracer.updateEnvironment());
 }
 
 function getFallbackGlassTransmission() {
@@ -231,20 +286,9 @@ function withPhotoMaterials(callback) {
     State.ground.material = photoGroundMaterial;
   }
 
-  const previousEnvironment = scene.environment;
-  const previousIntensity = scene.environmentIntensity;
-  const previousSunVisibility = sun.visible;
-  scene.environment = photoEnvironment;
-  scene.environmentIntensity = 0.8;
-  // The HDRI already contains a real sun, so avoid adding a second one.
-  sun.visible = false;
-
   try {
-    return callback();
+    return withPhotoEnvironment(callback);
   } finally {
-    scene.environment = previousEnvironment;
-    scene.environmentIntensity = previousIntensity;
-    sun.visible = previousSunVisibility;
     swaps.forEach(([object, material]) => {
       object.material = material;
     });
@@ -260,7 +304,6 @@ function prepareScene() {
   try {
     withPhotoMaterials(() => pathTracer.setScene(scene, State.camera));
     cameraSignature = getCameraSignature();
-    lightSignature = getLightSignature();
     sceneDirty = false;
     setStatus("PHOTO · move to compose · pause to refine");
   } finally {
@@ -273,6 +316,16 @@ function updateControlAvailability() {
   if (environmentButton) environmentButton.disabled = locked;
   if (aoButton) aoButton.disabled = locked;
   if (shadowToggle) shadowToggle.disabled = locked;
+  if (sunAngle) {
+    sunAngle.disabled = false;
+    sunAngle.title = "Shared sun direction for ORIGINAL and PHOTO";
+  }
+  if (sunHeight) {
+    sunHeight.disabled = false;
+    if (locked)
+      sunHeight.title = "Adjusts the ORIGINAL sun only; PHOTO HDRI height is fixed";
+    else sunHeight.removeAttribute("title");
+  }
 }
 
 function restoreViewerStatus() {
@@ -376,6 +429,10 @@ photo1Button?.addEventListener("click", () => {
   else activatePhoto1();
 });
 
+sunAngle?.addEventListener("input", () => {
+  queueMicrotask(updatePhotoEnvironmentDirection);
+});
+
 transparency?.addEventListener("input", () => {
   // The regular material appearance listener runs in the same event turn.
   queueMicrotask(() => {
@@ -448,12 +505,6 @@ export function renderPhoto1() {
     if (pathTracer.camera !== State.camera) pathTracer.setCamera(State.camera);
     else pathTracer.updateCamera();
     cameraSignature = nextCameraSignature;
-  }
-
-  const nextLightSignature = getLightSignature();
-  if (nextLightSignature !== lightSignature) {
-    pathTracer.updateLights();
-    lightSignature = nextLightSignature;
   }
 
   pathTracer.renderSample();

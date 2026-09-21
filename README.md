@@ -22,7 +22,7 @@ Use a modern browser with JavaScript and WebGL support. Large models may require
 - **AXON:** an orbitable axonometric view with parallel projection.
 - **ORTHO:** TOP, FRONT, LEFT, RIGHT and BACK presets. Elevations can be rotated horizontally while remaining upright and orthogonal. TOP stays fixed. Double-click centring preserves the current ORTHO direction.
 - **CONTROLS:** sun direction, sun height, glass transparency and shadows. Camera FOV is available in PERSP; sun and shadow controls are disabled in WIRE.
-- **PHOTO:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. Move the camera to compose the image, then pause while the image refines. Requires WebGL 2 and an internet connection the first time the renderer is loaded.
+- **PHOTO:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PHOTO, rotating both the regular sun and the HDRI sun; SUN HEIGHT adjusts only the regular ORIGINAL sun because the photographed HDRI height is fixed. Move the camera to compose the image, then pause while the image refines. Requires WebGL 2 and an internet connection the first time the renderer is loaded.
 - **SECTION:** toggle cutting with the circle, choose an X/Y/Z axis and move the section slider to inspect the interior.
 
 The three corner menus start closed. Click their labels to open or close them; click the model area or press Escape to close them. The red **i** beside OPEN FILE opens the support page.
