@@ -86,12 +86,13 @@ npm test
 - `js/view/` — display modes, navigation, framing, lighting and edges
 - `js/section/` — clipping, intersection collection, planar contours, fill triangulation and section rendering
 - `js/ui/` — menus, messages and model inspection helpers
+- `assets/hdri/` — bundled environment lighting used by PHOTO
 - `demo/` — sample model used by the viewer
 - `test/` — automated tests for the section geometry's pure algorithms
 
 ## Third-party components
 
-Drop & View uses [Three.js](https://threejs.org/) and [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer) under their MIT licences, [three-mesh-bvh](https://github.com/gkjohnson/three-mesh-bvh) under its MIT licence, and [Draco](https://github.com/google/draco) under its [Apache 2.0 licence](https://github.com/google/draco/blob/main/LICENSE). These components retain their own licences; the proprietary terms apply only to the project's own material.
+Drop & View uses [Three.js](https://threejs.org/) and [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer) under their MIT licences, [three-mesh-bvh](https://github.com/gkjohnson/three-mesh-bvh) under its MIT licence, and [Draco](https://github.com/google/draco) under its [Apache 2.0 licence](https://github.com/google/draco/blob/main/LICENSE). PHOTO uses the [Sunny Rose Garden](https://polyhaven.com/a/sunny_rose_garden) HDRI from Poly Haven under the [CC0 licence](https://polyhaven.com/license). These components and assets retain their own licences; the proprietary terms apply only to the project's own material.
 
 ## Contact
 

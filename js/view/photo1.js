@@ -18,6 +18,10 @@ import { setStatus } from "../ui/status.js";
 
 const environmentButton = document.getElementById("environmentToggle");
 const aoButton = document.getElementById("aoToggle");
+const photoEnvironmentUrl = new URL(
+  "../../assets/hdri/sunny_rose_garden_2k.hdr",
+  import.meta.url
+).href;
 
 let active = false;
 let preparing = false;
@@ -53,6 +57,42 @@ function getLightSignature() {
     sun.intensity,
     sun.visible
   ].join("|");
+}
+
+function createFallbackEnvironment(GradientEquirectTexture) {
+  const environment = new GradientEquirectTexture(512);
+  environment.topColor.set(0xb9d5f5);
+  environment.bottomColor.set(0x8b8175);
+  environment.exponent = 1.65;
+  environment.update();
+  return environment;
+}
+
+function clampEnvironmentForHalfFloat(environment) {
+  const data = environment.image?.data;
+  if (!(data instanceof Float32Array)) return;
+
+  // The path tracer stores its environment data as half floats internally.
+  // Preserve the HDR range while clipping rare solar pixels to that format's
+  // finite maximum so Three.js does not emit overflow warnings.
+  for (let i = 0; i < data.length; i += 1) {
+    data[i] = Math.min(65504, Math.max(-65504, data[i]));
+  }
+  environment.needsUpdate = true;
+}
+
+async function loadPhotoEnvironment(HDRLoader, GradientEquirectTexture) {
+  try {
+    const environment = await new HDRLoader()
+      .setDataType(THREE.FloatType)
+      .loadAsync(photoEnvironmentUrl);
+    clampEnvironmentForHalfFloat(environment);
+    environment.mapping = THREE.EquirectangularReflectionMapping;
+    return environment;
+  } catch (error) {
+    console.warn("PHOTO HDRI could not be loaded; using gradient lighting", error);
+    return createFallbackEnvironment(GradientEquirectTexture);
+  }
 }
 
 function convertMaterial(material) {
@@ -108,14 +148,18 @@ function withPhotoMaterials(callback) {
 
   const previousEnvironment = scene.environment;
   const previousIntensity = scene.environmentIntensity;
+  const previousSunVisibility = sun.visible;
   scene.environment = photoEnvironment;
-  scene.environmentIntensity = 0.42;
+  scene.environmentIntensity = 0.8;
+  // The HDRI already contains a real sun, so avoid adding a second one.
+  sun.visible = false;
 
   try {
     return callback();
   } finally {
     scene.environment = previousEnvironment;
     scene.environmentIntensity = previousIntensity;
+    sun.visible = previousSunVisibility;
     swaps.forEach(([object, material]) => {
       object.material = material;
     });
@@ -181,18 +225,28 @@ async function activatePhoto1() {
   setStatus("PHOTO · loading renderer…");
 
   try {
-    const [{ WebGLPathTracer }, { GradientEquirectTexture }] = await Promise.all([
+    const [
+      { WebGLPathTracer },
+      { GradientEquirectTexture },
+      { HDRLoader }
+    ] = await Promise.all([
       import("three-gpu-pathtracer/src/core/WebGLPathTracer.js"),
-      import("three-gpu-pathtracer/src/textures/GradientEquirectTexture.js")
+      import("three-gpu-pathtracer/src/textures/GradientEquirectTexture.js"),
+      import("three/addons/loaders/HDRLoader.js")
     ]);
 
     if (!active || currentActivation !== activation || !State.model) return;
 
-    photoEnvironment = new GradientEquirectTexture(512);
-    photoEnvironment.topColor.set(0xb9d5f5);
-    photoEnvironment.bottomColor.set(0x8b8175);
-    photoEnvironment.exponent = 1.65;
-    photoEnvironment.update();
+    setStatus("PHOTO · loading HDRI lighting…");
+    const loadedEnvironment = await loadPhotoEnvironment(
+      HDRLoader,
+      GradientEquirectTexture
+    );
+    if (!active || currentActivation !== activation || !State.model) {
+      loadedEnvironment.dispose();
+      return;
+    }
+    photoEnvironment = loadedEnvironment;
 
     photoGroundMaterial = new THREE.MeshStandardMaterial({
       color: scene.background,
