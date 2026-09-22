@@ -1,8 +1,8 @@
 /*
-   PHOTO
+   PATH TRACER
 
    Optional progressive path-traced rendering. The dependency is loaded only
-   when the user asks for PHOTO, so the normal viewer keeps its original
+   when the user asks for PATH TRACER, so the normal viewer keeps its original
    startup cost and behaviour.
 */
 
@@ -114,7 +114,7 @@ async function loadPhotoEnvironment(HDRLoader, GradientEquirectTexture) {
     environment.mapping = THREE.EquirectangularReflectionMapping;
     return environment;
   } catch (error) {
-    console.warn("PHOTO HDRI could not be loaded; using gradient lighting", error);
+    console.warn("PATH TRACER HDRI could not be loaded; using gradient lighting", error);
     photoEnvironmentSunAzimuth = THREE.MathUtils.degToRad(
       Number(sunAngle?.value ?? 45)
     );
@@ -281,13 +281,13 @@ function prepareScene() {
   if (!pathTracer || !State.model) return;
 
   preparing = true;
-  setStatus("PHOTO · preparing path-traced scene…");
+  setStatus("PATH TRACER · preparing scene…");
 
   try {
     withPhotoMaterials(() => pathTracer.setScene(scene, State.camera));
     cameraSignature = getCameraSignature();
     sceneDirty = false;
-    setStatus("PHOTO · move to compose · pause to refine");
+    setStatus("PATH TRACER · move to compose · pause to refine");
   } finally {
     preparing = false;
   }
@@ -300,12 +300,12 @@ function updateControlAvailability() {
   if (shadowToggle) shadowToggle.disabled = locked;
   if (sunAngle) {
     sunAngle.disabled = false;
-    sunAngle.title = "Shared sun direction for ORIGINAL and PHOTO";
+    sunAngle.title = "Shared sun direction for ORIGINAL and PATH TRACER";
   }
   if (sunHeight) {
     sunHeight.disabled = false;
     if (locked)
-      sunHeight.title = "Adjusts the ORIGINAL sun only; PHOTO HDRI height is fixed";
+      sunHeight.title = "Adjusts the ORIGINAL sun only; PATH TRACER HDRI height is fixed";
     else sunHeight.removeAttribute("title");
   }
 }
@@ -343,7 +343,7 @@ async function activatePhoto1() {
   photo1Button.setAttribute("aria-pressed", "true");
   photo1Button.setAttribute("aria-busy", "true");
   updateControlAvailability();
-  setStatus("PHOTO · loading renderer…");
+  setStatus("PATH TRACER · loading renderer…");
 
   try {
     const [
@@ -358,7 +358,7 @@ async function activatePhoto1() {
 
     if (!active || currentActivation !== activation || !State.model) return;
 
-    setStatus("PHOTO · loading HDRI lighting…");
+    setStatus("PATH TRACER · loading HDRI lighting…");
     const loadedEnvironment = await loadPhotoEnvironment(
       HDRLoader,
       GradientEquirectTexture
@@ -395,9 +395,9 @@ async function activatePhoto1() {
     if (!active || currentActivation !== activation) return;
     prepareScene();
   } catch (error) {
-    console.error("PHOTO could not start", error);
+    console.error("PATH TRACER could not start", error);
     deactivatePhoto1({ restoreStatus: false });
-    setStatus("PHOTO IS NOT AVAILABLE ON THIS DEVICE.");
+    setStatus("PATH TRACER IS NOT AVAILABLE ON THIS DEVICE.");
   } finally {
     if (currentActivation === activation) {
       preparing = false;
@@ -453,10 +453,10 @@ export function updatePhoto1Availability() {
   const available = Boolean(State.model) && !State.sectionEnabled && webgl2;
   photo1Button.disabled = !available;
 
-  if (!webgl2) photo1Button.title = "PHOTO requires WebGL 2";
+  if (!webgl2) photo1Button.title = "PATH TRACER requires WebGL 2";
   else if (State.sectionEnabled)
-    photo1Button.title = "Turn off SECTION before using PHOTO";
-  else photo1Button.title = "Progressive high-quality path-traced rendering";
+    photo1Button.title = "Turn off SECTION before using PATH TRACER";
+  else photo1Button.title = "Progressive path tracing";
 }
 
 export function resizePhoto1() {

@@ -10,7 +10,7 @@
     <link rel="icon" type="image/png" sizes="1024x1024" href="./icon.png" />
     <link rel="apple-touch-icon" sizes="1024x1024" href="./icon.png" />
     <link rel="manifest" href="./site.webmanifest" />
-    <link rel="stylesheet" href="css/style.css?v=photo" />
+    <link rel="stylesheet" href="css/style.css?v=path-tracer-label" />
     <script type="importmap">
       {
         "imports": {
@@ -30,15 +30,36 @@
         <div class="brand">
           <div class="brand-primary">
             <button id="openAgain" title="Open a 3D model">OPEN FILE</button>
-            <a
-              class="open-dot"
-              href="https://hildgyorgy.github.io/app-support/drop-view/"
-              target="_blank"
-              rel="noopener"
-              aria-label="About Drop & View — opens in a new tab"
-              title="About Drop & View"
-              ><span aria-hidden="true">i</span></a
-            >
+            <div class="about-dock">
+              <button
+                id="aboutButton"
+                class="open-dot"
+                type="button"
+                aria-label="About Drop & View"
+                aria-expanded="false"
+                aria-controls="aboutMenu"
+                title="About Drop & View"
+              >
+                <span aria-hidden="true">i</span>
+              </button>
+              <div
+                id="aboutMenu"
+                class="about-menu"
+                role="group"
+                aria-label="About Drop & View"
+                hidden
+              >
+                <div>DROP &amp; VIEW</div>
+                <div>by</div>
+                <div>GYÖRGY HILD</div>
+                <a
+                  href="https://hildgyorgy.github.io/app-support/drop-view/"
+                  target="_blank"
+                  rel="noopener"
+                  >SUPPORT</a
+                >
+              </div>
+            </div>
           </div>
           <div class="navigation-status">
             <div
@@ -82,10 +103,10 @@
               id="photo1Button"
               type="button"
               aria-pressed="false"
-              title="Progressive high-quality path-traced rendering"
+              title="Progressive path tracing"
               disabled
             >
-              PHOTO
+              PATH TRACER
             </button>
           </div>
           <button class="tool-button" data-mode="white" aria-pressed="false">
@@ -363,6 +384,6 @@
         </section>
       </div>
     </div>
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/main.js?v=samples-label"></script>
   </body>
 </html>

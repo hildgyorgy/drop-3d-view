@@ -11,7 +11,11 @@ import {
   groupMenu
 } from "../core/dom.js";
 
+const aboutButton = document.querySelector("#aboutButton");
+const aboutMenu = document.querySelector("#aboutMenu");
+
 const menus = [
+  { button: aboutButton, panel: aboutMenu, dock: aboutButton.closest(".about-dock") },
   { button: panelButton, panel: sidePanel, dock: panelButton.closest(".controls-dock") },
   { button: orthoButton, panel: orthoMenu, dock: orthoButton.closest(".view-dock") },
   {
@@ -42,7 +46,9 @@ for (const menu of menus) {
 }
 
 [perspectiveButton, axonButton].forEach(button => {
-  button.addEventListener("click", () => setMenu(menus[1], false));
+  button.addEventListener("click", () => {
+    setMenu(menus.find(menu => menu.button === orthoButton), false);
+  });
 });
 
 document.addEventListener("pointerdown", event => {

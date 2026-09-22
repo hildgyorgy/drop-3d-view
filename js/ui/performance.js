@@ -2,6 +2,7 @@ const output = document.getElementById("performanceStats");
 
 const UPDATE_INTERVAL = 500;
 const MAX_FRAME_GAP = 1000;
+const SAMPLES_TOOLTIP = "Samples per pixel; more samples refine the image.";
 
 let intervalStart = null;
 let frameCount = 0;
@@ -10,14 +11,17 @@ export function updatePerformanceStats(time, renderStats = null) {
   if (!output || !Number.isFinite(time)) return;
 
   if (renderStats) {
-    if (renderStats.preparing) output.textContent = "PHOTO • PREPARING";
-    else if (renderStats.compiling) output.textContent = "PHOTO • COMPILING";
-    else output.textContent = `PHOTO • ${Math.floor(renderStats.samples)} SPP`;
+    if (renderStats.preparing) output.textContent = "SAMPLES • PREPARING";
+    else if (renderStats.compiling) output.textContent = "SAMPLES • COMPILING";
+    else output.textContent = `SAMPLES • ${Math.floor(renderStats.samples)}`;
+    if (output.title !== SAMPLES_TOOLTIP) output.title = SAMPLES_TOOLTIP;
 
     intervalStart = time;
     frameCount = 0;
     return;
   }
+
+  if (output.hasAttribute("title")) output.removeAttribute("title");
 
   if (intervalStart === null) {
     intervalStart = time;

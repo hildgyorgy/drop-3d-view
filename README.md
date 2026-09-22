@@ -22,10 +22,10 @@ Use a modern browser with JavaScript and WebGL support. Large models may require
 - **AXON:** an orbitable axonometric view with parallel projection.
 - **ORTHO:** TOP, FRONT, LEFT, RIGHT and BACK presets. Elevations can be rotated horizontally while remaining upright and orthogonal. TOP stays fixed. Double-click centring preserves the current ORTHO direction.
 - **CONTROLS:** sun direction, sun height, glass transparency and shadows. Camera FOV is available in PERSP; sun and shadow controls are disabled in WIRE.
-- **PHOTO:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PHOTO, rotating both the regular sun and the HDRI sun; SUN HEIGHT adjusts only the regular ORIGINAL sun because the photographed HDRI height is fixed. Move the camera to compose the image, then pause while the image refines. Requires WebGL 2 and an internet connection the first time the renderer is loaded.
+- **PATH TRACER:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PATH TRACER, rotating both the regular sun and the HDRI sun; SUN HEIGHT adjusts only the regular ORIGINAL sun because the photographed HDRI height is fixed. The SAMPLES status shows the number of samples per pixel. Move the camera to compose the image, then pause while the image refines. Requires WebGL 2 and an internet connection the first time the renderer is loaded.
 - **SECTION:** toggle cutting with the circle, choose an X/Y/Z axis and move the section slider to inspect the interior.
 
-The three corner menus start closed. Click their labels to open or close them; click the model area or press Escape to close them. The red **i** beside OPEN FILE opens the support page.
+The three corner menus start closed. Click their labels to open or close them; click the model area or press Escape to close them. The red **i** beside OPEN FILE opens a small About panel with the Support link.
 
 If a file cannot be opened, the start screen returns with a red error message in place of the privacy note. Try another file or the demo.
 
@@ -45,7 +45,7 @@ Your selected model is processed locally in your browser. Drop & View does not u
 
 To share a project, send the model file and the viewer's web address. There is no model-hosting service or uploaded-model sharing link.
 
-The app loads Three.js and, when required, Draco decoder files from jsDelivr. PHOTO loads its path-tracing modules from the same CDN only when the mode is first selected. The demo downloads from the app's website. External online converters are separate services with their own upload processes and privacy terms.
+The app loads Three.js and, when required, Draco decoder files from jsDelivr. PATH TRACER loads its rendering modules from the same CDN only when the mode is first selected. The demo downloads from the app's website. External online converters are separate services with their own upload processes and privacy terms.
 
 ## Free to use; proprietary code
 
@@ -86,13 +86,13 @@ npm test
 - `js/view/` — display modes, navigation, framing, lighting and edges
 - `js/section/` — clipping, intersection collection, planar contours, fill triangulation and section rendering
 - `js/ui/` — menus, messages and model inspection helpers
-- `assets/hdri/` — bundled environment lighting used by PHOTO
+- `assets/hdri/` — bundled environment lighting used by PATH TRACER
 - `demo/` — sample model used by the viewer
 - `test/` — automated tests for the section geometry's pure algorithms
 
 ## Third-party components
 
-Drop & View uses [Three.js](https://threejs.org/) and [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer) under their MIT licences, [three-mesh-bvh](https://github.com/gkjohnson/three-mesh-bvh) under its MIT licence, and [Draco](https://github.com/google/draco) under its [Apache 2.0 licence](https://github.com/google/draco/blob/main/LICENSE). PHOTO uses the [Sunny Rose Garden](https://polyhaven.com/a/sunny_rose_garden) HDRI from Poly Haven under the [CC0 licence](https://polyhaven.com/license). These components and assets retain their own licences; the proprietary terms apply only to the project's own material.
+Drop & View uses [Three.js](https://threejs.org/) and [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer) under their MIT licences, [three-mesh-bvh](https://github.com/gkjohnson/three-mesh-bvh) under its MIT licence, and [Draco](https://github.com/google/draco) under its [Apache 2.0 licence](https://github.com/google/draco/blob/main/LICENSE). PATH TRACER uses the [Sunny Rose Garden](https://polyhaven.com/a/sunny_rose_garden) HDRI from Poly Haven under the [CC0 licence](https://polyhaven.com/license). These components and assets retain their own licences; the proprietary terms apply only to the project's own material.
 
 ## Contact
 

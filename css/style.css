@@ -166,6 +166,49 @@ canvas {
   letter-spacing: 0;
   text-decoration: none;
 }
+.about-dock {
+  position: relative;
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
+.about-dock .open-dot:hover {
+  color: #fff;
+}
+.brand .open-dot {
+  min-height: 0;
+  letter-spacing: 0;
+}
+.about-menu {
+  position: absolute;
+  top: calc(100% + 52px);
+  left: calc(100% + 34px);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 136px;
+  height: 136px;
+  padding: 10px;
+  border: 1px dashed #17171788;
+  border-radius: 10px;
+  background: rgba(239, 239, 237, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font: 11px/1.4 var(--mono);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.about-menu > * {
+  font: inherit;
+  letter-spacing: inherit;
+}
+.about-menu a {
+  color: var(--red);
+  text-decoration: none;
+}
 .style-toolbar,
 .view-toolbar {
   display: flex;
@@ -572,6 +615,11 @@ body.dragging .drop-title {
 
 /* Keep the canvas usable until the dedicated mobile design. */
 @media (max-width: 1100px) {
+  .about-menu {
+    position: fixed;
+    top: 160px;
+    left: var(--edge);
+  }
   .style-toolbar {
     left: auto;
     right: 0;
@@ -625,6 +673,9 @@ body.dragging .drop-title {
     width: 16px;
     height: 16px;
     font-size: 12px;
+  }
+  .about-menu {
+    top: 145px;
   }
   .tool-button + .tool-button {
     margin-left: 18px;

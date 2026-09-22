@@ -20,7 +20,7 @@ import { State } from "./core/state.js";
 import { scene, renderer, perspectiveCamera } from "./core/scene.js";
 import { updateOrthoFrustum } from "./view/camera.js";
 import { renderViewer, resizeAO } from "./view/ambient-occlusion.js";
-import { updatePerformanceStats } from "./ui/performance.js";
+import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateNavigation } from "./view/navigation.js";
 import {
   getPhoto1Stats,
@@ -37,7 +37,7 @@ import "./view/ground-sun.js";
 import "./view/focus.js";
 import "./view/show-all.js";
 import "./ui/group-filter.js";
-import "./ui/panel.js";
+import "./ui/panel.js?v=about-sheet";
 
 /* ======================================================
    RESIZE
