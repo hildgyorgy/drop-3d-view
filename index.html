@@ -11,6 +11,8 @@
     <link rel="apple-touch-icon" sizes="1024x1024" href="./icon.png" />
     <link rel="manifest" href="./site.webmanifest" />
     <link rel="stylesheet" href="css/style.css?v=path-tracer-label" />
+    <!-- Adaptive overlay labels; remove this link to disable (see README). -->
+    <link rel="stylesheet" href="css/adaptive-contrast.css?v=2" />
     <script type="importmap">
       {
         "imports": {
@@ -185,29 +187,30 @@
         <div id="sidePanel" class="corner-menu" hidden>
           <div id="lightSection">
             <label class="slider-control" for="sunAngle"
-              >SUN DIRECTION
+              ><span class="adaptive-text">SUN DIRECTION</span>
               <input id="sunAngle" type="range" min="0" max="360" value="45" />
             </label>
             <label class="slider-control" for="sunHeight"
-              >SUN HEIGHT
+              ><span class="adaptive-text">SUN HEIGHT</span>
               <input id="sunHeight" type="range" min="5" max="85" value="45" />
             </label>
           </div>
           <label class="slider-control" for="cameraFov"
-            >CAMERA FOV
+            ><span class="adaptive-text">CAMERA FOV</span>
             <input id="cameraFov" type="range" min="35" max="60" value="42" />
           </label>
           <label class="slider-control" for="transparency"
-            >TRANSPARENCY
+            ><span class="adaptive-text">TRANSPARENCY</span>
             <input id="transparency" type="range" min="30" max="85" value="68" />
           </label>
           <label class="slider-control" for="flySpeed"
-            >FLY SPEED
+            ><span class="adaptive-text">FLY SPEED</span>
             <input id="flySpeed" type="range" min="10" max="50" value="30" disabled />
           </label>
           <div class="lighting-toggles" role="group" aria-label="Lighting options">
             <label class="check-control" for="shadowToggle"
-              ><input id="shadowToggle" type="checkbox" checked /> SHADOW</label
+              ><input id="shadowToggle" type="checkbox" checked />
+              <span class="adaptive-text">SHADOW</span></label
             >
             <button
               id="environmentToggle"
@@ -216,7 +219,8 @@
               aria-pressed="false"
               title="Environment lighting in ORIGINAL mode"
             >
-              <span class="toggle-dot" aria-hidden="true"></span>ENV LIGHT
+              <span class="toggle-dot" aria-hidden="true"></span
+              ><span class="adaptive-text">ENV LIGHT</span>
             </button>
             <button
               id="aoToggle"
@@ -225,7 +229,8 @@
               aria-pressed="false"
               title="Ambient occlusion in ORIGINAL mode"
             >
-              <span class="toggle-dot" aria-hidden="true"></span>AMBIENT
+              <span class="toggle-dot" aria-hidden="true"></span
+              ><span class="adaptive-text">AMBIENT</span>
             </button>
           </div>
         </div>
@@ -257,7 +262,7 @@
             role="group"
             aria-label="Section edge colour"
           >
-            <div class="section-control-label">COLOR</div>
+            <div class="section-control-label adaptive-text">COLOR</div>
             <div class="section-colors">
               <button
                 data-section-color="#ff3b30"
@@ -299,7 +304,7 @@
             </div>
           </div>
           <label class="slider-control section-plane-control" for="sectionSlider"
-            >PLANE
+            ><span class="adaptive-text">PLANE</span>
             <input
               id="sectionSlider"
               type="range"

@@ -27,6 +27,12 @@ Use a modern browser with JavaScript and WebGL support. Large models may require
 
 The three corner menus start closed. Click their labels to open or close them; click the model area or press Escape to close them. The red **i** beside OPEN FILE opens a small About panel with the Support link.
 
+### Adaptive menu contrast
+
+When a model is open, the non-red overlay labels use CSS `mix-blend-mode: difference`: they appear dark over light pixels and light over dark pixels without putting panels over the model. Red active and hover states, the About button, sliders and coloured controls keep their normal colours. This is a visual aid, not a guaranteed contrast or accessibility threshold; labels can still be faint over mid-tone or colourful areas.
+
+The feature is isolated in [`css/adaptive-contrast.css`](css/adaptive-contrast.css). To switch it off, remove its `<link>` from `index.html`; the viewer then uses its original styling. For a complete code cleanup, also remove the inert `adaptive-text` spans/classes from the slider and toggle labels in `index.html`. These wrappers let only the words blend while the red slider thumbs and toggle indicators remain untouched. The CSS also replaces some `fixed` and transformed positioning with visually equivalent `absolute` positioning while a model is open, because those stacking contexts otherwise prevent the labels from blending with the WebGL canvas—especially in windows at or below 1100 px wide.
+
 If a file cannot be opened, the start screen returns with a red error message in place of the privacy note. Try another file or the demo.
 
 ## Model formats
