@@ -24,6 +24,7 @@ import {
   isTranslucentMaterial,
   applyTranslucentAppearance
 } from "../model/materials.js";
+import { transmissionFromTransparencyControl } from "../model/material-policy.js";
 import { applyClipping } from "../section/section-plane.js";
 import { updateEnvironment } from "./environment.js";
 import { updateAO } from "./ambient-occlusion.js";
@@ -32,12 +33,20 @@ import { deactivatePhoto1 } from "./photo1.js";
 
 let shadowSettingBeforeWireframe = null;
 
-function updateTransparencyAppearance() {
+function updateTransparencyAppearance(event = null) {
   const transparencyEnabled = ["original", "white", "hidden"].includes(State.currentMode);
 
   if (!State.model || !transparencyEnabled) return;
 
   const opacity = 1 - Number(transparency.value) / 100;
+  const physicalTransmission =
+    event?.type === "input"
+      ? transmissionFromTransparencyControl(
+          transparency.value,
+          Number(transparency.min),
+          Number(transparency.max)
+        )
+      : null;
 
   State.originalMaterials.forEach(original => {
     const materials = Array.isArray(original) ? original : [original];
@@ -50,7 +59,9 @@ function updateTransparencyAppearance() {
       : [visibleMaterial];
 
     [...materials, ...visibleMaterials].forEach(material => {
-      if (isTranslucentMaterial(material)) applyTranslucentAppearance(material, opacity);
+      if (isTranslucentMaterial(material)) {
+        applyTranslucentAppearance(material, opacity, physicalTransmission);
+      }
     });
   });
 }

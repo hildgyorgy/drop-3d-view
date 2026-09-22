@@ -9,6 +9,7 @@
 
 import * as THREE from "three";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { preserveAuthoredPhysicalTransmission } from "./material-policy.js";
 
 /* ======================================================
    SHARED MATERIALS
@@ -260,8 +261,18 @@ export function isTranslucentMaterial(material) {
   );
 }
 
-export function applyTranslucentAppearance(material, opacity) {
+export function applyTranslucentAppearance(material, opacity, physicalTransmission = null) {
   if (!material || !isTranslucentMaterial(material)) return;
+
+  // KHR_materials_transmission already describes physical glass. Keep the
+  // authored PBR values intact; alpha blending and a roughness override turn
+  // clear transmission into frosted glass in PHOTO mode.
+  if (preserveAuthoredPhysicalTransmission(material)) {
+    if (Number.isFinite(physicalTransmission)) {
+      material.transmission = physicalTransmission;
+    }
+    return;
+  }
 
   material.transparent = true;
 

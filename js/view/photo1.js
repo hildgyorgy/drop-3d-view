@@ -16,7 +16,11 @@ import {
   sunHeight,
   transparency
 } from "../core/dom.js";
-import { isTranslucentMaterial } from "../model/materials.js";
+import {
+  hasAuthoredPhysicalTransmission,
+  isPhotoGlassFallbackCandidate,
+  transmissionFromTransparencyControl
+} from "../model/material-policy.js";
 import { setStatus } from "../ui/status.js";
 
 const environmentButton = document.getElementById("environmentToggle");
@@ -158,36 +162,10 @@ function getFallbackGlassTransmission() {
   const minimum = Number(transparency?.min ?? 30);
   const maximum = Number(transparency?.max ?? 85);
   const value = Number(transparency?.value ?? 68);
-  const range = Math.max(1, maximum - minimum);
-  const normalized = THREE.MathUtils.clamp((value - minimum) / range, 0, 1);
-
-  // The regular viewer's percentage controls alpha coverage. Physical glass
-  // needs to stay mostly transmissive so its reflections do not disappear.
-  return THREE.MathUtils.lerp(0.86, 0.98, normalized);
-}
-
-function isPhotoGlassCandidate(material) {
-  const namedAsGlass =
-    /(?:glass|glazing|window|crystal|verre|vitre|üveg)/i.test(material.name || "");
-  const textureBackedTransparency =
-    material.transparent && material.map && !namedAsGlass;
-
-  return (
-    (namedAsGlass || isTranslucentMaterial(material)) &&
-    !material.alphaMap &&
-    !(material.alphaTest > 0) &&
-    !textureBackedTransparency
-  );
+  return transmissionFromTransparencyControl(value, minimum, maximum);
 }
 
 function createPhotoGlassMaterial(material) {
-  const authoredTransmission = Number(material.transmission);
-  const hasAuthoredTransmission =
-    Number.isFinite(authoredTransmission) && authoredTransmission > 0;
-  const roughness = hasAuthoredTransmission
-    ? THREE.MathUtils.clamp(Number(material.roughness ?? 0.08), 0, 1)
-    : 0.08;
-
   const converted = new THREE.MeshPhysicalMaterial({
     color: material.color?.clone() ?? new THREE.Color(0xf7fbff),
     map: material.map ?? null,
@@ -195,13 +173,11 @@ function createPhotoGlassMaterial(material) {
     normalScale: material.normalScale?.clone() ?? new THREE.Vector2(1, 1),
     bumpMap: material.bumpMap ?? null,
     bumpScale: material.bumpScale ?? 1,
-    roughness,
+    roughness: 0.08,
     metalness: 0,
-    transmission: hasAuthoredTransmission
-      ? authoredTransmission
-      : getFallbackGlassTransmission(),
+    transmission: getFallbackGlassTransmission(),
     ior: Number(material.ior) || 1.5,
-    thickness: hasAuthoredTransmission ? Number(material.thickness) || 0 : 0,
+    thickness: 0,
     attenuationColor:
       material.attenuationColor?.clone() ?? new THREE.Color(0xffffff),
     attenuationDistance:
@@ -217,7 +193,7 @@ function createPhotoGlassMaterial(material) {
   });
 
   converted.name = `${material.name || material.type} (PHOTO GLASS)`;
-  converted.userData.photoFallbackGlass = !hasAuthoredTransmission;
+  converted.userData.photoFallbackGlass = true;
   convertedMaterialCache.set(material, converted);
   convertedMaterials.push(converted);
   convertedGlassMaterials.push(converted);
@@ -236,10 +212,14 @@ function updatePhotoGlassTransmission() {
 function convertMaterial(material) {
   if (!material) return material;
 
+  // GLTFLoader has already built the correct MeshPhysicalMaterial for
+  // KHR_materials_transmission. Preserve that exact authored instance.
+  if (hasAuthoredPhysicalTransmission(material)) return material;
+
   const cached = convertedMaterialCache.get(material);
   if (cached) return cached;
 
-  if (isPhotoGlassCandidate(material)) {
+  if (isPhotoGlassFallbackCandidate(material)) {
     return createPhotoGlassMaterial(material);
   }
 
