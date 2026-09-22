@@ -10,9 +10,21 @@
     <link rel="icon" type="image/png" sizes="1024x1024" href="./icon.png" />
     <link rel="apple-touch-icon" sizes="1024x1024" href="./icon.png" />
     <link rel="manifest" href="./site.webmanifest" />
+    <script>
+      // Safari can render difference-blended labels white over the WebGL canvas.
+      // js/ui/adaptive-contrast.js samples the canvas for its fallback colours.
+      const browserUA = navigator.userAgent;
+      if (
+        /AppleWebKit/i.test(browserUA) &&
+        /Safari/i.test(browserUA) &&
+        !/(Chrome|Chromium|CriOS|Edg|EdgiOS|OPR|FxiOS)/i.test(browserUA)
+      ) {
+        document.documentElement.classList.add("safari-contrast-fallback");
+      }
+    </script>
     <link rel="stylesheet" href="css/style.css?v=path-tracer-label" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
-    <link rel="stylesheet" href="css/adaptive-contrast.css?v=2" />
+    <link rel="stylesheet" href="css/adaptive-contrast.css?v=4" />
     <script type="importmap">
       {
         "imports": {
@@ -389,6 +401,6 @@
         </section>
       </div>
     </div>
-    <script type="module" src="js/main.js?v=samples-label"></script>
+    <script type="module" src="js/main.js?v=safari-contrast-sampling"></script>
   </body>
 </html>

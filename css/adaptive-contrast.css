@@ -86,3 +86,40 @@
 #viewerUI:has(#startScreen.hidden) .menu-toggle:not(:hover) .menu-arrow {
   border-bottom-color: #fff;
 }
+
+/* Safari cannot reliably blend these labels over WebGL. JavaScript samples
+   the canvas underneath and sets a crisp black/white ink per label. */
+.safari-contrast-fallback #viewerUI:has(#startScreen.hidden)
+  :is(
+    #openAgain:not(:hover),
+    .navigation-mode button:not(.active, :hover),
+    #performanceStats,
+    .tool-button:not(.active, :hover),
+    .photo-button:not(.active, :hover),
+    .view-menu button:not(.active, :hover),
+    .axis-buttons button:not(.active, :hover),
+    .menu-toggle:not(:hover),
+    .adaptive-text
+  ) {
+  color: var(--safari-contrast-ink, var(--text));
+  mix-blend-mode: normal;
+  text-shadow: none;
+}
+
+.safari-contrast-fallback #viewerUI:has(#startScreen.hidden)
+  :is(.navigation-mode button, .tool-button):not(.active, :hover)::before {
+  color: var(--safari-contrast-ink, var(--text));
+  text-shadow: none;
+}
+
+.safari-contrast-fallback #viewerUI:has(#startScreen.hidden)
+  .menu-toggle:not(:hover) .menu-arrow {
+  border-bottom-color: var(--safari-contrast-ink, var(--text));
+  filter: none;
+}
+
+.safari-contrast-fallback #viewerUI:has(#startScreen.hidden)
+  :is(#environmentToggle, #aoToggle):hover .adaptive-text {
+  color: var(--red);
+  text-shadow: none;
+}
