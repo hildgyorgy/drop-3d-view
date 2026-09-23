@@ -13,6 +13,8 @@ export function updatePerformanceStats(time, renderStats = null) {
   if (renderStats) {
     if (renderStats.preparing) output.textContent = "SAMPLES • PREPARING";
     else if (renderStats.compiling) output.textContent = "SAMPLES • COMPILING";
+    else if (renderStats.paused)
+      output.textContent = `SAMPLES • ${Math.floor(renderStats.samples)} • PAUSED`;
     else output.textContent = `SAMPLES • ${Math.floor(renderStats.samples)}`;
     if (output.title !== SAMPLES_TOOLTIP) output.title = SAMPLES_TOOLTIP;
 

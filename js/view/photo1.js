@@ -37,6 +37,7 @@ const photoEnvironmentUrl = new URL(
 
 let active = false;
 let preparing = false;
+let paused = false;
 let activation = 0;
 let pathTracer = null;
 let photoEnvironment = null;
@@ -53,6 +54,30 @@ const cameraControlDisabledState = new Map();
 
 const navigationButtons = document.querySelectorAll("[data-navigation-mode]");
 const orthoViewButtons = document.querySelectorAll("[data-view]");
+
+function updatePhotoButtonState() {
+  if (!photo1Button) return;
+
+  photo1Button.textContent = !active ? "PATH TRACER" : paused ? "RESUME" : "PAUSE";
+  photo1Button.title = !active
+    ? "Progressive path tracing"
+    : paused
+      ? "Continue refining the path-traced image"
+      : "Pause and keep the current path-traced image";
+  photo1Button.setAttribute("aria-label", photo1Button.title);
+}
+
+function setPhotoPaused(nextPaused) {
+  if (!active || paused === nextPaused) return;
+  paused = nextPaused;
+  updatePhotoButtonState();
+
+  if (paused) {
+    setStatus(`PATH TRACER · paused at ${Math.floor(pathTracer?.samples ?? 0)} samples`);
+  } else {
+    setStatus("PATH TRACER · refining image…");
+  }
+}
 
 function setCameraInteractionLocked(locked) {
   if (locked) {
@@ -221,6 +246,7 @@ function schedulePhotoEnvironmentUpdate() {
     environmentUpdateTimer = 0;
     if (!active || !pathTracer || !photoEnvironment) return;
     updatePhotoEnvironmentDirection();
+    setPhotoPaused(false);
     setStatus("PATH TRACER · refining image…");
   }, 180);
 }
@@ -409,11 +435,13 @@ async function activatePhoto1() {
 
   active = true;
   preparing = true;
+  paused = false;
   setCameraInteractionLocked(true);
   const currentActivation = ++activation;
   photo1Button.classList.add("active");
   photo1Button.setAttribute("aria-pressed", "true");
   photo1Button.setAttribute("aria-busy", "true");
+  updatePhotoButtonState();
   updateControlAvailability();
   setStatus("PATH TRACER · loading renderer…");
 
@@ -479,8 +507,8 @@ async function activatePhoto1() {
 }
 
 photo1Button?.addEventListener("click", () => {
-  if (active) deactivatePhoto1();
-  else activatePhoto1();
+  if (!active) activatePhoto1();
+  else if (pathTracer && !preparing) setPhotoPaused(!paused);
 });
 
 sunAngle?.addEventListener("input", () => {
@@ -497,6 +525,7 @@ transparency?.addEventListener("input", () => {
       if (!active || !pathTracer) return;
       updatePhotoGlassTransmission();
       pathTracer.updateMaterials();
+      setPhotoPaused(false);
     }, 180);
   });
 });
@@ -506,10 +535,12 @@ export function deactivatePhoto1({ restoreStatus = true } = {}) {
 
   active = false;
   preparing = false;
+  paused = false;
   ++activation;
   photo1Button?.classList.remove("active");
   photo1Button?.setAttribute("aria-pressed", "false");
   photo1Button?.removeAttribute("aria-busy");
+  updatePhotoButtonState();
   disposePhotoResources();
   setCameraInteractionLocked(false);
   updateControlAvailability();
@@ -518,7 +549,10 @@ export function deactivatePhoto1({ restoreStatus = true } = {}) {
 }
 
 export function invalidatePhoto1Scene() {
-  if (active) sceneDirty = true;
+  if (active) {
+    sceneDirty = true;
+    setPhotoPaused(false);
+  }
 }
 
 export function updatePhoto1Availability() {
@@ -537,7 +571,10 @@ export function updatePhoto1Availability() {
 }
 
 export function resizePhoto1() {
-  if (active && pathTracer) pathTracer.reset();
+  if (active && pathTracer) {
+    pathTracer.reset();
+    setPhotoPaused(false);
+  }
 }
 
 export function getPhoto1Stats() {
@@ -545,6 +582,7 @@ export function getPhoto1Stats() {
   return {
     preparing,
     compiling: Boolean(pathTracer?.isCompiling),
+    paused,
     samples: pathTracer?.samples ?? 0
   };
 }
@@ -566,8 +604,11 @@ export function renderPhoto1() {
     cameraSignature = nextCameraSignature;
   }
 
+  if (paused) return true;
+
   pathTracer.renderSample();
   return true;
 }
 
 updatePhoto1Availability();
+updatePhotoButtonState();
