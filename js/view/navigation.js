@@ -194,6 +194,12 @@ export function updateNavigation(time) {
   const delta = previousTime === null ? 0 : Math.min((time - previousTime) / 1000, 0.05);
   previousTime = time;
 
+  if (State.pathTracerActive) {
+    pressedKeys.clear();
+    State.controls.enabled = false;
+    return;
+  }
+
   // Camera projection changes replace OrbitControls. Reapply the selected mode immediately.
   State.controls.enabled = State.navigationMode !== "fly";
 

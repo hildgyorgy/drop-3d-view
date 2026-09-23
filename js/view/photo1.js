@@ -11,6 +11,11 @@ import { State } from "../core/state.js";
 import { scene, renderer, sun } from "../core/scene.js";
 import {
   photo1Button,
+  perspectiveButton,
+  axonButton,
+  orthoButton,
+  cameraFov,
+  showAllButton,
   shadowToggle,
   sunAngle,
   sunHeight,
@@ -42,6 +47,56 @@ let convertedMaterialCache = new WeakMap();
 let cameraSignature = "";
 let photoEnvironmentSunAzimuth = 0;
 let sceneDirty = false;
+let environmentUpdateTimer = 0;
+let materialUpdateTimer = 0;
+const cameraControlDisabledState = new Map();
+
+const navigationButtons = document.querySelectorAll("[data-navigation-mode]");
+const orthoViewButtons = document.querySelectorAll("[data-view]");
+
+function setCameraInteractionLocked(locked) {
+  if (locked) {
+    // FLY owns the pointer, so return to the normal orbit state before locking.
+    if (State.navigationMode === "fly") {
+      document.querySelector('[data-navigation-mode="orbit"]')?.click();
+    }
+
+    // Finish and clear any residual OrbitControls damping exactly once. From
+    // this point the main loop no longer calls controls.update().
+    const damping = State.controls.enableDamping;
+    State.controls.enableDamping = false;
+    State.controls.update();
+    State.controls.enableDamping = damping;
+    ++State.cameraAnimation;
+  }
+
+  State.pathTracerActive = locked;
+  State.controls.enabled = !locked && State.navigationMode !== "fly";
+
+  const controls = [
+    ...navigationButtons,
+    perspectiveButton,
+    axonButton,
+    orthoButton,
+    ...orthoViewButtons,
+    cameraFov,
+    showAllButton
+  ].filter(Boolean);
+
+  controls.forEach(control => {
+    if (locked) {
+      cameraControlDisabledState.set(control, control.disabled);
+      control.disabled = true;
+      control.setAttribute("aria-disabled", "true");
+    } else {
+      control.disabled = cameraControlDisabledState.get(control) ?? false;
+      if (control.disabled) control.setAttribute("aria-disabled", "true");
+      else control.removeAttribute("aria-disabled");
+    }
+  });
+
+  if (!locked) cameraControlDisabledState.clear();
+}
 
 function matrixSignature(matrix) {
   return matrix.elements.map(value => value.toFixed(7)).join(",");
@@ -156,6 +211,18 @@ function withPhotoEnvironment(callback) {
 function updatePhotoEnvironmentDirection() {
   if (!active || !pathTracer || !photoEnvironment) return;
   withPhotoEnvironment(() => pathTracer.updateEnvironment());
+}
+
+function schedulePhotoEnvironmentUpdate() {
+  if (!active || !pathTracer || !photoEnvironment) return;
+  clearTimeout(environmentUpdateTimer);
+  setStatus("PATH TRACER · updating light…");
+  environmentUpdateTimer = window.setTimeout(() => {
+    environmentUpdateTimer = 0;
+    if (!active || !pathTracer || !photoEnvironment) return;
+    updatePhotoEnvironmentDirection();
+    setStatus("PATH TRACER · refining image…");
+  }, 180);
 }
 
 function getFallbackGlassTransmission() {
@@ -287,7 +354,7 @@ function prepareScene() {
     withPhotoMaterials(() => pathTracer.setScene(scene, State.camera));
     cameraSignature = getCameraSignature();
     sceneDirty = false;
-    setStatus("PATH TRACER · move to compose · pause to refine");
+    setStatus("PATH TRACER · refining image…");
   } finally {
     preparing = false;
   }
@@ -303,7 +370,7 @@ function updateControlAvailability() {
     sunAngle.title = "Shared sun direction for ORIGINAL and PATH TRACER";
   }
   if (sunHeight) {
-    sunHeight.disabled = false;
+    sunHeight.disabled = locked;
     if (locked)
       sunHeight.title = "Adjusts the ORIGINAL sun only; PATH TRACER HDRI height is fixed";
     else sunHeight.removeAttribute("title");
@@ -327,6 +394,10 @@ function disposePhotoResources() {
   convertedMaterials = [];
   convertedGlassMaterials = [];
   convertedMaterialCache = new WeakMap();
+  clearTimeout(environmentUpdateTimer);
+  clearTimeout(materialUpdateTimer);
+  environmentUpdateTimer = 0;
+  materialUpdateTimer = 0;
 }
 
 async function activatePhoto1() {
@@ -338,6 +409,7 @@ async function activatePhoto1() {
 
   active = true;
   preparing = true;
+  setCameraInteractionLocked(true);
   const currentActivation = ++activation;
   photo1Button.classList.add("active");
   photo1Button.setAttribute("aria-pressed", "true");
@@ -412,16 +484,20 @@ photo1Button?.addEventListener("click", () => {
 });
 
 sunAngle?.addEventListener("input", () => {
-  queueMicrotask(updatePhotoEnvironmentDirection);
+  queueMicrotask(schedulePhotoEnvironmentUpdate);
 });
 
 transparency?.addEventListener("input", () => {
   // The regular material appearance listener runs in the same event turn.
   queueMicrotask(() => {
-    if (active && pathTracer) {
+    if (!active || !pathTracer) return;
+    clearTimeout(materialUpdateTimer);
+    materialUpdateTimer = window.setTimeout(() => {
+      materialUpdateTimer = 0;
+      if (!active || !pathTracer) return;
       updatePhotoGlassTransmission();
       pathTracer.updateMaterials();
-    }
+    }, 180);
   });
 });
 
@@ -435,6 +511,7 @@ export function deactivatePhoto1({ restoreStatus = true } = {}) {
   photo1Button?.setAttribute("aria-pressed", "false");
   photo1Button?.removeAttribute("aria-busy");
   disposePhotoResources();
+  setCameraInteractionLocked(false);
   updateControlAvailability();
   updatePhoto1Availability();
   if (restoreStatus) restoreViewerStatus();

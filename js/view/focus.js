@@ -18,7 +18,7 @@ export const raycaster = new THREE.Raycaster();
 export const pointer = new THREE.Vector2();
 
 renderer.domElement.addEventListener("dblclick", event => {
-  if (!State.model) return;
+  if (!State.model || State.pathTracerActive) return;
 
   const rect = renderer.domElement.getBoundingClientRect();
 

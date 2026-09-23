@@ -30,7 +30,13 @@ export function getModelFrame(camera, bounds) {
 showAllButton.addEventListener("click", showAll);
 
 export function showAll() {
-  if (!State.model || !State.modelBounds || State.modelBounds.isEmpty()) return;
+  if (
+    State.pathTracerActive ||
+    !State.model ||
+    !State.modelBounds ||
+    State.modelBounds.isEmpty()
+  )
+    return;
 
   const camera = State.camera;
   const controls = State.controls;

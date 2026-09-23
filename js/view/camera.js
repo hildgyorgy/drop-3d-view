@@ -13,6 +13,8 @@ import { createControls } from "../core/controls.js";
 import { perspectiveButton, axonButton, orthoButton, cameraFov } from "../core/dom.js";
 
 cameraFov?.addEventListener("input", () => {
+  if (State.pathTracerActive) return;
+
   perspectiveCamera.fov = Number(cameraFov.value);
 
   perspectiveCamera.updateProjectionMatrix();
@@ -130,13 +132,19 @@ function updateOrthoSelection() {
   });
 }
 
-perspectiveButton.addEventListener("click", () => setProjection("perspective"));
-axonButton.addEventListener("click", () => setProjection("axon"));
+perspectiveButton.addEventListener("click", () => {
+  if (!State.pathTracerActive) setProjection("perspective");
+});
+axonButton.addEventListener("click", () => {
+  if (!State.pathTracerActive) setProjection("axon");
+});
 orthoButton.addEventListener("click", () => {
+  if (State.pathTracerActive) return;
   if (projection !== "ortho") setProjection("ortho");
 });
 document.querySelectorAll("[data-view]").forEach(button => {
   button.addEventListener("click", () => {
+    if (State.pathTracerActive) return;
     preset = button.dataset.view;
     setProjection("ortho");
   });

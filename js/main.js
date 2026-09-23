@@ -63,7 +63,9 @@ window.addEventListener("resize", () => {
 function animate(time) {
   updateNavigation(time);
 
-  State.controls.update();
+  // OrbitControls damping changes the camera for several frames after the
+  // pointer stops. A progressive render needs a perfectly fixed camera.
+  if (!State.pathTracerActive) State.controls.update();
 
   if (!renderPhoto1()) renderViewer();
 
