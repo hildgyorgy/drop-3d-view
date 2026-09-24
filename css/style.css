@@ -512,25 +512,30 @@ input[type="checkbox"]:checked,
   position: relative;
 }
 .group-menu {
+  --group-menu-size: min(280px, calc(100vw - 36px), calc(100dvh - 105px));
   position: absolute;
   bottom: calc(100% + 18px);
-  left: 50%;
-  width: min(320px, calc(100vw - 36px));
-  max-height: min(52dvh, 520px);
-  padding: 14px 12px;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--group-menu-size);
+  height: var(--group-menu-size);
+  padding: 12px;
   overflow: hidden;
-  transform: translateX(-50%);
-  border-top: 1px solid #17171755;
-  border-bottom: 1px solid #17171755;
-  background: rgba(239, 239, 237, 0.94);
+  border: 1px dashed #17171788;
+  border-radius: 10px;
+  background: rgba(239, 239, 237, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  font-size: 11px;
+  letter-spacing: 0.16em;
 }
 .group-filter-actions {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid #17171733;
 }
 .group-filter-actions button {
@@ -538,7 +543,8 @@ input[type="checkbox"]:checked,
   letter-spacing: inherit;
 }
 .group-filter-list {
-  max-height: calc(min(52dvh, 520px) - 58px);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -547,7 +553,7 @@ input[type="checkbox"]:checked,
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 27px;
+  min-height: 25px;
   cursor: pointer;
   letter-spacing: 0.08em;
 }
@@ -556,6 +562,12 @@ input[type="checkbox"]:checked,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+@media (min-width: 601px) and (max-width: 700px) {
+  .group-menu {
+    left: auto;
+    right: 0;
+  }
 }
 #lightSection.disabled,
 .check-control:has(input:disabled),
@@ -726,13 +738,10 @@ body.dragging .drop-title {
     gap: 18px;
   }
   .group-menu {
+    --group-menu-size: min(240px, calc(100vw - 36px), calc(100dvh - 120px));
     left: auto;
     right: 0;
-    transform: none;
-    max-height: 42dvh;
-  }
-  .group-filter-list {
-    max-height: calc(42dvh - 58px);
+    font-size: 10px;
   }
   .view-menu button.active::after,
   .axis-buttons button.active::after {
