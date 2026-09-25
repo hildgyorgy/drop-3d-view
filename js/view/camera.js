@@ -294,7 +294,10 @@ export function applyExportedInitialView(gltf, initialView, modelTranslation) {
   if (Number.isFinite(source.near) && source.near > 0) camera.near = source.near;
   if (Number.isFinite(source.far) && source.far > camera.near)
     camera.far = source.far;
-  camera.up.copy(up);
+  // The exported camera's local up vector describes its image plane, not the
+  // model's vertical axis. OrbitControls must keep Y as world-up, otherwise
+  // orbiting an imported view can roll the ground plane.
+  camera.up.set(0, 1, 0);
   camera.position.copy(position);
   camera.lookAt(target);
   camera.updateProjectionMatrix();
