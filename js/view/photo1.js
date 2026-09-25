@@ -31,7 +31,7 @@ import { setStatus } from "../ui/status.js";
 const environmentButton = document.getElementById("environmentToggle");
 const aoButton = document.getElementById("aoToggle");
 const photoEnvironmentUrl = new URL(
-  "../../assets/hdri/sunny_rose_garden_2k.hdr",
+  "../../assets/hdri/backdrop.hdr",
   import.meta.url
 ).href;
 
