@@ -209,6 +209,32 @@ canvas {
   color: var(--red);
   text-decoration: none;
 }
+.about-menu.has-design-credits {
+  width: min(260px, calc(100vw - 2 * var(--edge)));
+  height: auto;
+  min-height: 136px;
+  max-height: 70vh;
+  overflow-y: auto;
+  white-space: normal;
+}
+.design-credits {
+  width: 100%;
+  padding: 10px 0;
+  border-top: 1px dashed #17171788;
+  border-bottom: 1px dashed #17171788;
+}
+.design-credits-heading,
+.design-credits-text {
+  display: block;
+}
+.design-credits-heading {
+  margin-bottom: 5px;
+  color: var(--red);
+}
+.design-credits-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .style-toolbar,
 .view-toolbar {
   display: flex;

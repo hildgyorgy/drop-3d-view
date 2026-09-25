@@ -11,6 +11,10 @@ import { State } from "../core/state.js";
 import { scene, renderer, sun } from "../core/scene.js";
 import { sunAngle, sunHeight, shadowToggle } from "../core/dom.js";
 import { renaissanceMaterial } from "../model/materials.js";
+import {
+  normalizeImportedSunDirection,
+  sunControlAngles
+} from "../model/sun-metadata.js";
 
 /* ======================================================
    GROUND
@@ -48,26 +52,26 @@ sunAngle.addEventListener("input", configureSun);
 
 sunHeight.addEventListener("input", configureSun);
 
+export function getSunDirectionFromControls() {
+  const azimuth = THREE.MathUtils.degToRad(Number(sunAngle.value));
+  const elevation = THREE.MathUtils.degToRad(Number(sunHeight.value));
+  const horizontal = Math.cos(elevation);
+  return new THREE.Vector3(
+    Math.cos(azimuth) * horizontal,
+    Math.sin(elevation),
+    Math.sin(azimuth) * horizontal
+  );
+}
+
 export function configureSun() {
   if (!State.model) return;
 
-  const azimuth = THREE.MathUtils.degToRad(Number(sunAngle.value));
-
-  const elevation = THREE.MathUtils.degToRad(Number(sunHeight.value));
-
+  const direction = getSunDirectionFromControls();
   const radius = State.maxModelSize * 3;
-
-  const horizontal = Math.cos(elevation) * radius;
-
-  sun.position.set(
-    State.modelCenter.x + Math.cos(azimuth) * horizontal,
-
-    State.modelCenter.y + Math.sin(elevation) * radius,
-
-    State.modelCenter.z + Math.sin(azimuth) * horizontal
-  );
-
+  sun.position.copy(State.modelCenter).addScaledVector(direction, radius);
   sun.target.position.copy(State.modelCenter);
+  sun.target.updateMatrixWorld();
+  sun.updateMatrixWorld();
 
   const extent = State.maxModelSize * 0.9;
 
@@ -84,6 +88,31 @@ export function configureSun() {
   sun.shadow.camera.far = State.maxModelSize * 8;
 
   sun.shadow.camera.updateProjectionMatrix();
+}
+
+export function applyImportedSun(sunData) {
+  State.exportedSun = sunData ?? null;
+  State.hasImportedSun = false;
+
+  const components = normalizeImportedSunDirection(sunData);
+  if (!components || !State.model) return false;
+
+  // The viewer currently only translates the scene. Transforming a direction
+  // through its world matrix also covers a future whole-model rotation.
+  const direction = new THREE.Vector3(...components).transformDirection(
+    State.model.matrixWorld
+  );
+  if (![direction.x, direction.y, direction.z].every(Number.isFinite) || direction.y <= 0)
+    return false;
+
+  const { azimuth, height } = sunControlAngles(direction.toArray());
+  sunAngle.value = String(azimuth);
+  sunHeight.min = String(Math.min(5, Math.floor(height)));
+  sunHeight.max = String(Math.max(85, Math.ceil(height)));
+  sunHeight.value = String(height);
+  State.hasImportedSun = true;
+  configureSun();
+  return true;
 }
 
 /* ======================================================

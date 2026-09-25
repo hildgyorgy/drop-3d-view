@@ -30,6 +30,16 @@ test("createModelGroups uses direct children and disambiguates duplicate labels"
   );
 });
 
+test("createModelGroups omits a top-level exported camera", () => {
+  const walls = makeObject("Walls", "walls");
+  const camera = { ...makeObject("Archicad view", "camera"), isCamera: true };
+
+  assert.deepEqual(
+    createModelGroups({ children: [walls, camera] }).map(group => group.object),
+    [walls]
+  );
+});
+
 test("setModelGroupVisible keeps state and Three.js object visibility together", () => {
   const object = makeObject("Roof", "roof");
   const group = { object, visible: true };

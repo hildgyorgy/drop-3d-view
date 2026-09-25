@@ -33,6 +33,8 @@ export const State = {
   currentObjectURL: null,
   currentFileName: null,
   currentMode: "original",
+  exportedSun: null,
+  hasImportedSun: false,
 
   // --- metszés (section) ---
   sectionEnabled: false,

@@ -22,7 +22,9 @@ import {
   openButton,
   demoButton,
   openAgain,
-  fileInput
+  fileInput,
+  sunAngle,
+  sunHeight
 } from "../core/dom.js";
 import {
   whiteMaterial,
@@ -31,10 +33,12 @@ import {
   renaissanceGlassMaterial,
   sectionCapMaterial
 } from "../model/materials.js";
-import { centreModel, fitCamera } from "../view/camera.js";
+import { centreModel, fitCamera, applyExportedInitialView } from "../view/camera.js";
+import { readDropViewMetadata } from "./drop-view-metadata.js";
 import { buildEdges } from "../view/edges.js";
-import { createGround, configureSun } from "../view/ground-sun.js";
+import { createGround, configureSun, applyImportedSun } from "../view/ground-sun.js";
 import { inspectModel } from "../ui/inspector.js";
+import { showDesignCredits } from "../ui/design-credits.js";
 import { buildGroupFilter, clearGroupFilter } from "../ui/group-filter.js";
 import { setViewMode } from "../view/view-modes.js";
 import { setStatus, resetStartMessage, showStartError } from "../ui/status.js";
@@ -162,6 +166,8 @@ export async function openFile(file) {
 
   try {
     let object;
+    let gltf = null;
+    let metadata = { initialView: null, sun: null, designCredits: "" };
 
     if (extension === "glb" || extension === "gltf") {
       const loader = new GLTFLoader();
@@ -172,6 +178,8 @@ export async function openFile(file) {
 
       preserveGLTFGroupLabels(result);
 
+      gltf = result;
+      metadata = readDropViewMetadata(result);
       object = result.scene;
     } else if (extension === "fbx") {
       const loader = new FBXLoader();
@@ -179,7 +187,7 @@ export async function openFile(file) {
       object = await loader.loadAsync(State.currentObjectURL);
     }
 
-    prepareModel(object, file);
+    prepareModel(object, file, gltf, metadata);
   } catch (error) {
     console.error(error);
 
@@ -192,7 +200,7 @@ export async function openFile(file) {
    PREPARE MODEL
 ====================================================== */
 
-export function prepareModel(object, file) {
+export function prepareModel(object, file, gltf = null, metadata = {}) {
   State.model = object;
 
   State.originalMaterials.clear();
@@ -216,17 +224,39 @@ export function prepareModel(object, file) {
 
   buildGroupFilter(State.model);
 
-  centreModel();
+  const modelTranslation = centreModel();
 
   buildEdges();
 
   createGround();
 
-  configureSun();
-
   inspectModel(file);
 
   fitCamera();
+  if (gltf && metadata.initialView) {
+    try {
+      applyExportedInitialView(gltf, metadata.initialView, modelTranslation);
+    } catch (error) {
+      console.warn("Exported camera could not be applied; using the fitted view", error);
+      fitCamera();
+    }
+  }
+  // The exported direction is in model coordinates, so apply it after the
+  // model's final transform and the exported camera target have been set.
+  if (metadata.sun) {
+    try {
+      if (!applyImportedSun(metadata.sun)) {
+        console.warn("Invalid exported sun direction; using the viewer default");
+        configureSun();
+      }
+    } catch (error) {
+      console.warn("Exported sun could not be applied; using the viewer default", error);
+      configureSun();
+    }
+  } else {
+    configureSun();
+  }
+  showDesignCredits(metadata.designCredits);
   updateSectionPlane();
 
   setViewMode(State.currentMode);
@@ -239,6 +269,15 @@ export function prepareModel(object, file) {
 
 export function disposeCurrentModel() {
   deactivatePhoto1({ restoreStatus: false });
+  if (State.hasImportedSun) {
+    sunAngle.value = "45";
+    sunHeight.min = "5";
+    sunHeight.max = "85";
+    sunHeight.value = "45";
+  }
+  State.exportedSun = null;
+  State.hasImportedSun = false;
+  showDesignCredits("");
   showAllButton.hidden = true;
   clearGroupFilter();
   ++State.cameraAnimation;

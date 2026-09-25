@@ -7,7 +7,8 @@
 */
 
 export function createModelGroups(model) {
-  const objects = Array.from(model?.children || []);
+  // An exported view camera is a scene node, not a switchable model group.
+  const objects = Array.from(model?.children || []).filter(object => !object.isCamera);
   const occurrences = new Map();
 
   return objects

@@ -9,7 +9,10 @@
 
 import * as THREE from "three";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { preserveAuthoredPhysicalTransmission } from "./material-policy.js";
+import {
+  prepareWhitePhysicalGlassVariant,
+  preserveAuthoredPhysicalTransmission
+} from "./material-policy.js";
 
 /* ======================================================
    SHARED MATERIALS
@@ -44,6 +47,8 @@ function getWhiteMaterialVariant(original) {
   if ("roughness" in material) material.roughness = 0.88;
 
   if ("metalness" in material) material.metalness = 0;
+
+  prepareWhitePhysicalGlassVariant(original, material);
 
   material.emissiveMap = null;
 

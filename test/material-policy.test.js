@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   hasAuthoredPhysicalTransmission,
   isPhotoGlassFallbackCandidate,
+  prepareWhitePhysicalGlassVariant,
   preserveAuthoredPhysicalTransmission,
   transmissionFromTransparencyControl
 } from "../js/model/material-policy.js";
@@ -45,6 +46,28 @@ test("physical glass only changes transmission after an explicit slider input", 
   assert.ok(
     Math.abs(transmissionFromTransparencyControl(68) - 0.9429090909090909) < 1e-12
   );
+});
+
+test("WHITE/HIDDEN make only the physical glass clone alpha-transparent", () => {
+  const original = {
+    isMeshPhysicalMaterial: true,
+    transmission: 0.98,
+    roughness: 0.03,
+    ior: 1.5,
+    opacity: 1,
+    transparent: false,
+    depthWrite: true
+  };
+  const variant = { ...original };
+
+  assert.equal(prepareWhitePhysicalGlassVariant(original, variant), true);
+  assert.equal(variant.transmission, 0);
+  assert.equal(variant.transparent, true);
+  assert.ok(variant.opacity < 1);
+  assert.equal(variant.depthWrite, false);
+  assert.equal(original.transmission, 0.98);
+  assert.equal(original.opacity, 1);
+  assert.equal(original.transparent, false);
 });
 
 test("PHOTO fallback still accepts legacy alpha glass", () => {

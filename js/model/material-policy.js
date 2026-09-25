@@ -21,6 +21,19 @@ export function preserveAuthoredPhysicalTransmission(material) {
   return true;
 }
 
+export function prepareWhitePhysicalGlassVariant(original, variant) {
+  if (!hasAuthoredPhysicalTransmission(original) || !variant) return false;
+
+  // WHITE/HIDDEN need controllable visual transparency, not the authored
+  // refraction. Only change the clone so ORIGINAL and PATH TRACER keep the GLB.
+  variant.transmission = 0;
+  variant.transparent = true;
+  variant.opacity = 0.5;
+  variant.depthWrite = false;
+  variant.needsUpdate = true;
+  return true;
+}
+
 export function transmissionFromTransparencyControl(value, minimum = 30, maximum = 85) {
   const range = Math.max(1, maximum - minimum);
   const normalized = Math.min(1, Math.max(0, (Number(value) - minimum) / range));

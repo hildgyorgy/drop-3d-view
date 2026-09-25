@@ -22,7 +22,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=path-tracer-label" />
+    <link rel="stylesheet" href="css/style.css?v=design-credits" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=4" />
     <script type="importmap">
@@ -66,6 +66,10 @@
                 <div>DROP &amp; VIEW</div>
                 <div>by</div>
                 <div>GYÖRGY HILD</div>
+                <div id="designCreditsBlock" class="design-credits" hidden>
+                  <span class="design-credits-heading">Design credits</span>
+                  <span id="designCreditsText" class="design-credits-text"></span>
+                </div>
                 <a
                   href="https://hildgyorgy.github.io/app-support/drop-view/"
                   target="_blank"
@@ -200,11 +204,11 @@
           <div id="lightSection">
             <label class="slider-control" for="sunAngle"
               ><span class="adaptive-text">SUN DIRECTION</span>
-              <input id="sunAngle" type="range" min="0" max="360" value="45" />
+              <input id="sunAngle" type="range" min="0" max="360" step="any" value="45" />
             </label>
             <label class="slider-control" for="sunHeight"
               ><span class="adaptive-text">SUN HEIGHT</span>
-              <input id="sunHeight" type="range" min="5" max="85" value="45" />
+              <input id="sunHeight" type="range" min="5" max="85" step="any" value="45" />
             </label>
           </div>
           <label class="slider-control" for="cameraFov"

@@ -26,6 +26,8 @@ import {
   isPhotoGlassFallbackCandidate,
   transmissionFromTransparencyControl
 } from "../model/material-policy.js";
+import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
+import { getSunDirectionFromControls } from "./ground-sun.js";
 import { setStatus } from "../ui/status.js";
 
 const environmentButton = document.getElementById("environmentToggle");
@@ -47,6 +49,7 @@ let convertedGlassMaterials = [];
 let convertedMaterialCache = new WeakMap();
 let cameraSignature = "";
 let photoEnvironmentSunAzimuth = 0;
+let photoEnvironmentSunDirection = new THREE.Vector3(1, 0, 0);
 let sceneDirty = false;
 let environmentUpdateTimer = 0;
 let materialUpdateTimer = 0;
@@ -144,10 +147,10 @@ function createFallbackEnvironment(GradientEquirectTexture) {
   return environment;
 }
 
-function findEnvironmentSunAzimuth(environment) {
+function findEnvironmentSunDirection(environment) {
   const { data, width, height } = environment.image ?? {};
   if (!(data instanceof Float32Array) || !width || !height) {
-    return THREE.MathUtils.degToRad(Number(sunAngle?.value ?? 45));
+    return getSunDirectionFromControls();
   }
 
   const pixelCount = width * height;
@@ -168,7 +171,10 @@ function findEnvironmentSunAzimuth(environment) {
   }
 
   const x = brightestPixel % width;
-  return ((x + 0.5) / width - 0.5) * Math.PI * 2;
+  const y = Math.floor(brightestPixel / width);
+  return new THREE.Vector3(
+    ...environmentSunDirectionFromPixel(x, y, width, height)
+  ).normalize();
 }
 
 function clampEnvironmentForHalfFloat(environment) {
@@ -189,26 +195,42 @@ async function loadPhotoEnvironment(HDRLoader, GradientEquirectTexture) {
     const environment = await new HDRLoader()
       .setDataType(THREE.FloatType)
       .loadAsync(photoEnvironmentUrl);
-    photoEnvironmentSunAzimuth = findEnvironmentSunAzimuth(environment);
+    photoEnvironmentSunDirection = findEnvironmentSunDirection(environment);
+    photoEnvironmentSunAzimuth = Math.atan2(
+      photoEnvironmentSunDirection.z,
+      photoEnvironmentSunDirection.x
+    );
     clampEnvironmentForHalfFloat(environment);
     environment.mapping = THREE.EquirectangularReflectionMapping;
     return environment;
   } catch (error) {
     console.warn("PATH TRACER HDRI could not be loaded; using gradient lighting", error);
-    photoEnvironmentSunAzimuth = THREE.MathUtils.degToRad(
-      Number(sunAngle?.value ?? 45)
+    photoEnvironmentSunDirection = getSunDirectionFromControls();
+    photoEnvironmentSunAzimuth = Math.atan2(
+      photoEnvironmentSunDirection.z,
+      photoEnvironmentSunDirection.x
     );
     return createFallbackEnvironment(GradientEquirectTexture);
   }
 }
 
 function getPhotoEnvironmentRotation() {
+  if (State.hasImportedSun) {
+    // Align the HDRI's bright solar point with the exported 3D sun direction.
+    // Scene.environmentRotation is also consumed by the path tracer.
+    const rotation = new THREE.Quaternion().setFromUnitVectors(
+      photoEnvironmentSunDirection,
+      getSunDirectionFromControls()
+    );
+    return new THREE.Euler().setFromQuaternion(rotation);
+  }
+
   const desiredSunAzimuth = THREE.MathUtils.degToRad(
     Number(sunAngle?.value ?? 45)
   );
   // THREE.RotationY uses the opposite positive direction to the viewer's
   // X/Z azimuth convention, so rotate source minus target here.
-  return photoEnvironmentSunAzimuth - desiredSunAzimuth;
+  return new THREE.Euler(0, photoEnvironmentSunAzimuth - desiredSunAzimuth, 0);
 }
 
 function withPhotoEnvironment(callback) {
@@ -219,7 +241,7 @@ function withPhotoEnvironment(callback) {
 
   scene.environment = photoEnvironment;
   scene.environmentIntensity = 0.8;
-  scene.environmentRotation.set(0, getPhotoEnvironmentRotation(), 0);
+  scene.environmentRotation.copy(getPhotoEnvironmentRotation());
   // The HDRI already contains a real sun, so never add a second one.
   sun.visible = false;
 
@@ -396,9 +418,11 @@ function updateControlAvailability() {
     sunAngle.title = "Shared sun direction for ORIGINAL and PATH TRACER";
   }
   if (sunHeight) {
-    sunHeight.disabled = locked;
-    if (locked)
+    sunHeight.disabled = locked && !State.hasImportedSun;
+    if (locked && !State.hasImportedSun)
       sunHeight.title = "Adjusts the ORIGINAL sun only; PATH TRACER HDRI height is fixed";
+    else if (locked)
+      sunHeight.title = "Shared sun height for ORIGINAL and PATH TRACER";
     else sunHeight.removeAttribute("title");
   }
 }
@@ -513,6 +537,10 @@ photo1Button?.addEventListener("click", () => {
 
 sunAngle?.addEventListener("input", () => {
   queueMicrotask(schedulePhotoEnvironmentUpdate);
+});
+
+sunHeight?.addEventListener("input", () => {
+  if (State.hasImportedSun) queueMicrotask(schedulePhotoEnvironmentUpdate);
 });
 
 transparency?.addEventListener("input", () => {
