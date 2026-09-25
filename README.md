@@ -39,7 +39,7 @@ If a file cannot be opened, the start screen returns with a red error message in
 
 **GLB is recommended.** In our testing it gives the most consistent materials, textures and overall visual result. A self-contained GLB can carry both geometry and textures in one file. Archicad workflows include a paid direct-export plugin, conversion through Blender or an online converter, or Datasmith export followed by GLB export from Unreal Engine.
 
-GLB files exported with a saved Drop & View initial view open at that camera position and projection. Files without one still open in the automatically fitted view.
+GLB files exported with a saved Drop & View initial view open from that viewing direction and projection, automatically zoomed to show the whole model. Files without one still open in the automatically fitted view.
 
 **FBX is a useful quick option**, particularly with native export from supported Archicad versions. Results can vary between versions and export settings: orientation, colours and textures may differ, materials can appear darker, and some files may fail to load. Converting through Blender to GLB can help, but cannot restore textures missing from the original export.
 
