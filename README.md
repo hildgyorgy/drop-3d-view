@@ -11,7 +11,7 @@ A lightweight browser-based 3D model viewer by **György Hild**. Open a model, e
 1. Drop a **GLB**, **FBX** or **GLTF** file onto the page, or choose **OPEN FILE**. You can also try the **DEMO** on the start screen.
 2. Drag with the left mouse button to orbit, drag with the right button to pan, and scroll or pinch to zoom.
 3. Double-click a point on the model to bring it to the centre of the view.
-4. Lost your model while zooming or panning? Choose **SHOW ALL** at the bottom centre to fit the whole model back into view while keeping the viewing direction and projection.
+4. Lost your model while zooming or panning? Choose **ZOOM ALL** at the bottom centre to fit the whole model back into view while keeping the viewing direction, projection and group visibility.
 
 Use a modern browser with JavaScript and WebGL support. Large models may require more memory and a more capable device.
 

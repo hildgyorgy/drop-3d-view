@@ -30,8 +30,6 @@ import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
 import { getSunDirectionFromControls } from "./ground-sun.js";
 import { setStatus } from "../ui/status.js";
 
-const environmentButton = document.getElementById("environmentToggle");
-const aoButton = document.getElementById("aoToggle");
 const photoEnvironmentUrl = new URL(
   "../../assets/hdri/backdrop.hdr",
   import.meta.url
@@ -410,8 +408,6 @@ function prepareScene() {
 
 function updateControlAvailability() {
   const locked = active;
-  if (environmentButton) environmentButton.disabled = locked;
-  if (aoButton) aoButton.disabled = locked;
   if (shadowToggle) shadowToggle.disabled = locked;
   if (sunAngle) {
     sunAngle.disabled = false;

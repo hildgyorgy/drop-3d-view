@@ -70,13 +70,6 @@
   mix-blend-mode: difference;
 }
 
-/* The two lighting toggles still use the viewer's red hover state. */
-#viewerUI:has(#startScreen.hidden)
-  :is(#environmentToggle, #aoToggle):hover .adaptive-text {
-  color: var(--red);
-  mix-blend-mode: normal;
-}
-
 /* Separators and triangles belong to those buttons and must also start white. */
 #viewerUI:has(#startScreen.hidden)
   :is(.navigation-mode button, .tool-button):not(.active, :hover)::before {
@@ -116,10 +109,4 @@
   .menu-toggle:not(:hover) .menu-arrow {
   border-bottom-color: var(--safari-contrast-ink, var(--text));
   filter: none;
-}
-
-.safari-contrast-fallback #viewerUI:has(#startScreen.hidden)
-  :is(#environmentToggle, #aoToggle):hover .adaptive-text {
-  color: var(--red);
-  text-shadow: none;
 }

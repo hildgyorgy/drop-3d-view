@@ -22,7 +22,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=design-credits" />
+    <link rel="stylesheet" href="css/style.css?v=about-support-middle" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=4" />
     <script type="importmap">
@@ -66,16 +66,17 @@
                 <div>DROP &amp; VIEW</div>
                 <div>by</div>
                 <div>GYÖRGY HILD</div>
-                <div id="designCreditsBlock" class="design-credits" hidden>
-                  <span class="design-credits-heading">Design credits</span>
-                  <span id="designCreditsText" class="design-credits-text"></span>
-                </div>
                 <a
+                  class="about-support"
                   href="https://hildgyorgy.github.io/app-support/drop-view/"
                   target="_blank"
                   rel="noopener"
                   >SUPPORT</a
                 >
+                <div id="designCreditsBlock" class="design-credits" hidden>
+                  <span class="design-credits-heading">Design credits</span>
+                  <span id="designCreditsText" class="design-credits-text"></span>
+                </div>
               </div>
             </div>
           </div>
@@ -223,32 +224,10 @@
             ><span class="adaptive-text">FLY SPEED</span>
             <input id="flySpeed" type="range" min="10" max="50" value="30" disabled />
           </label>
-          <div class="lighting-toggles" role="group" aria-label="Lighting options">
-            <label class="check-control" for="shadowToggle"
-              ><input id="shadowToggle" type="checkbox" checked />
-              <span class="adaptive-text">SHADOW</span></label
-            >
-            <button
-              id="environmentToggle"
-              class="check-control check-toggle"
-              type="button"
-              aria-pressed="false"
-              title="Environment lighting in ORIGINAL mode"
-            >
-              <span class="toggle-dot" aria-hidden="true"></span
-              ><span class="adaptive-text">ENV LIGHT</span>
-            </button>
-            <button
-              id="aoToggle"
-              class="check-control check-toggle"
-              type="button"
-              aria-pressed="false"
-              title="Ambient occlusion in ORIGINAL mode"
-            >
-              <span class="toggle-dot" aria-hidden="true"></span
-              ><span class="adaptive-text">AMBIENT</span>
-            </button>
-          </div>
+          <label class="check-control" for="shadowToggle"
+            ><input id="shadowToggle" type="checkbox" checked />
+            <span class="adaptive-text">SHADOW</span></label
+          >
         </div>
         <button
           id="panelButton"
@@ -353,10 +332,10 @@
         <button
           id="showAllButton"
           class="menu-toggle"
-          title="Fit the whole model in the current view"
+          title="Zoom to fit the whole model without changing group visibility"
           hidden
         >
-          SHOW ALL
+          ZOOM ALL
         </button>
         <div class="groups-dock">
           <div

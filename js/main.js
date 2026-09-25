@@ -19,7 +19,6 @@
 import { State } from "./core/state.js";
 import { scene, renderer, perspectiveCamera } from "./core/scene.js";
 import { updateOrthoFrustum } from "./view/camera.js";
-import { renderViewer, resizeAO } from "./view/ambient-occlusion.js";
 import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js";
 import { updateNavigation } from "./view/navigation.js";
@@ -56,7 +55,6 @@ window.addEventListener("resize", () => {
   updateOrthoFrustum();
 
   renderer.setSize(width, height);
-  resizeAO(width, height);
   resizePhoto1();
 });
 
@@ -67,7 +65,7 @@ function animate(time) {
   // pointer stops. A progressive render needs a perfectly fixed camera.
   if (!State.pathTracerActive) State.controls.update();
 
-  if (!renderPhoto1()) renderViewer();
+  if (!renderPhoto1()) renderer.render(scene, State.camera);
 
   updatePerformanceStats(time, getPhoto1Stats());
   updateAdaptiveContrast(time);

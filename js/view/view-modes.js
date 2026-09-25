@@ -26,8 +26,6 @@ import {
 } from "../model/materials.js";
 import { transmissionFromTransparencyControl } from "../model/material-policy.js";
 import { applyClipping } from "../section/section-plane.js";
-import { updateEnvironment } from "./environment.js";
-import { updateAO } from "./ambient-occlusion.js";
 import { applyGroupVisibility } from "../ui/group-filter.js";
 import { deactivatePhoto1 } from "./photo1.js";
 
@@ -81,9 +79,6 @@ document.querySelectorAll("[data-mode]").forEach(button => {
 export function setViewMode(mode) {
   deactivatePhoto1();
   State.currentMode = mode;
-
-  updateEnvironment();
-  updateAO();
 
   const wireframe = mode === "wireframe";
   const transparencyEnabled = ["original", "white", "hidden"].includes(mode);

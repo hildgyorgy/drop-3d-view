@@ -209,6 +209,13 @@ canvas {
   color: var(--red);
   text-decoration: none;
 }
+.about-support {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  border-top: 1px dashed #17171788;
+  border-bottom: 1px dashed #17171788;
+}
 .about-menu.has-design-credits {
   width: min(260px, calc(100vw - 2 * var(--edge)));
   height: auto;
@@ -219,9 +226,7 @@ canvas {
 }
 .design-credits {
   width: 100%;
-  padding: 10px 0;
-  border-top: 1px dashed #17171788;
-  border-bottom: 1px dashed #17171788;
+  padding: 3px 0 0;
 }
 .design-credits-heading,
 .design-credits-text {
@@ -406,16 +411,6 @@ input[type="range"]::-moz-range-thumb {
   background: var(--red);
   box-shadow: 1px 2px 3px #0005;
 }
-.lighting-toggles {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  width: max-content;
-  white-space: nowrap;
-  font: inherit;
-  letter-spacing: inherit;
-  line-height: inherit;
-}
 .check-control {
   display: flex;
   align-items: center;
@@ -440,18 +435,6 @@ input[type="checkbox"],
 }
 input[type="checkbox"]:checked,
 .circle-toggle.active {
-  background: var(--red);
-  border-color: var(--red);
-}
-.toggle-dot {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-  border: 1px solid var(--text);
-  border-radius: 50%;
-  background: transparent;
-}
-.check-toggle[aria-pressed="true"] .toggle-dot {
   background: var(--red);
   border-color: var(--red);
 }
@@ -747,15 +730,8 @@ body.dragging .drop-title {
   #sidePanel {
     max-height: 48dvh;
   }
-  .lighting-toggles {
-    gap: 15px;
-  }
   .check-control {
     gap: 7px;
-  }
-  .toggle-dot {
-    width: 10px;
-    height: 10px;
   }
   .section-dock {
     width: 112px;
