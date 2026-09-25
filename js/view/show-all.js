@@ -27,7 +27,35 @@ export function getModelFrame(camera, bounds) {
   };
 }
 
+function setFrameClipping(camera, controls, frame) {
+  camera.near = Math.max(State.maxModelSize / 200, 0.01);
+  camera.far = Math.max(
+    State.maxModelSize * 10,
+    (frame.distance + frame.radius * 2) * 1.5
+  );
+  controls.maxDistance = camera.far * 0.8;
+  camera.updateProjectionMatrix();
+}
+
 showAllButton.addEventListener("click", showAll);
+
+export function zoomAllImmediately() {
+  if (!State.model || !State.modelBounds || State.modelBounds.isEmpty()) return false;
+
+  ++State.cameraAnimation;
+  const camera = State.camera;
+  const controls = State.controls;
+  const frame = getModelFrame(camera, State.modelBounds);
+  const direction = camera.position.clone().sub(controls.target).normalize();
+  if (direction.lengthSq() === 0) camera.getWorldDirection(direction).negate();
+
+  controls.target.copy(frame.target);
+  camera.position.copy(frame.target).addScaledVector(direction, frame.distance);
+  camera.zoom = frame.zoom;
+  setFrameClipping(camera, controls, frame);
+  controls.update();
+  return true;
+}
 
 export function showAll() {
   if (
@@ -81,9 +109,7 @@ export function showAll() {
     controls.target.lerpVectors(startTarget, frame.target, t);
     camera.position.lerpVectors(startPosition, endPosition, t);
     camera.zoom = THREE.MathUtils.lerp(startZoom, frame.zoom, t);
-    camera.near = Math.max(State.maxModelSize / 200, 0.01);
-    camera.far = State.maxModelSize * 10;
-    camera.updateProjectionMatrix();
+    setFrameClipping(camera, controls, frame);
     controls.update();
     if (progress < 1) requestAnimationFrame(step);
     else controls.removeEventListener("start", interrupt);

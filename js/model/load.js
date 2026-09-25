@@ -34,6 +34,7 @@ import {
   sectionCapMaterial
 } from "../model/materials.js";
 import { centreModel, fitCamera, applyExportedInitialView } from "../view/camera.js";
+import { zoomAllImmediately } from "../view/show-all.js";
 import { readDropViewMetadata } from "./drop-view-metadata.js";
 import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun, applyImportedSun } from "../view/ground-sun.js";
@@ -235,7 +236,12 @@ export function prepareModel(object, file, gltf = null, metadata = {}) {
   fitCamera();
   if (gltf && metadata.initialView) {
     try {
-      applyExportedInitialView(gltf, metadata.initialView, modelTranslation);
+      // Keep the exported viewing direction and projection, but show the whole
+      // model before the first frame instead of opening on a close-up.
+      if (
+        !applyExportedInitialView(gltf, metadata.initialView, modelTranslation) ||
+        !zoomAllImmediately()
+      ) fitCamera();
     } catch (error) {
       console.warn("Exported camera could not be applied; using the fitted view", error);
       fitCamera();
