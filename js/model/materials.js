@@ -10,6 +10,7 @@
 import * as THREE from "three";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import {
+  isAlphaCutoutCandidate,
   prepareWhitePhysicalGlassVariant,
   preserveAuthoredPhysicalTransmission
 } from "./material-policy.js";
@@ -180,6 +181,12 @@ export const renaissanceMaterial = new THREE.MeshLambertMaterial({
 });
 
 renaissanceMaterial.onBeforeCompile = shader => {
+  // A cutout variant keeps its texture's alpha, but not its colour.
+  shader.fragmentShader = shader.fragmentShader.replace(
+    "#include <map_fragment>",
+    "#include <map_fragment>\n diffuseColor.rgb = vec3(1.0);"
+  );
+
   shader.fragmentShader = shader.fragmentShader.replace(
     "#include <dithering_fragment>",
 
@@ -235,7 +242,50 @@ renaissanceMaterial.onBeforeCompile = shader => {
   );
 };
 
-renaissanceMaterial.customProgramCacheKey = () => "drop-view-renaissance-1.1";
+renaissanceMaterial.customProgramCacheKey = () => "drop-view-renaissance-1.2";
+
+/* Only alpha-cutout surfaces need their own B/W material. They reuse the
+   exported textures for holes, but all visible pixels stay black or white. */
+const renaissanceCutoutVariants = new Map();
+const renaissanceCutoutMaterialSet = new Set();
+
+function getRenaissanceCutoutMaterial(original) {
+  const cached = renaissanceCutoutVariants.get(original);
+  if (cached) return cached;
+
+  const material = new THREE.MeshLambertMaterial({
+    color: 0xffffff,
+    map: original.map ?? null,
+    alphaMap: original.alphaMap ?? null,
+    alphaTest: Number(original.alphaTest) > 0 ? Number(original.alphaTest) : 0.5,
+    opacity: original.opacity ?? 1,
+    side: THREE.DoubleSide
+  });
+  material.onBeforeCompile = renaissanceMaterial.onBeforeCompile;
+  material.customProgramCacheKey = () => "drop-view-renaissance-cutout-1.2";
+
+  renaissanceCutoutVariants.set(original, material);
+  renaissanceCutoutMaterialSet.add(material);
+  return material;
+}
+
+export function isRenaissanceCutoutMaterial(material) {
+  return renaissanceCutoutMaterialSet.has(material);
+}
+
+export function disposeRenaissanceCutoutMaterials({ disposeTextures = false } = {}) {
+  const textures = new Set();
+  for (const material of renaissanceCutoutMaterialSet) {
+    if (disposeTextures) {
+      if (material.map) textures.add(material.map);
+      if (material.alphaMap) textures.add(material.alphaMap);
+    }
+    material.dispose();
+  }
+  for (const texture of textures) texture.dispose();
+  renaissanceCutoutVariants.clear();
+  renaissanceCutoutMaterialSet.clear();
+}
 
 /* ======================================================
    RENAISSANCE GLASS
@@ -305,12 +355,16 @@ export function getWhiteMaterial(original) {
 
 export function getRenaissanceMaterial(original) {
   if (Array.isArray(original)) {
-    return original.map(material =>
-      isTranslucentMaterial(material) ? renaissanceGlassMaterial : renaissanceMaterial
-    );
+    return original.map(getRenaissanceMaterial);
   }
 
+  if (isAlphaCutoutCandidate(original)) return getRenaissanceCutoutMaterial(original);
   return isTranslucentMaterial(original) ? renaissanceGlassMaterial : renaissanceMaterial;
+}
+
+export function hasRenaissanceCutout(original) {
+  const materials = Array.isArray(original) ? original : [original];
+  return materials.some(isAlphaCutoutCandidate);
 }
 
 export function isEntirelyTranslucent(original) {

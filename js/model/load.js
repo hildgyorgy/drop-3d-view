@@ -31,6 +31,8 @@ import {
   wireMaterial,
   renaissanceMaterial,
   renaissanceGlassMaterial,
+  isRenaissanceCutoutMaterial,
+  disposeRenaissanceCutoutMaterials,
   sectionCapMaterial
 } from "../model/materials.js";
 import { centreModel, fitCamera, applyExportedInitialView } from "../view/camera.js";
@@ -325,6 +327,7 @@ export function disposeCurrentModel() {
         material === wireMaterial ||
         material === renaissanceMaterial ||
         material === renaissanceGlassMaterial ||
+        isRenaissanceCutoutMaterial(material) ||
         material === sectionCapMaterial
       )
         return;
@@ -334,6 +337,8 @@ export function disposeCurrentModel() {
       material.dispose();
     });
   });
+
+  disposeRenaissanceCutoutMaterials({ disposeTextures: State.currentMode === "renaissance" });
 
   if (State.edgeGroup) {
     scene.remove(State.edgeGroup);

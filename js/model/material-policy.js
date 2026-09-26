@@ -7,6 +7,19 @@ export function hasAuthoredPhysicalTransmission(material) {
   );
 }
 
+const glassNamePattern = /(?:glass|glazing|window|crystal|verre|vitre|üveg)/i;
+
+// glTF MASK surfaces become alphaTest materials in Three.js. Keep this
+// deliberately narrow: BLEND surfaces may be translucent rather than cut out.
+export function isAlphaCutoutCandidate(material) {
+  return Boolean(
+    material &&
+      Number(material.alphaTest) > 0 &&
+      (material.map || material.alphaMap) &&
+      !(Number(material.transmission) > 0)
+  );
+}
+
 export function preserveAuthoredPhysicalTransmission(material) {
   if (!hasAuthoredPhysicalTransmission(material)) return false;
 
@@ -43,8 +56,7 @@ export function transmissionFromTransparencyControl(value, minimum = 30, maximum
 export function isPhotoGlassFallbackCandidate(material) {
   if (!material || hasAuthoredPhysicalTransmission(material)) return false;
 
-  const namedAsGlass =
-    /(?:glass|glazing|window|crystal|verre|vitre|üveg)/i.test(material.name || "");
+  const namedAsGlass = glassNamePattern.test(material.name || "");
   const opacity = Number(material.opacity);
   const transmission = Number(material.transmission);
   const translucent =

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   hasAuthoredPhysicalTransmission,
+  isAlphaCutoutCandidate,
   isPhotoGlassFallbackCandidate,
   prepareWhitePhysicalGlassVariant,
   preserveAuthoredPhysicalTransmission,
@@ -97,4 +98,32 @@ test("PHOTO fallback excludes alpha-cutout foliage", () => {
   };
 
   assert.equal(isPhotoGlassFallbackCandidate(material), false);
+});
+
+test("B/W recognises exported MASK surfaces as cutouts", () => {
+  assert.equal(
+    isAlphaCutoutCandidate({ name: "fém - perforált kis lyukak sűrű", map: {}, alphaTest: 0.5 }),
+    true
+  );
+  assert.equal(
+    isAlphaCutoutCandidate({ name: "Fence chainlink", map: {}, alphaTest: 0.5 }),
+    true
+  );
+  assert.equal(isAlphaCutoutCandidate({ name: "Foliage", alphaMap: {}, alphaTest: 0.25 }), true);
+});
+
+test("B/W keeps glass and ordinary textures out of the cutout path", () => {
+  assert.equal(isAlphaCutoutCandidate({ name: "Brick", map: {} }), false);
+  assert.equal(
+    isAlphaCutoutCandidate({ name: "Translucent curtain", map: {}, transparent: true }),
+    false
+  );
+  assert.equal(
+    isAlphaCutoutCandidate({ name: "üveg - átlátszó", map: {}, transparent: true }),
+    false
+  );
+  assert.equal(
+    isAlphaCutoutCandidate({ name: "Physical glass", map: {}, transmission: 0.96 }),
+    false
+  );
 });

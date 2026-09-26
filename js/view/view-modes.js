@@ -19,6 +19,7 @@ import {
 import {
   wireMaterial,
   getRenaissanceMaterial,
+  hasRenaissanceCutout,
   getWhiteMaterial,
   isEntirelyTranslucent,
   isTranslucentMaterial,
@@ -233,7 +234,7 @@ export function setViewMode(mode) {
      fekete, tömör árnyékot.
   */
 
-        node.castShadow = !isEntirelyTranslucent(original);
+        node.castShadow = !isEntirelyTranslucent(original) || hasRenaissanceCutout(original);
 
         node.visible = true;
 
