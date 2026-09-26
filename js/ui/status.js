@@ -9,15 +9,16 @@
 import { statusElement, startScreen } from "../core/dom.js";
 
 const startMessage = document.querySelector("#startMessage");
-const privacyMessage = startMessage.textContent;
+const startMessageText = document.querySelector("#startMessageText");
+const privacyMessage = startMessageText.textContent;
 
 export function resetStartMessage() {
-  startMessage.textContent = privacyMessage;
+  startMessageText.textContent = privacyMessage;
   startMessage.classList.remove("error");
 }
 
 export function showStartError(text) {
-  startMessage.textContent = text;
+  startMessageText.textContent = text;
   startMessage.classList.add("error");
   startScreen.classList.remove("hidden");
 }

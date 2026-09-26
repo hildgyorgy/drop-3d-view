@@ -46,6 +46,7 @@ sectionButton.addEventListener("click", () => {
 document.querySelectorAll("[data-axis]").forEach(button => {
   button.addEventListener("click", () => {
     State.sectionAxis = button.dataset.axis;
+    button.before(sectionFlip);
 
     document.querySelectorAll("[data-axis]").forEach(b => {
       b.classList.toggle("active", b === button);
@@ -58,7 +59,11 @@ document.querySelectorAll("[data-axis]").forEach(button => {
 
 sectionSlider.addEventListener("input", updateSectionPlane);
 
-sectionFlip.addEventListener("change", updateSectionPlane);
+sectionFlip.addEventListener("click", () => {
+  const flipped = sectionFlip.getAttribute("aria-pressed") !== "true";
+  sectionFlip.setAttribute("aria-pressed", String(flipped));
+  updateSectionPlane();
+});
 
 sectionDebug.addEventListener("change", () => {
   scheduleSectionCapRebuild();
@@ -124,7 +129,7 @@ export function updateSectionPlane() {
     normal.set(0, 0, -1);
   }
 
-  if (sectionFlip.checked) {
+  if (sectionFlip.getAttribute("aria-pressed") === "true") {
     normal.multiplyScalar(-1);
   }
 

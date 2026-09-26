@@ -15,7 +15,7 @@ const labelSelector = [
   ".tool-button:not(.active, :hover)",
   ".photo-button:not(.active, :hover)",
   ".view-menu button:not(.active, :hover)",
-  ".axis-buttons button:not(.active, :hover)",
+  ".axis-buttons button:not(.active, :hover, #sectionFlip)",
   ".menu-toggle:not(:hover)",
   ".adaptive-text"
 ].join(", ");

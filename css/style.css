@@ -330,12 +330,26 @@ canvas {
   align-items: flex-end;
   gap: 2px;
 }
+.axis-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  width: 100%;
+}
 .view-menu button,
 .axis-buttons button {
   position: relative;
   min-height: 30px;
   letter-spacing: inherit;
   padding: 3px 0 3px 10px;
+}
+#sectionFlip {
+  padding-left: 0;
+  color: #999;
+}
+#sectionFlip[aria-pressed="true"] {
+  color: var(--red);
 }
 .view-menu button.active::after,
 .axis-buttons button.active::after {
@@ -623,12 +637,29 @@ input[type="checkbox"]:checked,
   opacity: 0.4;
 }
 .privacy-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   margin-top: 55px;
   font-size: 11px;
   line-height: 1.5;
 }
+.privacy-shield {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: #38b84a;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .privacy-note.error {
   color: var(--red);
+}
+.privacy-note.error .privacy-shield {
+  display: none;
 }
 body.dragging .drop-title {
   color: var(--red);

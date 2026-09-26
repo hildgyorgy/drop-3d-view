@@ -194,7 +194,11 @@
             OR TRY THIS <span>DEMO</span> FIRST
           </button>
           <div id="startMessage" class="privacy-note" role="status" aria-live="polite">
-            NOTHING IS UPLOADED — YOUR FILE STAYS IN YOUR BROWSER
+            <svg class="privacy-shield" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M10 1.5 16.5 4v5c0 4-2.7 6.8-6.5 9-3.8-2.2-6.5-5-6.5-9V4L10 1.5Z" />
+              <path d="m6.7 9.7 2.1 2.1 4.5-4.7" />
+            </svg>
+            <span id="startMessageText">YOUR FILES ARE SAFE, NOTHING IS UPLOADED</span>
           </div>
         </div>
       </div>
@@ -248,9 +252,12 @@
           aria-label="Section controls"
         >
           <div class="axis-buttons" role="group" aria-label="Section axis">
-            <button data-axis="x" aria-pressed="false">X</button>
-            <button data-axis="y" class="active" aria-pressed="true">Y</button>
-            <button data-axis="z" aria-pressed="false">Z</button>
+            <div class="axis-row"><button data-axis="x" aria-pressed="false">X</button></div>
+            <div class="axis-row">
+              <button id="sectionFlip" type="button" aria-pressed="false" title="Flip the section side">FLIP</button>
+              <button data-axis="y" class="active" aria-pressed="true">Y</button>
+            </div>
+            <div class="axis-row"><button data-axis="z" aria-pressed="false">Z</button></div>
           </div>
           <div
             class="section-color-control"
@@ -366,7 +373,6 @@
       <!-- Retained for later UI iterations. Inspector work pauses while hidden. -->
       <div id="retainedControls" hidden>
         <button id="openButton">OPEN FILE</button>
-        <input id="sectionFlip" type="checkbox" />
         <input id="sectionDebug" type="checkbox" />
         <input id="sectionFill" type="checkbox" />
         <div id="sectionDebugStats"></div>
