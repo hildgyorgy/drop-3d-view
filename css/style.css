@@ -70,6 +70,7 @@ canvas {
 .brand,
 .tool-button,
 .photo-button,
+.black-back-button,
 .menu-toggle,
 .corner-menu,
 .section-heading {
@@ -257,6 +258,12 @@ canvas {
   flex-direction: column;
   align-items: center;
 }
+.renaissance-mode {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 .photo-button {
   position: relative;
   min-height: 20px;
@@ -278,6 +285,20 @@ canvas {
   border-radius: 50%;
   background: var(--red);
 }
+.black-back-button {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-height: 20px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+}
+.black-back-button:not(:disabled):hover,
+.black-back-button.active {
+  color: var(--red);
+}
 .tool-button {
   position: relative;
   min-height: 36px;
@@ -288,6 +309,9 @@ canvas {
 .original-mode + .tool-button {
   margin-left: 26px;
 }
+.tool-button + .renaissance-mode {
+  margin-left: 26px;
+}
 .tool-button + .tool-button::before {
   content: "|";
   position: absolute;
@@ -296,6 +320,13 @@ canvas {
   font-weight: 400;
 }
 .original-mode + .tool-button::before {
+  content: "|";
+  position: absolute;
+  left: -17px;
+  color: var(--text);
+  font-weight: 400;
+}
+.tool-button + .renaissance-mode > .tool-button::before {
   content: "|";
   position: absolute;
   left: -17px;
@@ -314,6 +345,13 @@ canvas {
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-top: 10px solid #111;
+}
+.black-back-active .navigation-mode button.active::after,
+.black-back-active .tool-button.active::after {
+  border-top-color: #fff;
+}
+.black-back-active .tool-button + .renaissance-mode > .tool-button::before {
+  color: #fff;
 }
 .view-dock {
   position: relative;
@@ -360,6 +398,10 @@ canvas {
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
   border-right: 10px solid #111;
+}
+.black-back-active .view-menu button.active::after,
+.black-back-active .axis-buttons button.active::after {
+  border-right-color: #fff;
 }
 .controls-dock,
 .section-dock {
@@ -454,6 +496,9 @@ input[type="checkbox"]:checked,
 }
 .circle-toggle {
   position: relative;
+}
+.black-back-active #sectionButton:not(.active) {
+  border-color: #fff;
 }
 .circle-toggle::before {
   content: "";
@@ -700,6 +745,7 @@ body.dragging .drop-title {
   .brand,
   .tool-button,
   .photo-button,
+  .black-back-button,
   .menu-toggle,
   .corner-menu,
   .section-heading {
@@ -735,13 +781,23 @@ body.dragging .drop-title {
   .original-mode + .tool-button {
     margin-left: 18px;
   }
+  .tool-button + .renaissance-mode {
+    margin-left: 18px;
+  }
   .tool-button + .tool-button::before {
     left: -11px;
   }
   .original-mode + .tool-button::before {
     left: -11px;
   }
+  .tool-button + .renaissance-mode > .tool-button::before {
+    left: -11px;
+  }
   .photo-button {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
+  .black-back-button {
     font-size: 8px;
     letter-spacing: 0.12em;
   }

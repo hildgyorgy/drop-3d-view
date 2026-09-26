@@ -61,6 +61,7 @@
     #performanceStats,
     .tool-button:not(.active, :hover),
     .photo-button:not(.active, :hover),
+    .black-back-button:not(.active, :hover),
     .view-menu button:not(.active, :hover),
     .axis-buttons button:not(.active, :hover, #sectionFlip),
     .menu-toggle:not(:hover),
@@ -73,6 +74,11 @@
 /* Separators and triangles belong to those buttons and must also start white. */
 #viewerUI:has(#startScreen.hidden)
   :is(.navigation-mode button, .tool-button):not(.active, :hover)::before {
+  color: #fff;
+}
+
+#viewerUI:has(#startScreen.hidden)
+  .tool-button + .renaissance-mode > .tool-button:not(.active, :hover)::before {
   color: #fff;
 }
 
@@ -89,6 +95,7 @@
     #performanceStats,
     .tool-button:not(.active, :hover),
     .photo-button:not(.active, :hover),
+    .black-back-button:not(.active, :hover),
     .view-menu button:not(.active, :hover),
     .axis-buttons button:not(.active, :hover, #sectionFlip),
     .menu-toggle:not(:hover),
@@ -101,6 +108,12 @@
 
 .safari-contrast-fallback #viewerUI:has(#startScreen.hidden)
   :is(.navigation-mode button, .tool-button):not(.active, :hover)::before {
+  color: var(--safari-contrast-ink, var(--text));
+  text-shadow: none;
+}
+
+.safari-contrast-fallback #viewerUI:has(#startScreen.hidden)
+  .tool-button + .renaissance-mode > .tool-button:not(.active, :hover)::before {
   color: var(--safari-contrast-ink, var(--text));
   text-shadow: none;
 }

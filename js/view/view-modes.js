@@ -7,7 +7,7 @@
 
 import * as THREE from "three";
 import { State } from "../core/state.js";
-import { hemi, DEFAULT_HEMI_INTENSITY } from "../core/scene.js";
+import { scene, hemi, DEFAULT_HEMI_INTENSITY } from "../core/scene.js";
 import { forEachMesh } from "../core/model-utils.js";
 import {
   lightSection,
@@ -30,6 +30,7 @@ import { applyGroupVisibility } from "../ui/group-filter.js";
 import { deactivatePhoto1 } from "./photo1.js";
 
 let shadowSettingBeforeWireframe = null;
+const blackBackButton = document.querySelector("#blackBackButton");
 
 function updateTransparencyAppearance(event = null) {
   const transparencyEnabled = ["original", "white", "hidden"].includes(State.currentMode);
@@ -66,6 +67,24 @@ function updateTransparencyAppearance(event = null) {
 
 transparency?.addEventListener("input", updateTransparencyAppearance);
 
+// Reversible B/W black-background option. The scene's shadow catcher is
+// transparent, so the background supplies both the sky and empty ground colour.
+function updateBlackBackground() {
+  const active =
+    Boolean(State.model) &&
+    State.currentMode === "renaissance" &&
+    blackBackButton.getAttribute("aria-pressed") === "true";
+  scene.background.set(active ? 0x000000 : 0xefefed);
+  document.documentElement.classList.toggle("black-back-active", active);
+}
+
+blackBackButton.addEventListener("click", () => {
+  const active = blackBackButton.getAttribute("aria-pressed") !== "true";
+  blackBackButton.setAttribute("aria-pressed", String(active));
+  blackBackButton.classList.toggle("active", active);
+  updateBlackBackground();
+});
+
 /* ======================================================
    VIEW MODES
 ====================================================== */
@@ -79,6 +98,9 @@ document.querySelectorAll("[data-mode]").forEach(button => {
 export function setViewMode(mode) {
   deactivatePhoto1();
   State.currentMode = mode;
+  blackBackButton.hidden = mode !== "renaissance";
+  blackBackButton.disabled = !State.model;
+  updateBlackBackground();
 
   const wireframe = mode === "wireframe";
   const transparencyEnabled = ["original", "white", "hidden"].includes(mode);

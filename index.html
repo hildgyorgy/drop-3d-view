@@ -23,9 +23,9 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=about-support-middle" />
+    <link rel="stylesheet" href="css/style.css?v=black-back-contrast" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
-    <link rel="stylesheet" href="css/adaptive-contrast.css?v=4" />
+    <link rel="stylesheet" href="css/adaptive-contrast.css?v=6" />
     <script type="importmap">
       {
         "imports": {
@@ -138,9 +138,21 @@
           <button class="tool-button" data-mode="wireframe" aria-pressed="false">
             WIRE
           </button>
-          <button class="tool-button" data-mode="renaissance" aria-pressed="false">
-            B&W
-          </button>
+          <div class="renaissance-mode">
+            <button class="tool-button" data-mode="renaissance" aria-pressed="false">
+              B&W
+            </button>
+            <button
+              class="black-back-button"
+              id="blackBackButton"
+              type="button"
+              aria-pressed="false"
+              title="Black background in B&W mode"
+              hidden
+            >
+              BLACK BACK
+            </button>
+          </div>
         </nav>
         <div class="view-dock">
           <nav class="view-toolbar" aria-label="Camera projection">
@@ -391,6 +403,6 @@
         </section>
       </div>
     </div>
-    <script type="module" src="js/main.js?v=safari-contrast-sampling"></script>
+    <script type="module" src="js/main.js?v=black-back-contrast"></script>
   </body>
 </html>
