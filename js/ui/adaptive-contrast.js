@@ -14,6 +14,7 @@ const labelSelector = [
   "#performanceStats",
   ".tool-button:not(.active, :hover)",
   ".photo-button:not(.active, :hover)",
+  ".glass-light-button:not(.active, :hover)",
   ".black-back-button:not(.active, :hover)",
   ".view-menu button:not(.active, :hover)",
   ".axis-buttons button:not(.active, :hover, #sectionFlip)",

@@ -23,6 +23,7 @@ import {
 } from "../core/dom.js";
 import {
   hasAuthoredPhysicalTransmission,
+  isExportSelectedClearGlass,
   isPhotoGlassFallbackCandidate,
   transmissionFromTransparencyControl
 } from "../model/material-policy.js";
@@ -34,10 +35,17 @@ const photoEnvironmentUrl = new URL(
   "../../assets/hdri/backdrop.hdr",
   import.meta.url
 ).href;
+// Dormant interior-lighting experiment. True restores the GLASS LIGHT button;
+// false leaves the authored-glass emission code available but never uses it.
+// Useful when a bright interior matters more than seeing through the windows.
+// Visible windows turn into glowing white panes, so this is not a general mode.
+const GLASS_LIGHT_EXPERIMENT_ENABLED = false;
+const glassLightButton = document.querySelector("#glassLightButton");
 
 let active = false;
 let preparing = false;
 let paused = false;
+let glassLightEnabled = false;
 let activation = 0;
 let pathTracer = null;
 let photoEnvironment = null;
@@ -45,6 +53,7 @@ let photoGroundMaterial = null;
 let convertedMaterials = [];
 let convertedGlassMaterials = [];
 let convertedMaterialCache = new WeakMap();
+let glassLightMaterialCache = new WeakMap();
 let cameraSignature = "";
 let photoEnvironmentSunAzimuth = 0;
 let photoEnvironmentSunDirection = new THREE.Vector3(1, 0, 0);
@@ -66,6 +75,14 @@ function updatePhotoButtonState() {
       ? "Continue refining the path-traced image"
       : "Pause and keep the current path-traced image";
   photo1Button.setAttribute("aria-label", photo1Button.title);
+}
+
+function updateGlassLightButtonState() {
+  if (!glassLightButton) return;
+  glassLightButton.hidden = !GLASS_LIGHT_EXPERIMENT_ENABLED || !active;
+  glassLightButton.disabled = !GLASS_LIGHT_EXPERIMENT_ENABLED || !pathTracer || preparing;
+  glassLightButton.classList.toggle("active", glassLightEnabled);
+  glassLightButton.setAttribute("aria-pressed", String(glassLightEnabled));
 }
 
 function setPhotoPaused(nextPaused) {
@@ -313,6 +330,24 @@ function createPhotoGlassMaterial(material) {
   return converted;
 }
 
+// Reversible GLASS LIGHT experiment. Never alter the imported GLB material:
+// setScene sees this PHOTO-only clone when the switch is on, and the exact
+// previous material when it is off. Remove this helper, its convertMaterial
+// branch and the button handler to remove the experiment completely.
+function createGlassLightMaterial(original) {
+  const cached = glassLightMaterialCache.get(original);
+  if (cached) return cached;
+
+  const light = original.clone();
+  light.name = `${original.name || original.type} (GLASS LIGHT TEST)`;
+  light.emissive.set(0xffffff);
+  light.emissiveIntensity = 1.4;
+  light.emissiveMap = null;
+  glassLightMaterialCache.set(original, light);
+  convertedMaterials.push(light);
+  return light;
+}
+
 function updatePhotoGlassTransmission() {
   const transmission = getFallbackGlassTransmission();
   convertedGlassMaterials.forEach(material => {
@@ -327,7 +362,11 @@ function convertMaterial(material) {
 
   // GLTFLoader has already built the correct MeshPhysicalMaterial for
   // KHR_materials_transmission. Preserve that exact authored instance.
-  if (hasAuthoredPhysicalTransmission(material)) return material;
+  if (hasAuthoredPhysicalTransmission(material)) {
+    return glassLightEnabled && isExportSelectedClearGlass(material)
+      ? createGlassLightMaterial(material)
+      : material;
+  }
 
   const cached = convertedMaterialCache.get(material);
   if (cached) return cached;
@@ -403,6 +442,7 @@ function prepareScene() {
     setStatus("PATH TRACER · refining image…");
   } finally {
     preparing = false;
+    updateGlassLightButtonState();
   }
 }
 
@@ -440,6 +480,7 @@ function disposePhotoResources() {
   convertedMaterials = [];
   convertedGlassMaterials = [];
   convertedMaterialCache = new WeakMap();
+  glassLightMaterialCache = new WeakMap();
   clearTimeout(environmentUpdateTimer);
   clearTimeout(materialUpdateTimer);
   environmentUpdateTimer = 0;
@@ -456,12 +497,14 @@ async function activatePhoto1() {
   active = true;
   preparing = true;
   paused = false;
+  glassLightEnabled = false;
   setCameraInteractionLocked(true);
   const currentActivation = ++activation;
   photo1Button.classList.add("active");
   photo1Button.setAttribute("aria-pressed", "true");
   photo1Button.setAttribute("aria-busy", "true");
   updatePhotoButtonState();
+  updateGlassLightButtonState();
   updateControlAvailability();
   setStatus("PATH TRACER · loading renderer…");
 
@@ -522,6 +565,7 @@ async function activatePhoto1() {
     if (currentActivation === activation) {
       preparing = false;
       photo1Button.removeAttribute("aria-busy");
+      updateGlassLightButtonState();
     }
   }
 }
@@ -529,6 +573,16 @@ async function activatePhoto1() {
 photo1Button?.addEventListener("click", () => {
   if (!active) activatePhoto1();
   else if (pathTracer && !preparing) setPhotoPaused(!paused);
+});
+
+glassLightButton?.addEventListener("click", () => {
+  if (!GLASS_LIGHT_EXPERIMENT_ENABLED || !active || !pathTracer || preparing) return;
+  glassLightEnabled = !glassLightEnabled;
+  updateGlassLightButtonState();
+  setPhotoPaused(false);
+  // Rebuild the path-traced material snapshot; switching off returns to the
+  // authored glass or the same unlit fallback used before this experiment.
+  prepareScene();
 });
 
 sunAngle?.addEventListener("input", () => {
@@ -560,11 +614,13 @@ export function deactivatePhoto1({ restoreStatus = true } = {}) {
   active = false;
   preparing = false;
   paused = false;
+  glassLightEnabled = false;
   ++activation;
   photo1Button?.classList.remove("active");
   photo1Button?.setAttribute("aria-pressed", "false");
   photo1Button?.removeAttribute("aria-busy");
   updatePhotoButtonState();
+  updateGlassLightButtonState();
   disposePhotoResources();
   setCameraInteractionLocked(false);
   updateControlAvailability();
@@ -636,3 +692,4 @@ export function renderPhoto1() {
 
 updatePhoto1Availability();
 updatePhotoButtonState();
+updateGlassLightButtonState();

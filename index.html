@@ -23,9 +23,9 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=open-brand-ux" />
+    <link rel="stylesheet" href="css/style.css?v=glb-landing-even-spacing" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
-    <link rel="stylesheet" href="css/adaptive-contrast.css?v=6" />
+    <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
       {
         "imports": {
@@ -128,6 +128,17 @@
             >
               PATH TRACER
             </button>
+            <!-- Hidden by GLASS_LIGHT_EXPERIMENT_ENABLED in js/view/photo1.js. -->
+            <button
+              class="glass-light-button"
+              id="glassLightButton"
+              type="button"
+              aria-pressed="false"
+              title="Experimental: make transparent glass emit light in PATH TRACER"
+              hidden
+            >
+              GLASS LIGHT
+            </button>
           </div>
           <button class="tool-button" data-mode="white" aria-pressed="false">
             WHITE
@@ -201,8 +212,11 @@
 
       <div id="startScreen" class="empty-state">
         <div class="empty-state-content">
-          <div class="drop-title">DROP YOUR 3D MODEL HERE</div>
-          <div class="drop-subtitle">GLB • FBX • GLTF</div>
+          <div class="drop-title">
+            DROP YOUR <span class="drop-title-dot" aria-hidden="true">•</span>
+            <span class="drop-title-format">GLB</span>
+            <span class="drop-title-dot" aria-hidden="true">•</span> FILE HERE
+          </div>
           <button class="demo-button" id="demoButton" type="button">
             OR TRY THIS <span>DEMO</span> FIRST
           </button>
@@ -215,7 +229,7 @@
           </div>
         </div>
       </div>
-      <input id="fileInput" type="file" accept="*/*" hidden />
+      <input id="fileInput" type="file" accept=".glb" hidden />
 
       <div class="controls-dock">
         <div id="sidePanel" class="corner-menu" hidden>
@@ -403,6 +417,6 @@
         </section>
       </div>
     </div>
-    <script type="module" src="js/main.js?v=black-back-contrast"></script>
+    <script type="module" src="js/main.js?v=glb-only"></script>
   </body>
 </html>

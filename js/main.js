@@ -20,7 +20,7 @@ import { State } from "./core/state.js";
 import { scene, renderer, perspectiveCamera } from "./core/scene.js";
 import { updateOrthoFrustum } from "./view/camera.js";
 import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
-import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=black-back-contrast";
+import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=glass-light-test";
 import { updateNavigation } from "./view/navigation.js";
 import {
   getPhoto1Stats,

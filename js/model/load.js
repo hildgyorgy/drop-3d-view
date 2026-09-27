@@ -2,7 +2,7 @@
    OPEN / DRAG & DROP / OPEN MODEL / PREPARE MODEL / DISPOSE MODEL
 
    A fájl-megnyitás teljes életciklusa: fájl kiválasztása
-   (gombbal vagy drag&drop-pal), betöltés (GLTF/GLB/FBX),
+   (gombbal vagy drag&drop-pal), GLB betöltés,
    a modell előkészítése (középre igazítás, élek, talaj,
    nap, kamera ráállítás), majd - új fájl nyitásakor vagy
    bezáráskor - a korábbi modell rendes eltávolítása.
@@ -11,7 +11,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
-import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 
 import { State } from "../core/state.js";
 import { scene } from "../core/scene.js";
@@ -38,6 +37,7 @@ import {
 import { centreModel, fitCamera, applyExportedInitialView } from "../view/camera.js";
 import { zoomAllImmediately } from "../view/show-all.js";
 import { readDropViewMetadata } from "./drop-view-metadata.js";
+import { isGlbFile } from "./file-format.js";
 import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun, applyImportedSun } from "../view/ground-sun.js";
 import { inspectModel } from "../ui/inspector.js";
@@ -53,7 +53,7 @@ import {
 } from "../view/photo1.js";
 
 /*
-   Draco decoder for compressed GLB/GLTF files.
+   Draco decoder for compressed GLB files.
    The decoder files are served from the same Three.js CDN version as the
    import map, so compressed geometry is transparently decoded in-browser.
 */
@@ -153,10 +153,8 @@ export async function openFile(file) {
 
   State.currentFileName = file.name;
 
-  const extension = file.name.split(".").pop().toLowerCase();
-
-  if (!["glb", "gltf", "fbx"].includes(extension)) {
-    showStartError("UNSUPPORTED FILE FORMAT. PLEASE USE GLB, FBX OR GLTF.");
+  if (!isGlbFile(file)) {
+    showStartError("UNSUPPORTED FILE FORMAT. PLEASE USE A GLB FILE.");
 
     return;
   }
@@ -168,29 +166,14 @@ export async function openFile(file) {
   State.currentObjectURL = URL.createObjectURL(file);
 
   try {
-    let object;
-    let gltf = null;
-    let metadata = { initialView: null, sun: null, designCredits: "" };
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
 
-    if (extension === "glb" || extension === "gltf") {
-      const loader = new GLTFLoader();
+    const result = await loader.loadAsync(State.currentObjectURL);
+    preserveGLTFGroupLabels(result);
+    const metadata = readDropViewMetadata(result);
 
-      loader.setDRACOLoader(dracoLoader);
-
-      const result = await loader.loadAsync(State.currentObjectURL);
-
-      preserveGLTFGroupLabels(result);
-
-      gltf = result;
-      metadata = readDropViewMetadata(result);
-      object = result.scene;
-    } else if (extension === "fbx") {
-      const loader = new FBXLoader();
-
-      object = await loader.loadAsync(State.currentObjectURL);
-    }
-
-    prepareModel(object, file, gltf, metadata);
+    prepareModel(result.scene, file, result, metadata);
   } catch (error) {
     console.error(error);
 

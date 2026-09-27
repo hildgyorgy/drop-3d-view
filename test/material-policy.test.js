@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   hasAuthoredPhysicalTransmission,
   isAlphaCutoutCandidate,
+  isExportSelectedClearGlass,
   isPhotoGlassFallbackCandidate,
   prepareWhitePhysicalGlassVariant,
   preserveAuthoredPhysicalTransmission,
@@ -47,6 +48,26 @@ test("physical glass only changes transmission after an explicit slider input", 
   assert.ok(
     Math.abs(transmissionFromTransparencyControl(68) - 0.9429090909090909) < 1e-12
   );
+});
+
+test("GLASS LIGHT accepts only exporter-selected physical Clear Glass", () => {
+  const selected = {
+    isMeshPhysicalMaterial: true,
+    transmission: 0.98,
+    userData: { archicad: { clearGlassOverride: true } }
+  };
+
+  assert.equal(isExportSelectedClearGlass(selected), true);
+  assert.equal(isExportSelectedClearGlass({ ...selected, userData: {} }), false);
+  assert.equal(
+    isExportSelectedClearGlass({
+      ...selected,
+      userData: { archicad: { clearGlassOverride: false } }
+    }),
+    false
+  );
+  assert.equal(isExportSelectedClearGlass({ ...selected, transmission: 0 }), false);
+  assert.equal(isExportSelectedClearGlass({ ...selected, isMeshPhysicalMaterial: false }), false);
 });
 
 test("WHITE/HIDDEN make only the physical glass clone alpha-transparent", () => {

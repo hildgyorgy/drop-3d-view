@@ -7,6 +7,11 @@ export function hasAuthoredPhysicalTransmission(material) {
   );
 }
 
+export function isExportSelectedClearGlass(material) {
+  return hasAuthoredPhysicalTransmission(material) &&
+    material.userData?.archicad?.clearGlassOverride === true;
+}
+
 const glassNamePattern = /(?:glass|glazing|window|crystal|verre|vitre|üveg)/i;
 
 // glTF MASK surfaces become alphaTest materials in Three.js. Keep this

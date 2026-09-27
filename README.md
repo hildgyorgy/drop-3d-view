@@ -8,7 +8,7 @@ A lightweight browser-based 3D model viewer by **György Hild**. Open a model, e
 
 ## Getting started
 
-1. Drop a **GLB**, **FBX** or **GLTF** file onto the page, or choose **OPEN FILE**. You can also try the **DEMO** on the start screen.
+1. Drop a **GLB** file onto the page, or choose **OPEN**. You can also try the **DEMO** on the start screen.
 2. Drag with the left mouse button to orbit, drag with the right button to pan, and scroll or pinch to zoom.
 3. Double-click a point on the model to bring it to the centre of the view.
 4. Lost your model while zooming or panning? Choose **ZOOM ALL** at the bottom centre to fit the whole model back into view while keeping the viewing direction, projection and group visibility.
@@ -25,7 +25,11 @@ Use a modern browser with JavaScript and WebGL support. Large models may require
 - **PATH TRACER:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PATH TRACER. For GLBs with an exported sun position, both direction and height are shared, and the HDRI lighting aligns with that sun. Without exported sun data, the HDRI retains its native sun height, so SUN HEIGHT adjusts only the regular ORIGINAL sun. The SAMPLES status shows the number of samples per pixel. Move the camera to compose the image, then pause while the image refines. Requires WebGL 2 and an internet connection the first time the renderer is loaded.
 - **SECTION:** toggle cutting with the circle, choose an X/Y/Z axis and move the section slider to inspect the interior.
 
-The three corner menus start closed. Click their labels to open or close them; click the model area or press Escape to close them. The red **i** beside OPEN FILE opens an About panel with the Support link and, when included in the GLB, the model's design credits.
+### Dormant GLASS LIGHT experiment
+
+The PATH TRACER contains an off-by-default, currently hidden experiment for brightening dark interiors. It makes only the Archicad exporter's explicitly selected Clear Glass materials (`extras.archicad.clearGlassOverride: true`, with physical transmission) emit neutral light; legacy transparent materials and cutouts do not emit. It can improve an interior view when the windows are outside the frame, but visible windows become glowing white panes and convergence can be noisy. The imported GLB and ORIGINAL mode are never changed. To try it again, set `GLASS_LIGHT_EXPERIMENT_ENABLED` to `true` in `js/view/photo1.js`; the GLASS LIGHT button under PATH TRACER will reappear. The experiment remains isolated in `js/view/photo1.js` and `js/model/material-policy.js`, with its dormant button styling in `index.html`, `css/style.css`, `css/adaptive-contrast.css`, and `js/ui/adaptive-contrast.js`.
+
+The three corner menus start closed. Click their labels to open or close them; click the model area or press Escape to close them. The red **i** beside OPEN opens an About panel with the Support link and, when included in the GLB, the model's design credits.
 
 ### Adaptive menu contrast
 
@@ -37,13 +41,9 @@ If a file cannot be opened, the start screen returns with a red error message in
 
 ## Model formats
 
-**GLB is recommended.** In our testing it gives the most consistent materials, textures and overall visual result. A self-contained GLB can carry both geometry and textures in one file. Archicad workflows include a paid direct-export plugin, conversion through Blender or an online converter, or Datasmith export followed by GLB export from Unreal Engine.
+**GLB is the only supported model format.** A self-contained GLB carries geometry and textures in one file and gives the most consistent materials and visual result. Export directly from Archicad with the Drop & View GLB Exporter, or convert another model to GLB before opening it.
 
 GLB files exported with a saved Drop & View initial view open from that viewing direction and projection, automatically zoomed to show the whole model. Files without one still open in the automatically fitted view.
-
-**FBX is a useful quick option**, particularly with native export from supported Archicad versions. Results can vary between versions and export settings: orientation, colours and textures may differ, materials can appear darker, and some files may fail to load. Converting through Blender to GLB can help, but cannot restore textures missing from the original export.
-
-**GLTF is also supported**, but files referencing separate local textures or binary data may not load correctly: the viewer opens one selected file at a time. Prefer an embedded GLB for sharing.
 
 See the [support guide](https://hildgyorgy.github.io/app-support/drop-view/) for export workflows and limitations.
 

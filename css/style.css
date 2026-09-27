@@ -70,6 +70,7 @@ canvas {
 .brand,
 .tool-button,
 .photo-button,
+.glass-light-button,
 .black-back-button,
 .menu-toggle,
 .corner-menu,
@@ -253,6 +254,7 @@ canvas {
   align-items: flex-start;
 }
 .original-mode {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -283,6 +285,21 @@ canvas {
   transform: translateY(-50%);
   border-radius: 50%;
   background: var(--red);
+}
+.glass-light-button {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-height: 20px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  color: #999;
+}
+.glass-light-button:not(:disabled):hover,
+.glass-light-button.active {
+  color: var(--red);
 }
 .black-back-button {
   position: absolute;
@@ -657,25 +674,36 @@ input[type="checkbox"]:checked,
 }
 .empty-state-content {
   width: min(650px, calc(100vw - 40px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
   text-align: center;
 }
 .drop-title {
   font-size: clamp(20px, 1.5vw, 30px);
   letter-spacing: 0.055em;
   line-height: 1.25;
+  white-space: nowrap;
 }
-.drop-subtitle {
-  margin-top: 12px;
-  font: 12px var(--mono);
+.drop-title-format {
+  font-family: var(--mono);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.drop-title-dot {
+  letter-spacing: 0;
 }
 .demo-button {
   pointer-events: auto;
-  margin-top: 16px;
   font-size: 16px;
   letter-spacing: 0.05em;
 }
 .demo-button span {
   color: var(--red);
+  font-family: var(--mono);
+  font-weight: 400;
+  letter-spacing: 0.02em;
 }
 .demo-button:disabled {
   opacity: 0.4;
@@ -685,7 +713,6 @@ input[type="checkbox"]:checked,
   align-items: center;
   justify-content: center;
   gap: 5px;
-  margin-top: 55px;
   font-size: 11px;
   line-height: 1.5;
 }
@@ -744,6 +771,7 @@ body.dragging .drop-title {
   .brand,
   .tool-button,
   .photo-button,
+  .glass-light-button,
   .black-back-button,
   .menu-toggle,
   .corner-menu,
@@ -796,6 +824,10 @@ body.dragging .drop-title {
     font-size: 8px;
     letter-spacing: 0.12em;
   }
+  .glass-light-button {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
   .black-back-button {
     font-size: 8px;
     letter-spacing: 0.12em;
@@ -804,13 +836,12 @@ body.dragging .drop-title {
     top: 75px;
   }
   .drop-title {
-    font-size: 20px;
+    font-size: clamp(12px, 4.5vw, 20px);
   }
   .demo-button {
     font-size: 13px;
   }
   .privacy-note {
-    margin-top: 32px;
     font-size: 9px;
   }
   #sidePanel {
