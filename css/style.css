@@ -92,14 +92,14 @@ canvas {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 34px;
+  gap: 12px;
   min-height: 36px;
   white-space: nowrap;
 }
 .brand-primary {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   min-height: 36px;
 }
 .navigation-status {
@@ -183,16 +183,16 @@ canvas {
 .about-menu {
   position: absolute;
   top: calc(100% + 52px);
-  left: calc(100% + 34px);
+  left: calc(100% + 12px);
   z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  width: 136px;
-  height: 136px;
-  padding: 10px;
+  width: 126px;
+  height: 126px;
+  padding: 8px;
   border: 1px dashed #17171788;
   border-radius: 10px;
   background: rgba(239, 239, 237, 0.96);
@@ -218,10 +218,9 @@ canvas {
   border-bottom: 1px dashed #17171788;
 }
 .about-menu.has-design-credits {
-  width: min(260px, calc(100vw - 2 * var(--edge)));
-  height: auto;
-  min-height: 136px;
-  max-height: 70vh;
+  --about-credits-size: min(180px, calc(100vw - 2 * var(--edge)), 70vh);
+  width: var(--about-credits-size);
+  height: var(--about-credits-size);
   overflow-y: auto;
   white-space: normal;
 }
@@ -604,7 +603,7 @@ input[type="checkbox"]:checked,
   flex: 0 0 auto;
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #17171733;
+  border-bottom: 1px dashed #17171788;
 }
 .group-filter-actions button {
   font: inherit;
