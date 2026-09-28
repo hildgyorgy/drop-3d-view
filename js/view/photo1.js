@@ -60,6 +60,7 @@ let photoEnvironmentSunDirection = new THREE.Vector3(1, 0, 0);
 let sceneDirty = false;
 let environmentUpdateTimer = 0;
 let materialUpdateTimer = 0;
+let lightUpdateTimer = 0;
 const cameraControlDisabledState = new Map();
 
 const navigationButtons = document.querySelectorAll("[data-navigation-mode]");
@@ -483,8 +484,21 @@ function disposePhotoResources() {
   glassLightMaterialCache = new WeakMap();
   clearTimeout(environmentUpdateTimer);
   clearTimeout(materialUpdateTimer);
+  clearTimeout(lightUpdateTimer);
   environmentUpdateTimer = 0;
   materialUpdateTimer = 0;
+  lightUpdateTimer = 0;
+}
+
+export function updatePhoto1Lights() {
+  if (!active || !pathTracer) return;
+  clearTimeout(lightUpdateTimer);
+  lightUpdateTimer = window.setTimeout(() => {
+    lightUpdateTimer = 0;
+    if (!active || !pathTracer || preparing) return;
+    withPhotoEnvironment(() => pathTracer.updateLights());
+    setPhotoPaused(false);
+  }, 120);
 }
 
 async function activatePhoto1() {

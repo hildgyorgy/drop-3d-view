@@ -445,6 +445,12 @@ canvas {
   margin-bottom: 14px;
   white-space: nowrap;
 }
+.window-light-control {
+  margin-bottom: 14px;
+}
+.window-light-control .check-control {
+  margin-bottom: 3px;
+}
 input[type="range"] {
   appearance: none;
   -webkit-appearance: none;

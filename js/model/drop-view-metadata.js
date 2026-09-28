@@ -14,6 +14,41 @@ export function readDropViewMetadata(gltf) {
   };
 }
 
+export function readWindowLightEmitters(gltf) {
+  const json = gltf?.parser?.json;
+  const sceneIndex = json?.scene ?? 0;
+  const lights = json?.scenes?.[sceneIndex]?.extras?.dropView?.windowLights;
+  if (!Array.isArray(lights)) return [];
+
+  return lights.slice(0, 32).flatMap(light => {
+    const emitter = light?.rectangularEmitter;
+    if (light?.source !== "archicad-window-light" || light.enabled !== true ||
+        emitter?.coordinateFrame !== "gltfWorld" ||
+        !isFiniteVector3(emitter.center) || !isFiniteVector3(emitter.normal) ||
+        !isFiniteVector3(emitter.widthAxis) || !isFiniteVector3(emitter.heightAxis) ||
+        !Number.isFinite(emitter.width) || !Number.isFinite(emitter.height) ||
+        emitter.width <= 0 || emitter.height <= 0 ||
+        emitter.width > 1000 || emitter.height > 1000) return [];
+
+    const length = vector => Math.hypot(...vector);
+    const dot = (a, b) => a.reduce((sum, value, index) => sum + value * b[index], 0);
+    const axes = [emitter.normal, emitter.widthAxis, emitter.heightAxis];
+    if (axes.some(axis => Math.abs(length(axis) - 1) > 0.01) ||
+        Math.abs(dot(axes[0], axes[1])) > 0.01 ||
+        Math.abs(dot(axes[0], axes[2])) > 0.01 ||
+        Math.abs(dot(axes[1], axes[2])) > 0.01) return [];
+
+    return [{
+      center: emitter.center,
+      normal: emitter.normal,
+      heightAxis: emitter.heightAxis,
+      width: emitter.width,
+      height: emitter.height,
+      color: isFiniteVector3(light.color) ? light.color : [1, 1, 1]
+    }];
+  });
+}
+
 export function findInitialCameraNode(gltf, cameraIndex) {
   if (!Number.isInteger(cameraIndex) || cameraIndex < 0) return null;
 

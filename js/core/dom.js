@@ -57,6 +57,10 @@ export const cameraFov = document.querySelector("#cameraFov");
 
 export const transparency = document.querySelector("#transparency");
 
+export const windowLightsToggle = document.querySelector("#windowLightsToggle");
+
+export const windowLightsIntensity = document.querySelector("#windowLightsIntensity");
+
 export const photo1Button = document.querySelector("#photo1Button");
 
 export const lightSection = document.querySelector("#lightSection");

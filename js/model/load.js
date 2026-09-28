@@ -36,10 +36,11 @@ import {
 } from "../model/materials.js";
 import { centreModel, fitCamera, applyExportedInitialView } from "../view/camera.js";
 import { zoomAllImmediately } from "../view/show-all.js";
-import { readDropViewMetadata } from "./drop-view-metadata.js";
+import { readDropViewMetadata, readWindowLightEmitters } from "./drop-view-metadata.js";
 import { isGlbFile } from "./file-format.js";
 import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun, applyImportedSun } from "../view/ground-sun.js";
+import { configureWindowLights, clearWindowLights } from "../view/window-lights.js";
 import { inspectModel } from "../ui/inspector.js";
 import { showDesignCredits } from "../ui/design-credits.js";
 import { buildGroupFilter, clearGroupFilter } from "../ui/group-filter.js";
@@ -172,6 +173,7 @@ export async function openFile(file) {
     const result = await loader.loadAsync(State.currentObjectURL);
     preserveGLTFGroupLabels(result);
     const metadata = readDropViewMetadata(result);
+    metadata.windowLightEmitters = readWindowLightEmitters(result);
 
     prepareModel(result.scene, file, result, metadata);
   } catch (error) {
@@ -211,6 +213,8 @@ export function prepareModel(object, file, gltf = null, metadata = {}) {
   buildGroupFilter(State.model);
 
   const modelTranslation = centreModel();
+
+  configureWindowLights(metadata.windowLightEmitters, modelTranslation);
 
   buildEdges();
 
@@ -260,6 +264,7 @@ export function prepareModel(object, file, gltf = null, metadata = {}) {
 
 export function disposeCurrentModel() {
   deactivatePhoto1({ restoreStatus: false });
+  clearWindowLights();
   if (State.hasImportedSun) {
     sunAngle.value = "45";
     sunHeight.min = "5";

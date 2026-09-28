@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import {
   findInitialCameraNode,
   isFiniteVector3,
-  readDropViewMetadata
+  readDropViewMetadata,
+  readWindowLightEmitters
 } from "../js/model/drop-view-metadata.js";
 
 test("reads scene initial view and asset credits independently", () => {
@@ -82,4 +83,43 @@ test("rejects incomplete or non-finite target coordinates", () => {
   assert.equal(isFiniteVector3([1, 2, 3]), true);
   assert.equal(isFiniteVector3([1, 2]), false);
   assert.equal(isFiniteVector3([1, Infinity, 3]), false);
+});
+
+test("reads only valid, enabled world-space window light rectangles", () => {
+  const light = {
+    source: "archicad-window-light",
+    enabled: true,
+    color: [1, 0.8, 0.6],
+    rectangularEmitter: {
+      coordinateFrame: "gltfWorld",
+      center: [12.755766, 3.9, 7.44035],
+      normal: [0, 0, 1],
+      widthAxis: [1, 0, 0],
+      heightAxis: [0, 1, 0],
+      width: 11.646532,
+      height: 2.4
+    }
+  };
+  const gltf = {
+    parser: {
+      json: {
+        scenes: [{ extras: { dropView: { windowLights: [
+          light,
+          { ...light, enabled: false },
+          { ...light, rectangularEmitter: { ...light.rectangularEmitter, width: 0 } },
+          { ...light, rectangularEmitter: { ...light.rectangularEmitter, normal: [0, 1, 0] } }
+        ] } } }]
+      }
+    }
+  };
+
+  assert.deepEqual(readWindowLightEmitters(gltf), [{
+    center: light.rectangularEmitter.center,
+    normal: light.rectangularEmitter.normal,
+    heightAxis: light.rectangularEmitter.heightAxis,
+    width: 11.646532,
+    height: 2.4,
+    color: [1, 0.8, 0.6]
+  }]);
+  assert.deepEqual(readWindowLightEmitters({}), []);
 });
