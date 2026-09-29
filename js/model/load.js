@@ -295,7 +295,7 @@ export function disposeCurrentModel() {
   }
 
   disposeSectionCap();
-  scene.remove(State.model);
+  State.model.parent?.remove(State.model);
 
   forEachMesh(State.model, node => {
     node.geometry?.dispose();
@@ -329,7 +329,7 @@ export function disposeCurrentModel() {
   disposeRenaissanceCutoutMaterials({ disposeTextures: State.currentMode === "renaissance" });
 
   if (State.edgeGroup) {
-    scene.remove(State.edgeGroup);
+    State.edgeGroup.parent?.remove(State.edgeGroup);
 
     State.edgeGroup = null;
   }

@@ -36,6 +36,13 @@
       <label class="toggle"><input id="lights" type="checkbox" disabled /> WINDOW LIGHTS</label>
     </div>
     <div id="status" role="status" aria-live="polite">Checking WebGPU support…</div>
+    <script>
+      if (location.protocol === "file:") {
+        const status = document.getElementById("status");
+        status.textContent = "Open this lab at http://127.0.0.1:8001/webgpu-lab/ after starting its local server. It cannot run from a file:// URL.";
+        status.classList.add("error");
+      }
+    </script>
     <script type="module" src="./main.js"></script>
   </body>
 </html>

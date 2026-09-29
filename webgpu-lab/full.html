@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <base href="/" />
+    <meta name="theme-color" content="#efefed" />
+    <title>Drop & View</title>
+    <link rel="icon" type="image/png" sizes="1024x1024" href="../icon.png" />
+    <link rel="apple-touch-icon" sizes="1024x1024" href="../icon.png" />
+    <link rel="manifest" href="../site.webmanifest" />
+    <script>
+      // Safari can render difference-blended labels white over the WebGL canvas.
+      // js/ui/adaptive-contrast.js samples the canvas for its fallback colours.
+      const browserUA = navigator.userAgent;
+      if (
+        /AppleWebKit/i.test(browserUA) &&
+        /Safari/i.test(browserUA) &&
+        !/(Chrome|Chromium|CriOS|Edg|EdgiOS|OPR|FxiOS)/i.test(browserUA)
+      ) {
+        document.documentElement.classList.add("safari-contrast-fallback");
+      }
+    </script>
+    <link rel="stylesheet" href="../css/style.css?v=glb-landing-even-spacing" />
+    <!-- Adaptive overlay labels; remove this link to disable (see README). -->
+    <link rel="stylesheet" href="../css/adaptive-contrast.css?v=glass-light-test" />
+  </head>
+  <body>
+    <div id="viewerUI">
+      <header id="topbar">
+        <div class="brand">
+          <div class="brand-primary">
+            <button id="openAgain" title="Open a 3D model">OPEN</button>
+            <div class="about-dock">
+              <button
+                id="aboutButton"
+                class="open-dot"
+                type="button"
+                aria-label="About Drop & View"
+                aria-expanded="false"
+                aria-controls="aboutMenu"
+                title="About Drop & View"
+              >
+                <span aria-hidden="true">i</span>
+              </button>
+              <div
+                id="aboutMenu"
+                class="about-menu"
+                role="group"
+                aria-label="About Drop & View"
+                hidden
+              >
+                <div>DROP &amp; VIEW</div>
+                <div>by</div>
+                <div>GYÖRGY HILD</div>
+                <a
+                  class="about-support"
+                  href="https://hildgyorgy.github.io/app-support/drop-view/"
+                  target="_blank"
+                  rel="noopener"
+                  >SUPPORT</a
+                >
+                <div id="designCreditsBlock" class="design-credits" hidden>
+                  <span class="design-credits-heading">Design credits</span>
+                  <span id="designCreditsText" class="design-credits-text"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="navigation-status">
+            <div
+              id="navigationMode"
+              class="navigation-mode"
+              role="group"
+              aria-label="Camera navigation mode"
+            >
+              <button
+                type="button"
+                class="active"
+                data-navigation-mode="orbit"
+                aria-pressed="true"
+                title="Current orbit navigation"
+              >
+                ORBIT
+              </button>
+              <button
+                type="button"
+                data-navigation-mode="fly"
+                aria-pressed="false"
+                title="Start free flight; click to pause/resume, WASD/arrows move, E/Q change height, Shift speeds up, Escape releases the pointer"
+              >
+                FLY
+              </button>
+            </div>
+            <output id="performanceStats">-- FPS • --.- ms</output>
+          </div>
+        </div>
+        <nav class="style-toolbar" aria-label="Display style">
+          <div class="original-mode">
+            <button
+              class="tool-button active"
+              data-mode="original"
+              aria-pressed="true"
+            >
+              ORIGINAL
+            </button>
+            <button
+              class="photo-button"
+              id="photo1Button"
+              type="button"
+              aria-pressed="false"
+              title="Progressive path tracing"
+              disabled
+            >
+              PATH TRACER
+            </button>
+            <!-- Hidden by GLASS_LIGHT_EXPERIMENT_ENABLED in js/view/photo1.js. -->
+            <button
+              class="glass-light-button"
+              id="glassLightButton"
+              type="button"
+              aria-pressed="false"
+              title="Experimental: make transparent glass emit light in PATH TRACER"
+              hidden
+            >
+              GLASS LIGHT
+            </button>
+          </div>
+          <button class="tool-button" data-mode="white" aria-pressed="false">
+            WHITE
+          </button>
+          <button class="tool-button" data-mode="hidden" aria-pressed="false">
+            HIDDEN
+          </button>
+          <button class="tool-button" data-mode="wireframe" aria-pressed="false">
+            WIRE
+          </button>
+          <div class="renaissance-mode">
+            <button class="tool-button" data-mode="renaissance" aria-pressed="false">
+              B&W
+            </button>
+            <button
+              class="black-back-button"
+              id="blackBackButton"
+              type="button"
+              aria-pressed="false"
+              title="Black background in B&W mode"
+              hidden
+            >
+              BLACK BACK
+            </button>
+          </div>
+        </nav>
+        <div class="view-dock">
+          <nav class="view-toolbar" aria-label="Camera projection">
+            <button
+              class="tool-button active"
+              id="perspectiveButton"
+              aria-pressed="true"
+              title="Perspective"
+            >
+              PERSP
+            </button>
+            <button
+              class="tool-button"
+              id="axonButton"
+              aria-pressed="false"
+              title="Axonometry"
+            >
+              AXON
+            </button>
+            <button
+              class="tool-button"
+              id="orthoButton"
+              aria-pressed="false"
+              aria-expanded="false"
+              aria-controls="orthoMenu"
+              title="Orthogonal views"
+            >
+              ORTHO
+            </button>
+          </nav>
+          <div
+            id="orthoMenu"
+            class="corner-menu view-menu"
+            hidden
+            role="group"
+            aria-label="Orthogonal view"
+          >
+            <button data-view="top" aria-pressed="false">TOP</button>
+            <button data-view="front" class="active" aria-pressed="true">FRONT</button>
+            <button data-view="left" aria-pressed="false">LEFT</button>
+            <button data-view="right" aria-pressed="false">RIGHT</button>
+            <button data-view="back" aria-pressed="false">BACK</button>
+          </div>
+        </div>
+      </header>
+
+      <div id="startScreen" class="empty-state">
+        <div class="empty-state-content">
+          <div class="drop-title">
+            DROP YOUR <span class="drop-title-dot" aria-hidden="true">•</span>
+            <span class="drop-title-format">GLB</span>
+            <span class="drop-title-dot" aria-hidden="true">•</span> FILE HERE
+          </div>
+          <button class="demo-button" id="demoButton" type="button">
+            OR TRY THIS <span>DEMO</span> FIRST
+          </button>
+          <div id="startMessage" class="privacy-note" role="status" aria-live="polite">
+            <svg class="privacy-shield" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M10 1.5 16.5 4v5c0 4-2.7 6.8-6.5 9-3.8-2.2-6.5-5-6.5-9V4L10 1.5Z" />
+              <path d="m6.7 9.7 2.1 2.1 4.5-4.7" />
+            </svg>
+            <span id="startMessageText">YOUR FILES ARE SAFE, NOTHING IS UPLOADED</span>
+          </div>
+        </div>
+      </div>
+      <input id="fileInput" type="file" accept=".glb" hidden />
+
+      <div class="controls-dock">
+        <div id="sidePanel" class="corner-menu" hidden>
+          <div id="lightSection">
+            <label class="slider-control" for="sunAngle"
+              ><span class="adaptive-text">SUN DIRECTION</span>
+              <input id="sunAngle" type="range" min="0" max="360" step="any" value="45" />
+            </label>
+            <label class="slider-control" for="sunHeight"
+              ><span class="adaptive-text">SUN HEIGHT</span>
+              <input id="sunHeight" type="range" min="5" max="85" step="any" value="45" />
+            </label>
+          </div>
+          <label class="slider-control" for="cameraFov"
+            ><span class="adaptive-text">CAMERA FOV</span>
+            <input id="cameraFov" type="range" min="35" max="60" value="42" />
+          </label>
+          <label class="slider-control" for="transparency"
+            ><span class="adaptive-text">TRANSPARENCY</span>
+            <input id="transparency" type="range" min="30" max="85" value="68" />
+          </label>
+          <label class="slider-control" for="flySpeed"
+            ><span class="adaptive-text">FLY SPEED</span>
+            <input id="flySpeed" type="range" min="10" max="50" value="30" disabled />
+          </label>
+          <div class="window-light-control">
+            <label class="check-control" for="windowLightsToggle"
+              ><input id="windowLightsToggle" type="checkbox" disabled />
+              <span class="adaptive-text">WINDOW LIGHTS</span></label
+            >
+            <input
+              id="windowLightsIntensity"
+              type="range"
+              min="0"
+              max="100"
+              value="5"
+              aria-label="Window light intensity"
+              disabled
+            />
+          </div>
+          <label class="check-control" for="shadowToggle"
+            ><input id="shadowToggle" type="checkbox" checked />
+            <span class="adaptive-text">SHADOW</span></label
+          >
+        </div>
+        <button
+          id="panelButton"
+          class="menu-toggle"
+          aria-expanded="false"
+          aria-controls="sidePanel"
+        >
+          CONTROLS <span class="menu-arrow" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="section-dock">
+        <div
+          id="sectionMenu"
+          class="corner-menu section-menu"
+          hidden
+          role="group"
+          aria-label="Section controls"
+        >
+          <div class="axis-buttons" role="group" aria-label="Section axis">
+            <div class="axis-row"><button data-axis="x" aria-pressed="false">X</button></div>
+            <div class="axis-row">
+              <button id="sectionFlip" type="button" aria-pressed="false" title="Flip the section side">FLIP</button>
+              <button data-axis="y" class="active" aria-pressed="true">Y</button>
+            </div>
+            <div class="axis-row"><button data-axis="z" aria-pressed="false">Z</button></div>
+          </div>
+          <div
+            class="section-color-control"
+            role="group"
+            aria-label="Section edge colour"
+          >
+            <div class="section-control-label adaptive-text">COLOR</div>
+            <div class="section-colors">
+              <button
+                data-section-color="#ff3b30"
+                class="active"
+                style="--swatch: #ff3b30"
+                aria-label="Red"
+                aria-pressed="true"
+              ></button>
+              <button
+                data-section-color="#007aff"
+                style="--swatch: #007aff"
+                aria-label="Blue"
+                aria-pressed="false"
+              ></button>
+              <button
+                data-section-color="#34c759"
+                style="--swatch: #34c759"
+                aria-label="Green"
+                aria-pressed="false"
+              ></button>
+              <button
+                data-section-color="#ffcc00"
+                style="--swatch: #ffcc00"
+                aria-label="Yellow"
+                aria-pressed="false"
+              ></button>
+              <button
+                data-section-color="#000000"
+                style="--swatch: #000000"
+                aria-label="Black"
+                aria-pressed="false"
+              ></button>
+              <button
+                data-section-color="#ffffff"
+                style="--swatch: #ffffff"
+                aria-label="White"
+                aria-pressed="false"
+              ></button>
+            </div>
+          </div>
+          <label class="slider-control section-plane-control" for="sectionSlider"
+            ><span class="adaptive-text">PLANE</span>
+            <input
+              id="sectionSlider"
+              type="range"
+              min="0"
+              max="1000"
+              value="500"
+              aria-label="Section plane position"
+            />
+          </label>
+        </div>
+        <div class="section-heading">
+          <button
+            id="sectionMenuButton"
+            class="menu-toggle"
+            aria-expanded="false"
+            aria-controls="sectionMenu"
+          >
+            <span class="menu-arrow" aria-hidden="true"></span>SECTION
+          </button>
+          <button
+            id="sectionButton"
+            class="circle-toggle"
+            aria-label="Enable section"
+            aria-pressed="false"
+          ></button>
+        </div>
+      </div>
+
+      <div class="model-dock">
+        <button
+          id="showAllButton"
+          class="menu-toggle"
+          title="Zoom to fit the whole model without changing group visibility"
+          hidden
+        >
+          ZOOM ALL
+        </button>
+        <div class="groups-dock">
+          <div
+            id="groupMenu"
+            class="corner-menu group-menu"
+            hidden
+            role="group"
+            aria-label="Model groups"
+          >
+            <div class="group-filter-actions">
+              <button id="showAllGroupsButton" type="button">ALL ON</button>
+              <button id="hideAllGroupsButton" type="button">ALL OFF</button>
+            </div>
+            <div id="groupList" class="group-filter-list"></div>
+          </div>
+          <button
+            id="groupMenuButton"
+            class="menu-toggle"
+            aria-expanded="false"
+            aria-controls="groupMenu"
+            hidden
+          >
+            GROUPS <span class="menu-arrow" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Retained for later UI iterations. Inspector work pauses while hidden. -->
+      <div id="retainedControls" hidden>
+        <button id="openButton">OPEN FILE</button>
+        <input id="sectionDebug" type="checkbox" />
+        <input id="sectionFill" type="checkbox" />
+        <div id="sectionDebugStats"></div>
+        <section>
+          <h2>Model</h2>
+          <div id="modelStats"></div>
+        </section>
+        <section>
+          <h2>Materials</h2>
+          <div id="materialList" class="material-list"></div>
+        </section>
+        <section>
+          <h2>Element types</h2>
+          <div id="elementTypeList" class="element-type-list"></div>
+        </section>
+      </div>
+    </div>
+    <script type="module" src="/webgpu-lab/full-main.js"></script>
+  </body>
+</html>
