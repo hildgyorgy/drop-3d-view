@@ -20,7 +20,7 @@ function applyWindowLightControls() {
   const enabled = Boolean(windowLightsToggle?.checked);
   // This is deliberately a viewer-relative brightness scale, not the
   // uncalibrated Archicad percentage stored in the GLB.
-  const intensity = Number(windowLightsIntensity?.value ?? 40) * 0.5;
+  const intensity = Number(windowLightsIntensity?.value ?? 5) * 0.25;
   for (const light of lights) {
     light.visible = enabled;
     light.intensity = intensity;
@@ -38,8 +38,8 @@ function updateAvailability() {
 export function clearWindowLights() {
   for (const light of lights) scene.remove(light);
   lights.length = 0;
-  if (windowLightsToggle) windowLightsToggle.checked = true;
-  if (windowLightsIntensity) windowLightsIntensity.value = "40";
+  if (windowLightsToggle) windowLightsToggle.checked = false;
+  if (windowLightsIntensity) windowLightsIntensity.value = "5";
   updateAvailability();
 }
 
