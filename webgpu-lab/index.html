@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Drop & View · WebGPU lab</title>
+    <style>
+      :root { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #171717; background: #efefed; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      #canvasHost { position: fixed; inset: 0; }
+      #toolbar { position: fixed; z-index: 2; top: 16px; left: 16px; right: 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px; background: #efefedeb; border: 1px solid #b6b6b3; }
+      .title { font-weight: 800; letter-spacing: .12em; margin-right: auto; }
+      button, select { font: inherit; color: inherit; background: #fff; border: 1px solid #777; padding: 7px 9px; cursor: pointer; }
+      button:disabled { opacity: .45; cursor: default; }
+      input[type=file] { display: none; }
+      label.file { cursor: pointer; border: 1px solid #777; background: white; padding: 7px 9px; }
+      label.toggle { white-space: nowrap; }
+      #status { position: fixed; z-index: 2; bottom: 16px; left: 16px; right: 16px; background: #efefedeb; border: 1px solid #b6b6b3; padding: 10px 12px; line-height: 1.5; }
+      #status.error { color: #c21e0b; }
+      #hint { position: fixed; z-index: 1; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; font-size: 18px; }
+      a { color: #d22111; }
+      @media (max-width: 700px) { #toolbar { left: 8px; right: 8px; top: 8px; gap: 6px; } .title { width: 100%; } button, select, label.file { font-size: 11px; } }
+    </style>
+  </head>
+  <body>
+    <div id="canvasHost"></div>
+    <div id="hint">WEBGPU LAB<br /><small>Load a GLB or try the demo.</small></div>
+    <div id="toolbar">
+      <span class="title">DROP &amp; VIEW · WEBGPU LAB</span>
+      <button id="demo">DEMO</button>
+      <label class="file" for="file">OPEN GLB</label><input id="file" type="file" accept=".glb,model/gltf-binary" />
+      <button id="trace" disabled>START PATH TRACER</button>
+      <button id="pause" disabled>PAUSE</button>
+      <button id="fit" disabled>ZOOM ALL</button>
+      <label class="toggle"><input id="lights" type="checkbox" disabled /> WINDOW LIGHTS</label>
+      <label>RESOLUTION <select id="resolution"><option value="1">1×</option><option value="2">2×</option></select></label>
+    </div>
+    <div id="status" role="status" aria-live="polite">Checking WebGPU support…</div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

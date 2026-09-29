@@ -1,0 +1,17 @@
+{
+  "name": "drop-view-webgpu-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.config.js",
+    "build": "vite build --config vite.config.js"
+  },
+  "dependencies": {
+    "three": "0.185.1",
+    "three-mesh-bvh": "0.9.15",
+    "three-gpu-pathtracer": "git+https://github.com/gkjohnson/three-gpu-pathtracer.git#894bf9b8ce17a8189e34f7f6345b5886aa9bcb09"
+  },
+  "devDependencies": {
+    "vite": "8.2.2"
+  }
+}

@@ -4,3 +4,6 @@
 # Local JavaScript dependencies and pnpm cache
 node_modules/
 .pnpm-store/
+
+# Private local test model for the WebGPU experiment
+webgpu-lab/comparison.glb
