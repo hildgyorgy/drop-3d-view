@@ -29,6 +29,7 @@ import { transmissionFromTransparencyControl } from "../js/model/material-policy
 import { applyClipping } from "../js/section/section-plane.js";
 import { applyGroupVisibility } from "../js/ui/group-filter.js";
 import { deactivatePhoto1 } from "../js/view/photo1.js";
+import { WEBGPU_GROUND_SHADOW_OPACITY } from "../js/view/ground-sun.js";
 
 let shadowSettingBeforeWireframe = null;
 const blackBackButton = document.querySelector("#blackBackButton");
@@ -159,7 +160,7 @@ export function setViewMode(mode) {
   } else {
     hemi.intensity = DEFAULT_HEMI_INTENSITY;
 
-    if (State.ground) State.ground.material.opacity = 0.18;
+    if (State.ground) State.ground.material.opacity = WEBGPU_GROUND_SHADOW_OPACITY;
   }
 
   forEachMesh(State.model, node => {

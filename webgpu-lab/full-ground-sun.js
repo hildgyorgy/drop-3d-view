@@ -16,6 +16,11 @@ import {
   sunControlAngles
 } from "../js/model/sun-metadata.js";
 
+// WebGPU's transparent ShadowMaterial looks lighter than the WebGL catcher at
+// the same opacity. Calibrate only the empty ground; model shadows still use
+// the shared sun and hemisphere lights.
+export const WEBGPU_GROUND_SHADOW_OPACITY = 0.65;
+
 /* ======================================================
    GROUND
 ====================================================== */
@@ -30,7 +35,7 @@ export function createGround() {
 
   const material = new THREE.ShadowMaterial({
     color: 0x000000,
-    opacity: 0.18
+    opacity: WEBGPU_GROUND_SHADOW_OPACITY
   });
 
   State.ground = new THREE.Mesh(geometry, material);
