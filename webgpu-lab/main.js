@@ -13,7 +13,7 @@ import {
 } from "../js/model/sun-metadata.js";
 
 const ui = Object.fromEntries(
-  ["canvasHost", "hint", "status", "demo", "file", "trace", "pause", "fit", "lights", "resolution"]
+  ["canvasHost", "hint", "status", "demo", "file", "trace", "pause", "fit", "lights"]
     .map(id => [id, document.getElementById(id)])
 );
 
@@ -26,7 +26,7 @@ camera.position.set(10, 8, 10);
 const previewFill = new THREE.HemisphereLight(0xffffff, 0x888888, 1.15);
 const sun = new THREE.DirectionalLight(0xffffff, 3.3);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(8192, 8192);
 sun.shadow.bias = -0.0001;
 sun.shadow.normalBias = 0.02;
 scene.add(previewFill, sun, sun.target);
@@ -82,19 +82,21 @@ function setImportedSun(metadata) {
     ? new THREE.Vector3(...imported)
     : new THREE.Vector3(0.6, 0.65, 0.45).normalize();
   const target = bounds.getCenter(new THREE.Vector3());
-  const distance = bounds.getSize(new THREE.Vector3()).length() * 3;
+  const modelSize = bounds.getSize(new THREE.Vector3());
+  const maxModelSize = Math.max(modelSize.x, modelSize.y, modelSize.z);
+  const distance = maxModelSize * 3;
   sun.position.copy(target).addScaledVector(direction, distance);
   sun.target.position.copy(target);
   sun.target.updateMatrixWorld();
   sun.updateMatrixWorld();
 
-  const extent = bounds.getSize(new THREE.Vector3()).length() * 0.55;
+  const extent = maxModelSize * 0.9;
   sun.shadow.camera.left = -extent;
   sun.shadow.camera.right = extent;
   sun.shadow.camera.top = extent;
   sun.shadow.camera.bottom = -extent;
-  sun.shadow.camera.near = Math.max(0.01, distance * 0.001);
-  sun.shadow.camera.far = distance * 2;
+  sun.shadow.camera.near = maxModelSize * 0.01;
+  sun.shadow.camera.far = maxModelSize * 8;
   sun.shadow.camera.updateProjectionMatrix();
 
   if (sourceSunDirection && imported) {
@@ -295,7 +297,7 @@ async function boot() {
 
   try {
     renderer = new THREE.WebGPURenderer({ antialias: true });
-    renderer.setPixelRatio(1);
+    renderer.setPixelRatio(2);
     renderer.setSize(innerWidth, innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -374,12 +376,6 @@ ui.fit.addEventListener("click", () => fitCamera());
 ui.lights.addEventListener("change", () => {
   setTraceLightsActive(Boolean(tracer));
   tracer?.updateLights();
-});
-ui.resolution.addEventListener("change", () => {
-  if (!renderer) return;
-  renderer.setPixelRatio(Number(ui.resolution.value));
-  renderer.setSize(innerWidth, innerHeight);
-  tracer?.reset();
 });
 window.addEventListener("resize", () => {
   if (!renderer) return;

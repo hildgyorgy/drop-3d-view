@@ -11,6 +11,8 @@ pnpm dev
 
 Open `http://127.0.0.1:8001/webgpu-lab/`. Use **DEMO** or **OPEN GLB**, then **START PATH TRACER**. **PAUSE** keeps the accumulated image. **BACK TO PREVIEW** returns to the interactive WebGPU raster view. The **WINDOW LIGHTS** switch is available when the GLB contains Drop & View light metadata. The viewer requires a browser with WebGPU support and rejects a WebGL fallback so the experiment measures the intended renderer.
 
+For comparison on a Retina Mac, the drawing resolution is fixed at 2×. The directional shadow map is 8192×8192 and its camera covers the same model-relative area as the current WebGL viewer. The WebGL viewer caps its pixel ratio at 2, so displays with a lower device pixel ratio are not resolution-matched by this fixed lab setting.
+
 The lab has its own small interface. It is a technology and image-quality test, not yet a replacement for the full viewer: groups, sections, style modes, fly navigation, and the existing UI are not ported. It reads the existing exported camera direction and sun direction and fits the whole model into view. The quick preview uses a neutral fill light and mapped sun shadows; the path tracer uses the HDRI for lighting and reflections while keeping it invisible as a backdrop.
 
 The window-light switch affects the path-traced image. The quick raster preview does not show those area lights.
