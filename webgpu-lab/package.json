@@ -4,10 +4,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.js",
-    "build": "vite build --config vite.config.js"
+    "build": "vite build --config vite.config.js",
+    "dev:webgl": "vite --config vite-webgl.config.js",
+    "build:webgl": "vite build --config vite-webgl.config.js",
+    "build:unified": "node build-unified.mjs",
+    "build:public": "node build-unified.mjs --public"
   },
   "dependencies": {
-    "three": "0.185.1",
+    "three": "0.186.0",
     "three-mesh-bvh": "0.9.15",
     "three-gpu-pathtracer": "git+https://github.com/gkjohnson/three-gpu-pathtracer.git#894bf9b8ce17a8189e34f7f6345b5886aa9bcb09"
   },

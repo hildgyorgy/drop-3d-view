@@ -8,7 +8,11 @@ import {
   showAllGroupsButton,
   hideAllGroupsButton
 } from "../core/dom.js";
-import { createModelGroups, setModelGroupVisible } from "../model/groups.js";
+import {
+  createModelGroups,
+  restoreModelGroupVisibility,
+  setModelGroupVisible
+} from "../model/groups.js";
 import { syncEdgeGroupVisibility } from "../view/edges.js";
 import { scheduleSectionCapRebuild } from "../section/section-cap.js";
 import { invalidatePhoto1Scene } from "../view/photo1.js";
@@ -74,6 +78,19 @@ export function clearGroupFilter() {
 export function applyGroupVisibility() {
   groups.forEach(group => setModelGroupVisible(group, group.visible));
   syncEdgeGroupVisibility();
+}
+
+export function getGroupVisibilitySnapshot() {
+  return groups.map(group => ({ sessionKey: group.sessionKey, visible: group.visible }));
+}
+
+export function restoreGroupVisibilitySnapshot(savedGroups) {
+  const restored = restoreModelGroupVisibility(groups, savedGroups);
+  groups.forEach(group => {
+    if (group.checkbox) group.checkbox.checked = group.visible;
+  });
+  if (restored) refreshDerivedGeometry();
+  return restored;
 }
 
 showAllGroupsButton.addEventListener("click", () => setAllGroupsVisible(true));

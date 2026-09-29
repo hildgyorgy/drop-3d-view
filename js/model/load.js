@@ -14,6 +14,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
 import { State } from "../core/state.js";
 import { scene } from "../core/scene.js";
+import { restoreCurrentViewSession } from "../core/session-runtime.js";
 import { forEachMesh } from "../core/model-utils.js";
 import {
   startScreen,
@@ -148,7 +149,7 @@ window.addEventListener("drop", event => {
    OPEN MODEL
 ====================================================== */
 
-export async function openFile(file) {
+export async function openFile(file, { viewSession = null } = {}) {
   disposeCurrentModel();
   resetStartMessage();
 
@@ -157,8 +158,10 @@ export async function openFile(file) {
   if (!isGlbFile(file)) {
     showStartError("UNSUPPORTED FILE FORMAT. PLEASE USE A GLB FILE.");
 
-    return;
+    return false;
   }
+
+  State.currentFile = file;
 
   setStatus(`Opening ${file.name}…`);
 
@@ -176,11 +179,21 @@ export async function openFile(file) {
     metadata.windowLightEmitters = readWindowLightEmitters(result);
 
     prepareModel(result.scene, file, result, metadata);
+    if (viewSession) {
+      try {
+        restoreCurrentViewSession(viewSession);
+      } catch (error) {
+        // A bad handoff must not discard a successfully opened model.
+        console.warn("Saved view could not be restored; using the fitted view", error);
+      }
+    }
+    return true;
   } catch (error) {
     console.error(error);
 
     disposeCurrentModel();
     showStartError("THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE.");
+    return false;
   }
 }
 
@@ -279,6 +292,7 @@ export function disposeCurrentModel() {
   ++State.cameraAnimation;
 
   State.currentFileName = null;
+  State.currentFile = null;
   updatePhoto1Availability();
 
   // A failed loader can leave an object URL without a model to dispose.

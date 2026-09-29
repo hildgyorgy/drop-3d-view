@@ -7,3 +7,6 @@ node_modules/
 
 # Private local test model for the WebGPU experiment
 webgpu-lab/comparison.glb
+
+# Generated single-origin preview (not the published site)
+webgpu-lab/dist-unified/

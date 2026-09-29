@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { State } from "../core/state.js";
 import { perspectiveCamera, orthoCamera } from "../core/scene.js";
 import { createControls } from "../core/controls.js";
+import { restoreCameraPose } from "../core/view-session.js";
 import { perspectiveButton, axonButton, orthoButton, cameraFov } from "../core/dom.js";
 import {
   findInitialCameraNode,
@@ -230,6 +231,27 @@ function setProjection(next, refit = false) {
   });
   updateOrthoSelection();
   cameraFov.disabled = next !== "perspective";
+}
+
+export function getCameraPreset() {
+  return preset;
+}
+
+export function restoreCameraView(snapshot) {
+  const saved = snapshot.camera;
+  if (!["perspective", "axon", "ortho"].includes(saved?.projection))
+    throw new Error("Unsupported saved camera projection");
+  if (saved.preset && presetDirections[saved.preset]) preset = saved.preset;
+
+  ++State.cameraAnimation;
+  setProjection(saved.projection);
+  restoreCameraPose(snapshot, State.camera, State.controls);
+  if (State.camera.isPerspectiveCamera && Number.isFinite(saved.fov)) {
+    cameraFov.min = String(Math.min(35, Math.floor(saved.fov)));
+    cameraFov.max = String(Math.max(60, Math.ceil(saved.fov)));
+    cameraFov.value = String(saved.fov);
+  }
+  updateOrthoSelection();
 }
 
 export function applyExportedInitialView(gltf, initialView, modelTranslation) {

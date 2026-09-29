@@ -11,11 +11,11 @@
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { renderer } from "./scene.js";
 
-export function createControls(cam) {
+export function createControls(cam, canvas = renderer.domElement) {
   const isTouchInterface =
     window.matchMedia?.("(pointer: coarse)").matches ?? navigator.maxTouchPoints > 0;
 
-  const c = new OrbitControls(cam, renderer.domElement);
+  const c = new OrbitControls(cam, canvas);
 
   c.enableDamping = !isTouchInterface;
 

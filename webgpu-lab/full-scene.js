@@ -2,6 +2,8 @@
 import * as THREE from "three";
 import { WebGPURenderer } from "three/webgpu";
 
+export const backendKind = "webgpu";
+
 export const scene = new THREE.Scene();
 // WebGPU tone-maps the clear colour; WebGL displays the same #efefed value
 // directly. Calibrate only the clear colour to recover the WebGL backdrop.

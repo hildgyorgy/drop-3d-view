@@ -8,7 +8,8 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { State } from "../core/state.js";
-import { renderer } from "../core/scene.js";
+import { backendKind, renderer } from "../core/scene.js";
+import { createCanvasEventBinding } from "../core/canvas-binding.js";
 
 const modeButtons = document.querySelectorAll("[data-navigation-mode]");
 const flyButton = document.querySelector('[data-navigation-mode="fly"]');
@@ -19,8 +20,16 @@ const movement = new THREE.Vector3();
 
 let pointerControls = null;
 let pointerCamera = null;
+let pointerCanvas = null;
+let navigationCanvas = null;
 let pointerLookDistance = 1;
 let previousTime = null;
+let dragFallback = false;
+let dragging = false;
+let dragX = 0;
+let dragY = 0;
+const lookEuler = new THREE.Euler(0, 0, 0, "YXZ");
+const normalFlyTitle = flyButton?.title;
 
 const isTouchInterface =
   Boolean(window.matchMedia?.("(pointer: coarse)").matches) ||
@@ -59,7 +68,9 @@ function navigationKey(event) {
 }
 
 function ensurePointerControls() {
-  if (pointerCamera === State.camera && pointerControls) return pointerControls;
+  const canvas = navigationCanvas ?? renderer.domElement;
+  if (pointerCamera === State.camera && pointerCanvas === canvas && pointerControls)
+    return pointerControls;
 
   if (pointerControls) {
     if (pointerControls.isLocked) pointerControls.unlock();
@@ -67,7 +78,8 @@ function ensurePointerControls() {
   }
 
   pointerCamera = State.camera;
-  pointerControls = new PointerLockControls(State.camera, renderer.domElement);
+  pointerCanvas = canvas;
+  pointerControls = new PointerLockControls(State.camera, canvas);
   pointerControls.pointerSpeed = 0.7;
   pointerControls.minPolarAngle = 0.01;
   pointerControls.maxPolarAngle = Math.PI - 0.01;
@@ -86,12 +98,76 @@ function syncOrbitTargetToCamera() {
 }
 
 function leaveFlyMode() {
-  if (!pointerControls) return;
   syncOrbitTargetToCamera();
-  if (pointerControls.isLocked) pointerControls.unlock();
+  if (pointerControls?.isLocked) pointerControls.unlock();
+  dragFallback = false;
+  dragging = false;
+  if (flyButton) flyButton.title = normalFlyTitle;
 }
 
-function setMode(mode) {
+// Some WebGPU browsers reject pointer lock. Keep the same FLY movement and
+// use a left-button drag for looking around in that case.
+function enableDragFallback() {
+  if (backendKind !== "webgpu" || State.navigationMode !== "fly") return;
+  dragFallback = true;
+  if (flyButton)
+    flyButton.title = "FLY: drag to look; WASD/arrows move, E/Q change height, Shift speeds up";
+}
+
+function requestFlyLock() {
+  const controls = ensurePointerControls();
+  if (backendKind === "webgl") {
+    controls.lock();
+    return;
+  }
+  if (dragFallback) return;
+  try {
+    const canvas = navigationCanvas ?? renderer.domElement;
+    const request = canvas.requestPointerLock?.();
+    if (!request) {
+      // Older browsers return void on success and have no Promise to await.
+      if (!canvas.requestPointerLock) enableDragFallback();
+      return;
+    }
+    Promise.resolve(request).catch(enableDragFallback);
+  } catch {
+    enableDragFallback();
+  }
+}
+
+document.addEventListener("pointerlockerror", enableDragFallback);
+
+function onCanvasPointerDown(event) {
+  if (State.navigationMode !== "fly" || !dragFallback || event.button !== 0) return;
+  dragging = true;
+  dragX = event.clientX;
+  dragY = event.clientY;
+}
+
+const bindPointerDown = createCanvasEventBinding("pointerdown", onCanvasPointerDown);
+
+window.addEventListener("pointermove", event => {
+  if (!dragging || !dragFallback || State.navigationMode !== "fly") return;
+  const dx = event.clientX - dragX;
+  const dy = event.clientY - dragY;
+  dragX = event.clientX;
+  dragY = event.clientY;
+  lookEuler.setFromQuaternion(State.camera.quaternion);
+  lookEuler.y -= dx * 0.0014;
+  lookEuler.x = THREE.MathUtils.clamp(
+    lookEuler.x - dy * 0.0014,
+    -Math.PI / 2 + 0.01,
+    Math.PI / 2 - 0.01
+  );
+  State.camera.quaternion.setFromEuler(lookEuler);
+  syncOrbitTargetToCamera();
+});
+
+window.addEventListener("pointerup", () => {
+  dragging = false;
+});
+
+export function setNavigationMode(mode) {
   if (mode === "fly" && isTouchInterface) return;
   if (mode === State.navigationMode) return;
 
@@ -119,8 +195,8 @@ function setMode(mode) {
 modeButtons.forEach(button => {
   button.addEventListener("click", () => {
     const mode = button.dataset.navigationMode;
-    setMode(mode);
-    if (mode === "fly" && State.model) ensurePointerControls().lock();
+    setNavigationMode(mode);
+    if (mode === "fly" && State.model) requestFlyLock();
   });
 });
 
@@ -128,17 +204,39 @@ flySpeed?.addEventListener("input", () => {
   State.flySpeed = Number(flySpeed.value) / 200;
 });
 
-renderer.domElement.addEventListener("click", () => {
+function onCanvasClick() {
   if (State.navigationMode !== "fly" || !State.model) return;
+  if (dragFallback) return;
   const controls = ensurePointerControls();
   if (controls.isLocked) {
     // A click pauses FLY and gives the pointer back without changing mode.
     controls.unlock();
   } else {
     // Clicking the canvas again resumes FLY.
-    controls.lock();
+    requestFlyLock();
   }
-});
+}
+
+const bindClick = createCanvasEventBinding("click", onCanvasClick);
+
+export function bindNavigationCanvas(canvas) {
+  if (navigationCanvas === canvas) return;
+  pressedKeys.clear();
+  previousTime = null;
+  dragging = false;
+  dragFallback = false;
+  if (flyButton) flyButton.title = normalFlyTitle;
+  if (pointerControls) {
+    if (pointerControls.isLocked) pointerControls.unlock();
+    pointerControls.dispose();
+    pointerControls = null;
+    pointerCamera = null;
+    pointerCanvas = null;
+  }
+  navigationCanvas = canvas;
+  bindPointerDown(canvas);
+  bindClick(canvas);
+}
 
 window.addEventListener("keydown", event => {
   if (
@@ -172,7 +270,7 @@ function updateFly(delta, forward, sideways, vertical) {
   const controls = ensurePointerControls();
   State.controls.enabled = false;
 
-  if (controls.isLocked) {
+  if (controls.isLocked || dragFallback) {
     const speedMultiplier =
       pressedKeys.has("ShiftLeft") || pressedKeys.has("ShiftRight") ? 2 : 1;
     const distance =

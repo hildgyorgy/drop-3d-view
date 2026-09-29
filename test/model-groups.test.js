@@ -5,6 +5,7 @@ import {
   createModelGroups,
   getModelGroupLabel,
   isObjectVisibleInHierarchy,
+  restoreModelGroupVisibility,
   setModelGroupVisible
 } from "../js/model/groups.js";
 
@@ -48,6 +49,35 @@ test("setModelGroupVisible keeps state and Three.js object visibility together",
 
   assert.equal(group.visible, false);
   assert.equal(object.visible, false);
+});
+
+test("group visibility restores after reloading the same GLB with new UUIDs", () => {
+  const original = createModelGroups({
+    children: [makeObject("Walls", "old-a"), makeObject("Walls", "old-b")]
+  });
+  setModelGroupVisible(original[1], false);
+  const saved = original.map(group => ({
+    sessionKey: group.sessionKey,
+    visible: group.visible
+  }));
+
+  const reloaded = createModelGroups({
+    children: [makeObject("Walls", "new-a"), makeObject("Walls", "new-b")]
+  });
+  assert.notEqual(original[1].id, reloaded[1].id);
+  assert.equal(restoreModelGroupVisibility(reloaded, saved), 2);
+  assert.deepEqual(reloaded.map(group => group.visible), [true, false]);
+  assert.deepEqual(reloaded.map(group => group.object.visible), [true, false]);
+});
+
+test("group visibility does not apply to a different label at the same position", () => {
+  const groups = createModelGroups({ children: [makeObject("Roof", "new")] });
+  const restored = restoreModelGroupVisibility(groups, [
+    { sessionKey: JSON.stringify([0, "Walls"]), visible: false }
+  ]);
+
+  assert.equal(restored, 0);
+  assert.equal(groups[0].visible, true);
 });
 
 test("getModelGroupLabel prefers the original glTF display name", () => {

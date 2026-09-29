@@ -23,7 +23,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=glb-landing-even-spacing" />
+    <link rel="stylesheet" href="css/style.css?v=renderer-ab" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -74,6 +74,14 @@
                   rel="noopener"
                   >SUPPORT</a
                 >
+                <div id="rendererPicker" class="renderer-picker" hidden>
+                  <span>RENDERER</span>
+                  <div role="group" aria-label="Renderer backend">
+                    <button type="button" data-renderer-mode="auto">AUTO</button>
+                    <button type="button" data-renderer-mode="webgpu">WEBGPU</button>
+                    <button type="button" data-renderer-mode="webgl">WEBGL</button>
+                  </div>
+                </div>
                 <div id="designCreditsBlock" class="design-credits" hidden>
                   <span class="design-credits-heading">Design credits</span>
                   <span id="designCreditsText" class="design-credits-text"></span>
@@ -432,6 +440,16 @@
         </section>
       </div>
     </div>
-    <script type="module" src="js/main.js?v=glb-only"></script>
+    <script>
+      // The published page uses two same-origin renderer packages. Vite's
+      // two-port development comparison still imports source modules instead.
+      if (!(["8001", "8002"].includes(location.port))) {
+        window.__DROP_VIEW_RENDERER_PACKAGES__ = {
+          webgpu: "renderers/webgpu/main.js",
+          webgl: "renderers/webgl/main.js"
+        };
+      }
+    </script>
+    <script type="module" src="js/core/renderer-bootstrap.js?v=renderer-ab"></script>
   </body>
 </html>

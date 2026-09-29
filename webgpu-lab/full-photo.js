@@ -112,8 +112,11 @@ async function activate() {
   setButton();
   setStatus("PATH TRACER · loading HDRI…");
   try {
-    scene.environment = await getEnvironment();
+    const loadedEnvironment = await getEnvironment();
     if (token !== activation || !State.model) return;
+    // HDR loading can finish after a model change or a cancelled activation.
+    // Only the still-current request may replace the preview environment.
+    scene.environment = loadedEnvironment;
     rotateEnvironment();
     hemi.visible = false;
     sun.visible = false;
@@ -141,6 +144,7 @@ async function activate() {
     dirty = false;
     setStatus("PATH TRACER · refining image…");
   } catch (error) {
+    if (token !== activation) return;
     console.error("WebGPU path tracer failed", error);
     deactivatePhoto1({ restoreStatus: false });
     setStatus(`PATH TRACER COULD NOT START: ${error.message}`);
@@ -170,6 +174,7 @@ export function deactivatePhoto1({ restoreStatus = true } = {}) {
   preparing = false;
   paused = false;
   samples = 0;
+  photo1Button.removeAttribute("aria-busy");
   restorePreview();
   lockCamera(false);
   setButton();

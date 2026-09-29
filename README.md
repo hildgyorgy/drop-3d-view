@@ -13,7 +13,7 @@ A lightweight browser-based 3D model viewer by **György Hild**. Open a model, e
 3. Double-click a point on the model to bring it to the centre of the view.
 4. Lost your model while zooming or panning? Choose **ZOOM ALL** at the bottom centre to fit the whole model back into view while keeping the viewing direction, projection and group visibility.
 
-Use a modern browser with JavaScript and WebGL support. Large models may require more memory and a more capable device.
+Use a modern browser with JavaScript. The viewer prefers WebGPU and falls back to WebGL when WebGPU is unavailable. Large models may require more memory and a more capable device.
 
 ## Views and controls
 
@@ -22,7 +22,7 @@ Use a modern browser with JavaScript and WebGL support. Large models may require
 - **AXON:** an orbitable axonometric view with parallel projection.
 - **ORTHO:** TOP, FRONT, LEFT, RIGHT and BACK presets. Elevations can be rotated horizontally while remaining upright and orthogonal. TOP stays fixed. Double-click centring preserves the current ORTHO direction.
 - **CONTROLS:** sun direction, sun height, glass transparency and shadows. Camera FOV is available in PERSP; sun and shadow controls are disabled in WIRE.
-- **PATH TRACER:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PATH TRACER. For GLBs with an exported sun position, both direction and height are shared, and the HDRI lighting aligns with that sun. Without exported sun data, the HDRI retains its native sun height, so SUN HEIGHT adjusts only the regular ORIGINAL sun. The SAMPLES status shows the number of samples per pixel. Move the camera to compose the image, then pause while the image refines. Requires WebGL 2 and an internet connection the first time the renderer is loaded.
+- **PATH TRACER:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PATH TRACER. For GLBs with an exported sun position, both direction and height are shared, and the HDRI lighting aligns with that sun. Without exported sun data, the HDRI retains its native sun height, so SUN HEIGHT adjusts only the regular ORIGINAL sun. The SAMPLES status shows the number of samples per pixel. Move the camera to compose the image, then pause while the image refines. WebGPU-capable browsers use the WebGPU path tracer; the WebGL fallback uses its own path tracer.
 - **SECTION:** toggle cutting with the circle, choose an X/Y/Z axis and move the section slider to inspect the interior.
 
 ### Dormant GLASS LIGHT experiment
@@ -71,13 +71,13 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 ## Local preview
 
-For the author, authorised contributors, or anyone with separate permission to run a local copy, the project is a static HTML/CSS/JavaScript application with no build step:
+For the author, authorised contributors, or anyone with separate permission to run a local copy, serve the repository over HTTP:
 
 ```sh
 python3 -m http.server 8000
 ```
 
-Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.html` directly with a `file://` URL is not sufficient. Network access is needed for CDN dependencies unless they are already cached.
+Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.html` directly with a `file://` URL is not sufficient. The published root contains prebuilt WebGPU and WebGL renderer packages under `renderers/`; `AUTO` prefers WebGPU and falls back to WebGL when it cannot start. The manual comparison selector is available with `?rendererDebug=1`. To rebuild the packages after source changes, run `pnpm build:public` from `webgpu-lab/` (after `pnpm install`). Do not edit the generated `renderers/` files by hand.
 
 The section geometry has dependency-free automated tests. With Node.js installed, run:
 
@@ -87,7 +87,8 @@ npm test
 
 ## Project layout
 
-- `index.html` — viewer interface and Three.js import map
+- `index.html` — shared viewer interface and renderer bootstrap
+- `renderers/` — generated, same-origin WebGPU and WebGL packages for GitHub Pages
 - `css/` — layout and visual styling
 - `js/core/` — scene, cameras, controls and application state
 - `js/model/` — model loading and materials

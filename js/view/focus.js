@@ -7,7 +7,7 @@
 
 import * as THREE from "three";
 import { State } from "../core/state.js";
-import { renderer } from "../core/scene.js";
+import { createCanvasEventBinding } from "../core/canvas-binding.js";
 
 /* ======================================================
    DOUBLE CLICK FOCUS
@@ -17,10 +17,10 @@ export const raycaster = new THREE.Raycaster();
 
 export const pointer = new THREE.Vector2();
 
-renderer.domElement.addEventListener("dblclick", event => {
+function onDoubleClick(event) {
   if (!State.model || State.pathTracerActive) return;
 
-  const rect = renderer.domElement.getBoundingClientRect();
+  const rect = event.currentTarget.getBoundingClientRect();
 
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
 
@@ -33,7 +33,9 @@ renderer.domElement.addEventListener("dblclick", event => {
   if (hits.length) {
     animateTarget(hits[0].point);
   }
-});
+}
+
+export const bindFocusCanvas = createCanvasEventBinding("dblclick", onDoubleClick);
 
 /* ======================================================
    SMOOTH TARGET

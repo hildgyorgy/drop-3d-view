@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { dependencyAliases, projectRoot } from "./dependency-aliases.js";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = projectRoot;
 const replacementModules = new Map([
   ["js/core/scene.js", "webgpu-lab/full-scene.js"],
   ["js/view/photo1.js", "webgpu-lab/full-photo.js"],
@@ -12,7 +13,6 @@ const replacementModules = new Map([
   ["js/view/ground-sun.js", "webgpu-lab/full-ground-sun.js"],
   ["js/view/window-lights.js", "webgpu-lab/full-window-lights.js"],
   ["js/view/view-modes.js", "webgpu-lab/full-view-modes.js"],
-  ["js/view/navigation.js", "webgpu-lab/full-navigation.js"],
   ["js/ui/adaptive-contrast.js", "webgpu-lab/full-contrast.js"]
 ]);
 
@@ -20,34 +20,32 @@ const replacementModules = new Map([
 export default defineConfig({
   root,
   resolve: {
-    alias: [
-      { find: /^three\/webgpu$/, replacement: path.join(root, "webgpu-lab/node_modules/three/build/three.webgpu.js") },
-      { find: /^three\/tsl$/, replacement: path.join(root, "webgpu-lab/node_modules/three/build/three.tsl.js") },
-      { find: /^three\/addons\//, replacement: `${path.join(root, "webgpu-lab/node_modules/three/examples/jsm")}/` },
-      { find: /^three\/examples\/jsm\//, replacement: `${path.join(root, "webgpu-lab/node_modules/three/examples/jsm")}/` },
-      { find: /^three$/, replacement: path.join(root, "webgpu-lab/node_modules/three/build/three.module.js") },
-      { find: /^three-mesh-bvh$/, replacement: path.join(root, "webgpu-lab/node_modules/three-mesh-bvh/src/index.js") },
-      { find: /^three-gpu-pathtracer\/src\//, replacement: `${path.join(root, "webgpu-lab/node_modules/three-gpu-pathtracer/src")}/` }
-    ]
+    alias: dependencyAliases
   },
-  plugins: [{
-    name: "drop-view-webgpu-full-adapters",
-    enforce: "pre",
-    resolveId(source, importer) {
-      if (!importer || !source.startsWith(".")) return null;
-      const resolved = path.resolve(path.dirname(importer.split("?")[0]), source.split("?")[0]);
-      const relative = path.relative(root, resolved);
-      const replacement = replacementModules.get(relative);
-      return replacement ? path.join(root, replacement) : null;
+  plugins: [
+    {
+      name: "drop-view-webgpu-full-adapters",
+      enforce: "pre",
+      resolveId(source, importer) {
+        if (!importer || !source.startsWith(".")) return null;
+        const resolved = path.resolve(
+          path.dirname(importer.split("?")[0]),
+          source.split("?")[0]
+        );
+        const relative = path.relative(root, resolved);
+        const replacement = replacementModules.get(relative);
+        return replacement ? path.join(root, replacement) : null;
+      }
     }
-  }],
+  ],
   server: { host: "127.0.0.1", port: 8001, strictPort: true },
   build: {
     outDir: "/tmp/drop-view-webgpu-build",
     rollupOptions: {
       input: {
         lab: fileURLToPath(new URL("index.html", import.meta.url)),
-        full: fileURLToPath(new URL("full.html", import.meta.url))
+        full: fileURLToPath(new URL("../index.html", import.meta.url)),
+        legacyFull: fileURLToPath(new URL("full.html", import.meta.url))
       }
     }
   }

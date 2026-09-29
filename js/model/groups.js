@@ -4,6 +4,7 @@
    The exporter contract is intentionally generic: every direct child of the
    active glTF scene is one switchable group. Its name is only a UI label;
    object identity is kept through the Three.js object reference and UUID.
+   sessionKey also survives loading the same GLB into a new renderer session.
 */
 
 export function createModelGroups(model) {
@@ -20,6 +21,7 @@ export function createModelGroups(model) {
 
       return {
         id: object.uuid,
+        sessionKey: JSON.stringify([index, label]),
         label,
         displayLabel: occurrence > 1 ? `${label} (${occurrence})` : label,
         object,
@@ -40,6 +42,19 @@ export function getModelGroupLabel(object, index) {
 export function setModelGroupVisible(group, visible) {
   group.visible = visible;
   group.object.visible = visible;
+}
+
+export function restoreModelGroupVisibility(groups, savedGroups) {
+  const savedByKey = new Map(savedGroups.map(group => [group.sessionKey, group.visible]));
+  let restored = 0;
+
+  groups.forEach(group => {
+    if (!savedByKey.has(group.sessionKey)) return;
+    setModelGroupVisible(group, savedByKey.get(group.sessionKey));
+    restored++;
+  });
+
+  return restored;
 }
 
 export function isObjectVisibleInHierarchy(object, root) {

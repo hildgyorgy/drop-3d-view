@@ -17,24 +17,21 @@
 */
 
 import { State } from "./core/state.js";
-import { scene, renderer, perspectiveCamera } from "./core/scene.js";
+import { backendKind, scene, renderer, perspectiveCamera } from "./core/scene.js";
 import { updateOrthoFrustum } from "./view/camera.js";
 import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=glass-light-test";
-import { updateNavigation } from "./view/navigation.js";
-import {
-  getPhoto1Stats,
-  renderPhoto1,
-  resizePhoto1
-} from "./view/photo1.js";
+import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
+import { bindFocusCanvas } from "./view/focus.js";
+import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
+import { openFile } from "./model/load.js";
+import { captureCurrentViewSession } from "./core/session-runtime.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
-import "./model/load.js";
 import "./section/section-plane.js";
 import "./view/view-modes.js";
 import "./view/ground-sun.js";
-import "./view/focus.js";
 import "./view/show-all.js";
 import "./ui/group-filter.js";
 import "./ui/panel.js?v=about-sheet";
@@ -71,4 +68,60 @@ function animate(time) {
   updateAdaptiveContrast(time);
 }
 
-renderer.setAnimationLoop(animate);
+async function boot() {
+  if (backendKind === "webgpu") {
+    if (!navigator.gpu) throw new Error("This browser does not support WebGPU.");
+    const message = document.querySelector("#startMessageText");
+    const originalMessage = message?.textContent;
+    if (message) message.textContent = "INITIALIZING WEBGPU…";
+    await renderer.init();
+    if (renderer.backend?.isWebGLBackend) {
+      throw new Error("The WebGPU backend is unavailable in this browser.");
+    }
+    if (message) message.textContent = originalMessage;
+  }
+
+  bindNavigationCanvas(renderer.domElement);
+  bindFocusCanvas(renderer.domElement);
+  renderer.setAnimationLoop(animate);
+
+  // Optional local comparison fixture; regular users still choose OPEN/DEMO.
+  const fixture = new URLSearchParams(location.search).get("model");
+  if (fixture) {
+    const savedView = new URLSearchParams(location.search).get("viewSession");
+    let viewSession = null;
+    if (savedView) {
+      try {
+        viewSession = JSON.parse(savedView);
+      } catch (error) {
+        console.warn("Invalid comparison view session; using the fitted view", error);
+      }
+    }
+    const response = await fetch(fixture);
+    if (!response.ok)
+      throw new Error(`Comparison model request failed (${response.status}).`);
+    await openFile(
+      new File([await response.blob()], "comparison.glb", {
+        type: "model/gltf-binary"
+      }),
+      { viewSession }
+    );
+  }
+}
+
+export { openFile };
+
+export function getBackendHandoff() {
+  return State.currentFile
+    ? { file: State.currentFile, viewSession: captureCurrentViewSession() }
+    : null;
+}
+
+export const bootPromise = boot();
+bootPromise.catch(error => {
+  console.error(`${backendKind.toUpperCase()} viewer could not start`, error);
+  const message = document.querySelector("#startMessageText");
+  if (message)
+    message.textContent = `${backendKind.toUpperCase()} COULD NOT START: ${error.message}`;
+  document.querySelector("#startMessage")?.classList.add("error");
+});

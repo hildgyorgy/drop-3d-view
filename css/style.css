@@ -218,12 +218,44 @@ canvas {
   border-top: 1px dashed #17171788;
   border-bottom: 1px dashed #17171788;
 }
+.about-menu.has-renderer-picker {
+  width: 190px;
+  height: 190px;
+  gap: 4px;
+  padding: 6px;
+}
+.about-menu.has-renderer-picker .about-support {
+  padding: 5px 0;
+}
+.renderer-picker {
+  width: 100%;
+  padding-top: 3px;
+  font-size: 9px !important;
+}
+.renderer-picker > div {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.renderer-picker button {
+  padding: 0;
+  font: inherit;
+  letter-spacing: 0;
+  color: #777;
+}
+.renderer-picker button.active {
+  color: var(--red);
+}
 .about-menu.has-design-credits {
   --about-credits-size: min(180px, calc(100vw - 2 * var(--edge)), 70vh);
   width: var(--about-credits-size);
   height: var(--about-credits-size);
   overflow-y: auto;
   white-space: normal;
+}
+.about-menu.has-design-credits.has-renderer-picker {
+  --about-credits-size: min(226px, calc(100vw - 2 * var(--edge)), 70vh);
 }
 .design-credits {
   width: 100%;
