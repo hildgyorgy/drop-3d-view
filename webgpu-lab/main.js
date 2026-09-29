@@ -23,8 +23,13 @@ scene.environmentIntensity = 0.8;
 
 const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.01, 100000);
 camera.position.set(10, 8, 10);
+const previewFill = new THREE.HemisphereLight(0xffffff, 0x888888, 1.15);
 const sun = new THREE.DirectionalLight(0xffffff, 3.3);
-scene.add(sun, sun.target);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0001;
+sun.shadow.normalBias = 0.02;
+scene.add(previewFill, sun, sun.target);
 
 let renderer;
 let controls;
@@ -34,6 +39,7 @@ let bounds;
 let modelTranslation = new THREE.Vector3();
 let emitters = [];
 let sourceSunDirection = null;
+let environmentTexture = null;
 let sampleTimer = 0;
 let sampleRequestPending = false;
 let startedAt = 0;
@@ -80,6 +86,16 @@ function setImportedSun(metadata) {
   sun.position.copy(target).addScaledVector(direction, distance);
   sun.target.position.copy(target);
   sun.target.updateMatrixWorld();
+  sun.updateMatrixWorld();
+
+  const extent = bounds.getSize(new THREE.Vector3()).length() * 0.55;
+  sun.shadow.camera.left = -extent;
+  sun.shadow.camera.right = extent;
+  sun.shadow.camera.top = extent;
+  sun.shadow.camera.bottom = -extent;
+  sun.shadow.camera.near = Math.max(0.01, distance * 0.001);
+  sun.shadow.camera.far = distance * 2;
+  sun.shadow.camera.updateProjectionMatrix();
 
   if (sourceSunDirection && imported) {
     scene.environmentRotation.setFromQuaternion(
@@ -160,6 +176,8 @@ function stopTrace() {
   // WebGPU's raster preview needs LTC textures for RectAreaLight, while the
   // path tracer supports the exported window emitters directly.
   setTraceLightsActive(false);
+  scene.environment = null;
+  previewFill.visible = true;
   sun.visible = true;
   controls.enabled = true;
   ui.trace.textContent = "START PATH TRACER";
@@ -183,6 +201,12 @@ async function loadModel(url, label) {
     clearEmitters();
     model = gltf.scene;
     scene.add(model);
+    model.traverse(object => {
+      if (!object.isMesh) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      object.castShadow = !materials.every(material => material?.transmission > 0.5);
+      object.receiveShadow = true;
+    });
 
     const box = new THREE.Box3().setFromObject(model);
     const centre = box.getCenter(new THREE.Vector3());
@@ -214,6 +238,8 @@ async function loadModel(url, label) {
 function startTrace() {
   if (!model || tracer) return;
   controls.enabled = false;
+  scene.environment = environmentTexture;
+  previewFill.visible = false;
   sun.visible = false; // The HDRI already contains a sun.
   setTraceLightsActive(true);
   status("Building WebGPU path-tracing scene…");
@@ -237,6 +263,8 @@ function startTrace() {
     console.error(error);
     stopTrace();
     setTraceLightsActive(false);
+    scene.environment = null;
+    previewFill.visible = true;
     sun.visible = true;
     controls.enabled = true;
     status(`WebGPU path tracer failed: ${error.message}`, true);
@@ -272,6 +300,8 @@ async function boot() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     await renderer.init();
     if (renderer.backend?.isWebGLBackend) {
       throw new Error("WebGPU backend unavailable; refusing the WebGL fallback for this test.");
@@ -295,7 +325,7 @@ async function boot() {
       }
       sourceSunDirection = findHdrSunDirection(environment);
       environment.mapping = THREE.EquirectangularReflectionMapping;
-      scene.environment = environment;
+      environmentTexture = environment;
     } catch (error) {
       console.warn("HDRI could not be loaded", error);
       status("WebGPU ready, but HDRI lighting could not be loaded.", true);
