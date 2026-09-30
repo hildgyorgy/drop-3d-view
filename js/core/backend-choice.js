@@ -4,8 +4,12 @@ export function normalizeRendererMode(value) {
   return rendererModes.includes(value) ? value : "auto";
 }
 
-export function chooseRendererBackend(mode, webgpuAvailable, autoFallback = false) {
-  if (mode === "webgl" || (mode === "auto" && autoFallback)) return "webgl";
+export function activeRendererMode(debugEnabled, storedMode) {
+  return debugEnabled ? normalizeRendererMode(storedMode) : "auto";
+}
+
+export function chooseRendererBackend(mode, webgpuAvailable) {
+  if (mode === "auto" || mode === "webgl") return "webgl";
   if (mode === "webgpu") return webgpuAvailable ? "webgpu" : null;
-  return webgpuAvailable ? "webgpu" : "webgl";
+  return "webgl";
 }

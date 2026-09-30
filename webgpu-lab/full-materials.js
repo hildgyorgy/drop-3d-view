@@ -9,9 +9,13 @@ import {
   preserveAuthoredPhysicalTransmission
 } from "../js/model/material-policy.js";
 
+// WebGPU tone-maps the whole completed frame, including materials that use
+// toneMapped: false. Keep the clay white above the neutral clear colour.
+const WHITE_LINEAR_GAIN = 1.6;
 export const whiteMaterial = new THREE.MeshStandardMaterial({
-  color: 0xf7f7f4, roughness: 0.88, metalness: 0, side: THREE.DoubleSide
+  color: 0xffffff, roughness: 0.88, metalness: 0, side: THREE.DoubleSide
 });
+whiteMaterial.color.multiplyScalar(WHITE_LINEAR_GAIN);
 export const wireMaterial = new THREE.MeshBasicMaterial({
   color: 0x111111, wireframe: true, side: THREE.DoubleSide
 });
@@ -42,7 +46,7 @@ function whiteVariant(original) {
   const cached = whiteVariants.get(original);
   if (cached) return cached;
   const variant = original.clone();
-  variant.color?.set(0xf7f7f4);
+  variant.color?.set(0xffffff).multiplyScalar(WHITE_LINEAR_GAIN);
   variant.emissive?.set(0);
   if ("roughness" in variant) variant.roughness = 0.88;
   if ("metalness" in variant) variant.metalness = 0;
@@ -70,7 +74,9 @@ class BWMaterial extends MeshLambertNodeMaterial {
   setupOutput(builder, litColor) {
     const luminance = dot(litColor.rgb, vec3(0.2126, 0.7152, 0.0722));
     const ink = step(0.1, luminance);
-    return super.setupOutput(builder, vec4(vec3(ink), litColor.a));
+    // The renderer's final ACES pass maps linear white (1) to about 227/255.
+    // Emit HDR white so the binary mode remains truly black and white on screen.
+    return super.setupOutput(builder, vec4(vec3(ink).mul(8), litColor.a));
   }
 }
 export const renaissanceMaterial = new BWMaterial({

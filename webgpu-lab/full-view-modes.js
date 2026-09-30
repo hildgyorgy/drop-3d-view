@@ -7,7 +7,7 @@
 
 import * as THREE from "three";
 import { State } from "../js/core/state.js";
-import { scene, hemi, DEFAULT_HEMI_INTENSITY, neutralBackground } from "../js/core/scene.js";
+import { scene, hemi, sun, DEFAULT_HEMI_INTENSITY, neutralBackground } from "../js/core/scene.js";
 import { forEachMesh } from "../js/core/model-utils.js";
 import {
   lightSection,
@@ -33,6 +33,11 @@ import { WEBGPU_GROUND_SHADOW_OPACITY } from "../js/view/ground-sun.js";
 
 let shadowSettingBeforeWireframe = null;
 const blackBackButton = document.querySelector("#blackBackButton");
+const WEBGPU_WHITE_HEMI_INTENSITY = 0.9;
+const WEBGPU_WHITE_GROUND_FILL = 0xc0bbb4;
+const DEFAULT_HEMI_GROUND_COLOR = 0x888888;
+const WEBGPU_WHITE_SHADOW_NORMAL_BIAS = 0.005;
+const DEFAULT_SHADOW_NORMAL_BIAS = 0.02;
 
 function updateTransparencyAppearance(event = null) {
   const transparencyEnabled = ["original", "white", "hidden"].includes(State.currentMode);
@@ -136,6 +141,18 @@ export function setViewMode(mode) {
 
   State.edgeGroup.visible = false;
 
+  // Calibrate the white study independently of ORIGINAL and the path tracer.
+  // Less fill reveals the thin frame shadows; the smaller normal bias keeps
+  // those narrow shadows attached to the surfaces behind the glass.
+  sun.shadow.normalBias = mode === "white" || mode === "hidden"
+    ? WEBGPU_WHITE_SHADOW_NORMAL_BIAS
+    : DEFAULT_SHADOW_NORMAL_BIAS;
+  // A warmer bounce lifts shaded vertical faces without flattening the
+  // direct sun or the narrow shadows that the first calibration recovered.
+  hemi.groundColor.set(mode === "white" || mode === "hidden"
+    ? WEBGPU_WHITE_GROUND_FILL
+    : DEFAULT_HEMI_GROUND_COLOR);
+
   /* ---------------------------------------------------
      LIGHTING MODE
   --------------------------------------------------- */
@@ -158,7 +175,9 @@ export function setViewMode(mode) {
 
     if (State.ground) State.ground.material.opacity = 1;
   } else {
-    hemi.intensity = DEFAULT_HEMI_INTENSITY;
+    hemi.intensity = mode === "white" || mode === "hidden"
+      ? WEBGPU_WHITE_HEMI_INTENSITY
+      : DEFAULT_HEMI_INTENSITY;
 
     if (State.ground) State.ground.material.opacity = WEBGPU_GROUND_SHADOW_OPACITY;
   }

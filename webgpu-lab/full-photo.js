@@ -11,9 +11,16 @@ import { getSunDirectionFromControls } from "../js/view/ground-sun.js";
 import { setStatus } from "../js/ui/status.js";
 
 const environmentUrl = new URL("../assets/hdri/backdrop.hdr", import.meta.url).href;
+// The WebGPU preview background is HDR-scaled above 1. The path tracer packs
+// scene.background into an 8-bit texture, where that value wraps to dark gray.
+// Use the page's own background colour instead of a separate sky colour.
+const pageBackground = getComputedStyle(document.documentElement)
+  .getPropertyValue("--bg").trim() || "#efefed";
+const photoBackground = new THREE.Color(pageBackground);
 let tracer = null;
 let environment = null;
 let sourceSun = null;
+let previewBackground = null;
 let preparing = false;
 let paused = false;
 let dirty = false;
@@ -92,6 +99,10 @@ function rotateEnvironment() {
 function restorePreview() {
   scene.environment = null;
   scene.environmentRotation.set(0, 0, 0);
+  if (previewBackground) {
+    scene.background = previewBackground;
+    previewBackground = null;
+  }
   hemi.visible = true;
   sun.visible = true;
   if (State.ground && groundMaterial) {
@@ -120,10 +131,12 @@ async function activate() {
     rotateEnvironment();
     hemi.visible = false;
     sun.visible = false;
+    previewBackground = scene.background.clone();
+    scene.background = photoBackground;
     if (State.ground) {
       groundMaterial = State.ground.material;
       State.ground.material = new THREE.MeshStandardMaterial({
-        color: scene.background, roughness: 0.94, metalness: 0, side: THREE.DoubleSide
+        color: photoBackground, roughness: 0.94, metalness: 0, side: THREE.DoubleSide
       });
     }
     const next = new WebGPUPathTracer(renderer);

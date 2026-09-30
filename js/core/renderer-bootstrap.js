@@ -1,22 +1,14 @@
 /* One document/UI, with renderer-specific module graphs selected at startup. */
-import { chooseRendererBackend, normalizeRendererMode } from "./backend-choice.js";
+import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js";
 import { saveBackendHandoff, readBackendHandoff, clearBackendHandoff } from "./backend-handoff.js";
 
 const localComparison = location.hostname === "127.0.0.1" && location.port === "8001";
 const packagedRenderers = window.__DROP_VIEW_RENDERER_PACKAGES__ || null;
 const comparison = Boolean(packagedRenderers) || localComparison;
-const showPicker = localComparison || (Boolean(packagedRenderers) && (
-  /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ||
-  new URLSearchParams(location.search).has("rendererDebug")
-));
+const showPicker = comparison && new URLSearchParams(location.search).has("rendererDebug");
 const modeKey = "drop-view-renderer-mode";
-const fallbackKey = "drop-view-webgpu-auto-fallback";
-const mode = comparison
-  ? normalizeRendererMode(localStorage.getItem(modeKey))
-  : "webgl";
-const backend = comparison
-  ? chooseRendererBackend(mode, Boolean(navigator.gpu), sessionStorage.getItem(fallbackKey) === "1")
-  : "webgl";
+const mode = activeRendererMode(showPicker, showPicker ? localStorage.getItem(modeKey) : null);
+const backend = chooseRendererBackend(mode, Boolean(navigator.gpu));
 
 async function start() {
   const picker = document.querySelector("#rendererPicker");
@@ -37,7 +29,6 @@ async function start() {
           const current = app?.getBackendHandoff();
           if (current?.file) await saveBackendHandoff(current.file, current.viewSession);
           localStorage.setItem(modeKey, nextMode);
-          sessionStorage.removeItem(fallbackKey);
           location.reload();
         } catch (error) {
           button.disabled = false;
@@ -76,11 +67,6 @@ async function start() {
 
 start().catch(error => {
   console.error("Renderer startup failed", error);
-  if (comparison && mode === "auto" && backend === "webgpu") {
-    sessionStorage.setItem(fallbackKey, "1");
-    location.reload();
-    return;
-  }
   const message = document.querySelector("#startMessageText");
   if (message) message.textContent = `RENDERER COULD NOT START: ${error.message}`;
   document.querySelector("#startMessage")?.classList.add("error");

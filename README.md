@@ -13,7 +13,7 @@ A lightweight browser-based 3D model viewer by **György Hild**. Open a model, e
 3. Double-click a point on the model to bring it to the centre of the view.
 4. Lost your model while zooming or panning? Choose **ZOOM ALL** at the bottom centre to fit the whole model back into view while keeping the viewing direction, projection and group visibility.
 
-Use a modern browser with JavaScript. The viewer prefers WebGPU and falls back to WebGL when WebGPU is unavailable. Large models may require more memory and a more capable device.
+Use a modern browser with JavaScript. The viewer uses WebGL by default; WebGPU is available through the debug renderer selector. Large models may require more memory and a more capable device.
 
 ## Views and controls
 
@@ -23,7 +23,7 @@ Use a modern browser with JavaScript. The viewer prefers WebGPU and falls back t
 - **ORTHO:** TOP, FRONT, LEFT, RIGHT and BACK presets. Elevations can be rotated horizontally while remaining upright and orthogonal. TOP stays fixed. Double-click centring preserves the current ORTHO direction.
 - **CONTROLS:** sun direction, sun height, glass transparency and shadows. Camera FOV is available in PERSP; sun and shadow controls are disabled in WIRE.
 - **ORBIT / FLY:** orbit around the model, or fly through it with WASD/arrow keys; E/Q changes height. Where pointer lock is unavailable, FLY uses mouse dragging to look around.
-- **PATH TRACER:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PATH TRACER. For GLBs with an exported sun position, both direction and height are shared, and the HDRI lighting aligns with that sun. Without exported sun data, the HDRI retains its native sun height, so SUN HEIGHT adjusts only the regular ORIGINAL sun. The SAMPLES status shows the number of samples per pixel. Move the camera to compose the image, then pause while the image refines. WebGPU-capable browsers use the WebGPU path tracer; the WebGL fallback uses its own path tracer.
+- **PATH TRACER:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PATH TRACER. For GLBs with an exported sun position, both direction and height are shared, and the HDRI lighting aligns with that sun. Without exported sun data, the HDRI retains its native sun height, so SUN HEIGHT adjusts only the regular ORIGINAL sun. The SAMPLES status shows the number of samples per pixel. Move the camera to compose the image, then pause while the image refines. The default WebGL renderer uses its own path tracer; the WebGPU path tracer remains available in debug mode.
 - **SECTION:** toggle cutting with the circle, choose an X/Y/Z axis and move the section slider to inspect the interior.
 - **GROUPS:** show or hide the model's exported top-level groups.
 
@@ -79,7 +79,7 @@ For the author, authorised contributors, or anyone with separate permission to r
 python3 -m http.server 8000
 ```
 
-Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.html` directly with a `file://` URL is not sufficient. The published root contains prebuilt WebGPU and WebGL renderer packages under `renderers/`; `AUTO` prefers WebGPU and falls back to WebGL when it cannot start. The manual comparison selector is available with `?rendererDebug=1`. To rebuild the packages after source changes, run `pnpm build:public` from `webgpu-lab/` (after `pnpm install`). Do not edit the generated `renderers/` files by hand.
+Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.html` directly with a `file://` URL is not sufficient. The published root contains prebuilt WebGPU and WebGL renderer packages under `renderers/`; `AUTO` uses WebGL. The manual comparison selector, including WebGPU, is available only with `?rendererDebug=1`. Without that parameter, the page uses WebGL even if WebGPU was selected during an earlier debug session. To rebuild the packages after source changes, run `pnpm build:public` from `webgpu-lab/` (after `pnpm install`). Do not edit the generated `renderers/` files by hand.
 
 The model, camera, backend and section logic have automated tests. With Node.js installed, run:
 
