@@ -22,8 +22,10 @@ Use a modern browser with JavaScript. The viewer prefers WebGPU and falls back t
 - **AXON:** an orbitable axonometric view with parallel projection.
 - **ORTHO:** TOP, FRONT, LEFT, RIGHT and BACK presets. Elevations can be rotated horizontally while remaining upright and orthogonal. TOP stays fixed. Double-click centring preserves the current ORTHO direction.
 - **CONTROLS:** sun direction, sun height, glass transparency and shadows. Camera FOV is available in PERSP; sun and shadow controls are disabled in WIRE.
+- **ORBIT / FLY:** orbit around the model, or fly through it with WASD/arrow keys; E/Q changes height. Where pointer lock is unavailable, FLY uses mouse dragging to look around.
 - **PATH TRACER:** optional progressive path-traced rendering under ORIGINAL mode. Legacy alpha-blended glass is upgraded to thin physical glass when it can be distinguished safely from masked or texture-backed transparency. SUN DIRECTION is shared by ORIGINAL and PATH TRACER. For GLBs with an exported sun position, both direction and height are shared, and the HDRI lighting aligns with that sun. Without exported sun data, the HDRI retains its native sun height, so SUN HEIGHT adjusts only the regular ORIGINAL sun. The SAMPLES status shows the number of samples per pixel. Move the camera to compose the image, then pause while the image refines. WebGPU-capable browsers use the WebGPU path tracer; the WebGL fallback uses its own path tracer.
 - **SECTION:** toggle cutting with the circle, choose an X/Y/Z axis and move the section slider to inspect the interior.
+- **GROUPS:** show or hide the model's exported top-level groups.
 
 ### Dormant GLASS LIGHT experiment
 
@@ -53,7 +55,7 @@ Your selected model is processed locally in your browser. Drop & View does not u
 
 To share a project, send the model file and the viewer's web address. There is no model-hosting service or uploaded-model sharing link.
 
-The app loads Three.js and, when required, Draco decoder files from jsDelivr. PATH TRACER loads its rendering modules from the same CDN only when the mode is first selected. The demo downloads from the app's website. External online converters are separate services with their own upload processes and privacy terms.
+The published app serves its renderer packages, environment image and demo from its own website. If a GLB uses Draco compression, the decoder is fetched from jsDelivr. External online converters are separate services with their own upload processes and privacy terms.
 
 ## Free to use; proprietary code
 
@@ -67,7 +69,7 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 - Real-world sun and shadow studies using the project's geographic location, orientation, date and time.
 - Proper image export directly from the viewer instead of relying on screenshots.
-- Optional model-element visibility controls. Whether these should follow layers, materials/textures or Archicad element types still needs investigation.
+- More granular visibility controls beyond the current exported top-level groups.
 
 ## Local preview
 
@@ -79,7 +81,7 @@ python3 -m http.server 8000
 
 Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.html` directly with a `file://` URL is not sufficient. The published root contains prebuilt WebGPU and WebGL renderer packages under `renderers/`; `AUTO` prefers WebGPU and falls back to WebGL when it cannot start. The manual comparison selector is available with `?rendererDebug=1`. To rebuild the packages after source changes, run `pnpm build:public` from `webgpu-lab/` (after `pnpm install`). Do not edit the generated `renderers/` files by hand.
 
-The section geometry has dependency-free automated tests. With Node.js installed, run:
+The model, camera, backend and section logic have automated tests. With Node.js installed, run:
 
 ```sh
 npm test
@@ -89,6 +91,7 @@ npm test
 
 - `index.html` — shared viewer interface and renderer bootstrap
 - `renderers/` — generated, same-origin WebGPU and WebGL packages for GitHub Pages
+- `webgpu-lab/` — renderer adapters and build scripts for both packages
 - `css/` — layout and visual styling
 - `js/core/` — scene, cameras, controls and application state
 - `js/model/` — model loading and materials
@@ -97,7 +100,7 @@ npm test
 - `js/ui/` — menus, messages and model inspection helpers
 - `assets/hdri/` — bundled environment lighting used by PATH TRACER
 - `demo/` — sample model used by the viewer
-- `test/` — automated tests for the section geometry's pure algorithms
+- `test/` — automated tests for model, backend, camera and section logic
 
 ## Third-party components
 
