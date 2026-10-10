@@ -35,11 +35,19 @@ const isTouchInterface =
   Boolean(window.matchMedia?.("(pointer: coarse)").matches) ||
   navigator.maxTouchPoints > 0;
 
-if (isTouchInterface && flyButton) {
-  flyButton.disabled = true;
-  flyButton.setAttribute("aria-disabled", "true");
-  flyButton.title = "FLY navigation is unavailable on touch devices";
+export function updateFlyAvailability() {
+  if (!flyButton) return;
+  const perspective = State.cameraProjection === "perspective" && State.camera.isPerspectiveCamera;
+  const unavailable = isTouchInterface || !perspective;
+  flyButton.disabled = unavailable;
+  if (unavailable) flyButton.setAttribute("aria-disabled", "true");
+  else flyButton.removeAttribute("aria-disabled");
+  flyButton.title = isTouchInterface
+    ? "FLY navigation is unavailable on touch devices"
+    : perspective ? normalFlyTitle : "FLY is available only in perspective view";
 }
+
+updateFlyAvailability();
 
 function editableTarget(target) {
   return (
@@ -168,7 +176,8 @@ window.addEventListener("pointerup", () => {
 });
 
 export function setNavigationMode(mode) {
-  if (mode === "fly" && isTouchInterface) return;
+  if (mode === "fly" && (isTouchInterface || State.cameraProjection !== "perspective" ||
+    !State.camera.isPerspectiveCamera)) return;
   if (mode === State.navigationMode) return;
 
   if (State.navigationMode === "fly") leaveFlyMode();
@@ -196,7 +205,7 @@ modeButtons.forEach(button => {
   button.addEventListener("click", () => {
     const mode = button.dataset.navigationMode;
     setNavigationMode(mode);
-    if (mode === "fly" && State.model) requestFlyLock();
+    if (mode === "fly" && State.navigationMode === "fly" && State.model) requestFlyLock();
   });
 });
 

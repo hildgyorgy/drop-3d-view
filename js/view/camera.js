@@ -11,6 +11,7 @@ import { State } from "../core/state.js";
 import { perspectiveCamera, orthoCamera } from "../core/scene.js";
 import { createControls } from "../core/controls.js";
 import { restoreCameraPose } from "../core/view-session.js";
+import { setNavigationMode, updateFlyAvailability } from "./navigation.js";
 import { perspectiveButton, axonButton, orthoButton, cameraFov } from "../core/dom.js";
 import {
   findInitialCameraNode,
@@ -181,6 +182,10 @@ document.querySelectorAll("[data-view]").forEach(button => {
 });
 
 function setProjection(next, refit = false) {
+  // FLY needs a perspective camera. Leave it before replacing the camera and
+  // controls so the current look direction becomes the orbit target.
+  if (next !== "perspective" && State.navigationMode === "fly")
+    setNavigationMode("orbit");
   const target = State.controls.target.clone();
   let distance = Math.max(State.camera.position.distanceTo(target), 0.01);
   const oldCamera = State.camera;
@@ -231,6 +236,7 @@ function setProjection(next, refit = false) {
   });
   updateOrthoSelection();
   cameraFov.disabled = next !== "perspective";
+  updateFlyAvailability();
 }
 
 export function getCameraPreset() {
