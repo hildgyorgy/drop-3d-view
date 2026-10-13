@@ -9,13 +9,13 @@ import {
   preserveAuthoredPhysicalTransmission
 } from "../js/model/material-policy.js";
 
-// WebGPU tone-maps the whole completed frame, including materials that use
-// toneMapped: false. Keep the clay white above the neutral clear colour.
-const WHITE_LINEAR_GAIN = 1.6;
+// WebGPU tone-maps the whole completed frame. Scale the clay colour slightly
+// below linear white to match the WebGL white study's midtones and highlights.
+const WHITE_LINEAR_SCALE = 0.9;
 export const whiteMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff, roughness: 0.88, metalness: 0, side: THREE.DoubleSide
 });
-whiteMaterial.color.multiplyScalar(WHITE_LINEAR_GAIN);
+whiteMaterial.color.multiplyScalar(WHITE_LINEAR_SCALE);
 export const wireMaterial = new THREE.MeshBasicMaterial({
   color: 0x111111, wireframe: true, side: THREE.DoubleSide
 });
@@ -46,7 +46,7 @@ function whiteVariant(original) {
   const cached = whiteVariants.get(original);
   if (cached) return cached;
   const variant = original.clone();
-  variant.color?.set(0xffffff).multiplyScalar(WHITE_LINEAR_GAIN);
+  variant.color?.set(0xffffff).multiplyScalar(WHITE_LINEAR_SCALE);
   variant.emissive?.set(0);
   if ("roughness" in variant) variant.roughness = 0.88;
   if ("metalness" in variant) variant.metalness = 0;

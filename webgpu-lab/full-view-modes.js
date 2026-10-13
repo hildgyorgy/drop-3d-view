@@ -33,7 +33,7 @@ import { WEBGPU_GROUND_SHADOW_OPACITY } from "../js/view/ground-sun.js";
 
 let shadowSettingBeforeWireframe = null;
 const blackBackButton = document.querySelector("#blackBackButton");
-const WEBGPU_WHITE_HEMI_INTENSITY = 0.9;
+const WEBGPU_WHITE_HEMI_INTENSITY = DEFAULT_HEMI_INTENSITY;
 const WEBGPU_WHITE_GROUND_FILL = 0xc0bbb4;
 const DEFAULT_HEMI_GROUND_COLOR = 0x888888;
 const WEBGPU_WHITE_SHADOW_NORMAL_BIAS = 0.005;
