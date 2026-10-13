@@ -14,6 +14,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
 import { State } from "../core/state.js";
 import { scene } from "../core/scene.js";
+import { demoModelUrl } from "../core/demo-source.js";
 import { restoreCurrentViewSession } from "../core/session-runtime.js";
 import { forEachMesh } from "../core/model-utils.js";
 import {
@@ -96,14 +97,14 @@ if (demoButton) {
     resetStartMessage();
 
     try {
-      const response = await fetch("demo/demo_house.glb");
+      const response = await fetch(demoModelUrl);
 
       if (!response.ok) throw new Error(`Demo model request failed (${response.status})`);
 
       const blob = await response.blob();
 
       await openFile(
-        new File([blob], "demo_house.glb", { type: "application/octet-stream" })
+        new File([blob], demoModelUrl.split("/").at(-1), { type: "application/octet-stream" })
       );
     } catch (error) {
       console.error(error);

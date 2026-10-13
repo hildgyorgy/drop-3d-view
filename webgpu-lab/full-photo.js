@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { WebGPUPathTracer } from "three-gpu-pathtracer/src/webgpu/WebGPUPathTracer.js";
 import { State } from "../js/core/state.js";
-import { scene, renderer, hemi, sun } from "../js/core/scene.js";
+import { scene, renderer, hemi, sun, getWebGpuPreviewEnvironment, syncWebGpuEnvironmentToSun } from "../js/core/scene.js";
 import { photo1Button, perspectiveButton, axonButton, orthoButton,
   cameraFov, showAllButton, sunAngle, sunHeight, transparency } from "../js/core/dom.js";
 import { environmentSunDirectionFromPixel } from "../js/model/sun-metadata.js";
@@ -21,6 +21,9 @@ let tracer = null;
 let environment = null;
 let sourceSun = null;
 let previewBackground = null;
+let previewEnvironment = null;
+let previewEnvironmentIntensity = 1;
+let previewEnvironmentRotation = null;
 let preparing = false;
 let paused = false;
 let dirty = false;
@@ -97,8 +100,17 @@ function rotateEnvironment() {
 }
 
 function restorePreview() {
-  scene.environment = null;
-  scene.environmentRotation.set(0, 0, 0);
+  const webGpuEnvironment = getWebGpuPreviewEnvironment();
+  scene.environment = webGpuEnvironment ?? previewEnvironment;
+  scene.environmentIntensity = webGpuEnvironment ? 0.2 : previewEnvironmentIntensity;
+  if (webGpuEnvironment)
+    syncWebGpuEnvironmentToSun(getSunDirectionFromControls());
+  else if (previewEnvironmentRotation)
+    scene.environmentRotation.copy(previewEnvironmentRotation);
+  else
+    scene.environmentRotation.set(0, 0, 0);
+  previewEnvironment = null;
+  previewEnvironmentRotation = null;
   if (previewBackground) {
     scene.background = previewBackground;
     previewBackground = null;
@@ -122,12 +134,18 @@ async function activate() {
   photo1Button.setAttribute("aria-busy", "true");
   setButton();
   setStatus("PATH TRACER · loading HDRI…");
+  // Capture before the asynchronous load so a load/initialization failure also
+  // restores the local PBR preview instead of leaving it without an HDRI.
+  previewEnvironment = scene.environment;
+  previewEnvironmentIntensity = scene.environmentIntensity;
+  previewEnvironmentRotation = scene.environmentRotation.clone();
   try {
     const loadedEnvironment = await getEnvironment();
     if (token !== activation || !State.model) return;
     // HDR loading can finish after a model change or a cancelled activation.
     // Only the still-current request may replace the preview environment.
     scene.environment = loadedEnvironment;
+    scene.environmentIntensity = 1;
     rotateEnvironment();
     hemi.visible = false;
     sun.visible = false;

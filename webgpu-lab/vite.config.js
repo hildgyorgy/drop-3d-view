@@ -6,6 +6,7 @@ import { dependencyAliases, projectRoot } from "./dependency-aliases.js";
 const root = projectRoot;
 const replacementModules = new Map([
   ["js/core/scene.js", "webgpu-lab/full-scene.js"],
+  ["js/core/demo-source.js", "webgpu-lab/full-demo-source.js"],
   ["js/view/photo1.js", "webgpu-lab/full-photo.js"],
   ["js/model/materials.js", "webgpu-lab/full-materials.js"],
   ["js/section/section-plane.js", "webgpu-lab/full-section-plane.js"],
@@ -16,7 +17,7 @@ const replacementModules = new Map([
   ["js/ui/adaptive-contrast.js", "webgpu-lab/full-contrast.js"]
 ]);
 
-// Serve the existing demo GLB and HDRI without copying them into the lab.
+// Serve the versioned demo GLBs and HDRI from the project root.
 export default defineConfig({
   root,
   resolve: {

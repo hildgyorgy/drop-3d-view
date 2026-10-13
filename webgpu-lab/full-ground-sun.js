@@ -8,7 +8,7 @@
 
 import * as THREE from "three";
 import { State } from "../js/core/state.js";
-import { scene, sun } from "../js/core/scene.js";
+import { scene, sun, syncWebGpuEnvironmentToSun } from "../js/core/scene.js";
 import { sunAngle, sunHeight, shadowToggle } from "../js/core/dom.js";
 import { renaissanceMaterial } from "../js/model/materials.js";
 import {
@@ -93,6 +93,7 @@ export function configureSun() {
   sun.shadow.camera.far = State.maxModelSize * 8;
 
   sun.shadow.camera.updateProjectionMatrix();
+  syncWebGpuEnvironmentToSun(direction);
 }
 
 export function applyImportedSun(sunData) {
