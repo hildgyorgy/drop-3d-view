@@ -32,7 +32,7 @@ import { applyClipping } from "../js/section/section-plane.js";
 import { applyGroupVisibility } from "../js/ui/group-filter.js";
 import { deactivatePhoto1 } from "../js/view/photo1.js";
 import { WEBGPU_GROUND_SHADOW_OPACITY } from "../js/view/ground-sun.js";
-import { initWebGpuTuning, syncWebGpuTuningControl } from "./full-tuning.js";
+import { DEFAULT_WEBGPU_TUNING, initWebGpuTuning, syncWebGpuTuningControl } from "./full-tuning.js";
 
 let shadowSettingBeforeWireframe = null;
 const blackBackButton = document.querySelector("#blackBackButton");
@@ -42,8 +42,8 @@ const DEFAULT_HEMI_GROUND_COLOR = 0x888888;
 const WEBGPU_WHITE_SHADOW_NORMAL_BIAS = 0.005;
 const DEFAULT_SHADOW_NORMAL_BIAS = 0.02;
 let previewTuning = null;
-let appliedWhiteScale = 0.9;
-let appliedWhiteGlassTransparency = 68;
+let appliedWhiteScale = DEFAULT_WEBGPU_TUNING.whiteSurface;
+let appliedWhiteGlassTransparency = DEFAULT_WEBGPU_TUNING.whiteGlassTransparency;
 
 function applyPreviewTuning() {
   if (!previewTuning || State.pathTracerActive) return;

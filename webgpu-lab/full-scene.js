@@ -1,13 +1,14 @@
 // WebGPU implementation of the shared scene contract used by the full viewer.
 import * as THREE from "three";
 import { WebGPURenderer } from "three/webgpu";
+import { DEFAULT_WEBGPU_TUNING } from "./full-tuning.js";
 
 export const backendKind = "webgpu";
 
 export const scene = new THREE.Scene();
 // WebGPU tone-maps the clear colour; WebGL displays the same #efefed value
 // directly. Calibrate only the clear colour to recover the WebGL backdrop.
-export const neutralBackground = new THREE.Color(0xefefed).multiplyScalar(1.8);
+export const neutralBackground = new THREE.Color(0xefefed).multiplyScalar(DEFAULT_WEBGPU_TUNING.backdrop);
 scene.background = neutralBackground.clone();
 
 export const renderer = new WebGPURenderer({ antialias: true });
@@ -15,7 +16,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(2);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1;
+renderer.toneMappingExposure = DEFAULT_WEBGPU_TUNING.exposure;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -29,11 +30,11 @@ export const perspectiveCamera = new THREE.PerspectiveCamera(
 perspectiveCamera.position.set(10, 8, 10);
 export const orthoCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.01, 100000);
 
-export const DEFAULT_HEMI_INTENSITY = 1.15;
+export const DEFAULT_HEMI_INTENSITY = DEFAULT_WEBGPU_TUNING.skyFill;
 export const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, DEFAULT_HEMI_INTENSITY);
 scene.add(hemi);
 
-export const sun = new THREE.DirectionalLight(0xffffff, 3.3);
+export const sun = new THREE.DirectionalLight(0xffffff, DEFAULT_WEBGPU_TUNING.sunStrength);
 sun.castShadow = true;
 sun.shadow.mapSize.set(8192, 8192);
 sun.shadow.bias = -0.0001;

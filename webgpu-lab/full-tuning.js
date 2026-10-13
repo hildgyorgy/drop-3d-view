@@ -1,19 +1,21 @@
-// Local, WebGPU-only preview calibration. Nothing is persisted until SAVE is clicked.
+// WebGPU preview defaults. The debug panel can override them locally.
 export const DEFAULT_WEBGPU_TUNING = Object.freeze({
-  exposure: 1,
+  exposure: 1.12,
   brightness: 1,
   contrast: 1,
   saturation: 1,
   whiteSurface: 0.9,
-  whiteGlassTransparency: 68,
-  bwGlassTransparency: 82,
-  skyFill: 1.15,
-  groundBounce: 1,
+  whiteGlassTransparency: 85,
+  bwGlassTransparency: 96,
+  skyFill: 1,
+  groundBounce: 0.9,
   sunStrength: 3.3,
-  backdrop: 1.8
+  backdrop: 2
 });
 
-const STORAGE_KEY = "drop-view-webgpu-tuning-v1";
+// Start this calibration from its baked defaults, even in browsers that saved
+// values during the previous experiment.
+const STORAGE_KEY = "drop-view-webgpu-tuning-v2";
 const controls = [
   ["exposure", "EXPOSURE", 0.4, 2, 0.01],
   ["brightness", "SCREEN BRIGHTNESS", 0.6, 1.5, 0.01],
@@ -52,7 +54,11 @@ function savedSettings() {
 }
 
 export function initWebGpuTuning(onChange) {
-  if (!new URLSearchParams(location.search).has("rendererDebug")) return null;
+  if (!new URLSearchParams(location.search).has("rendererDebug")) {
+    const settings = { ...DEFAULT_WEBGPU_TUNING };
+    onChange(settings);
+    return settings;
+  }
 
   const settings = savedSettings();
   const panel = document.createElement("details");

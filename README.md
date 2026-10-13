@@ -81,7 +81,7 @@ python3 -m http.server 8000
 
 Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.html` directly with a `file://` URL is not sufficient. The published root contains prebuilt WebGPU and WebGL renderer packages under `renderers/`; `AUTO` uses WebGL. The manual comparison selector, including WebGPU, is available only with `?rendererDebug=1`. Without that parameter, the page uses WebGL even if WebGPU was selected during an earlier debug session. To rebuild the packages after source changes, run `pnpm build:public` from `webgpu-lab/` (after `pnpm install`). Do not edit the generated `renderers/` files by hand.
 
-With `?rendererDebug=1` and WEBGPU selected, open the **WEBGPU TUNING** panel at the upper right to adjust the preview live, including separate glass transparency for WHITE/HIDDEN and B&W. SAVE keeps the values in this browser for later debug sessions; COPY JSON gives you the exact numbers to share or bake into the defaults. RESET restores the current code defaults. The controls are disabled while the path tracer is active.
+The baked WebGPU preview calibration also applies outside debug mode. With `?rendererDebug=1` and WEBGPU selected, open the **WEBGPU TUNING** panel at the upper right to adjust it live, including separate glass transparency for WHITE/HIDDEN and B&W. SAVE keeps the values in this browser for later debug sessions; COPY JSON gives you the exact numbers to share or bake into the defaults. RESET restores the current code defaults. The controls are disabled while the path tracer is active.
 
 The model, camera, backend and section logic have automated tests. With Node.js installed, run:
 
