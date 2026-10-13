@@ -11,11 +11,11 @@ import {
 
 // WebGPU tone-maps the whole completed frame. Scale the clay colour slightly
 // below linear white to match the WebGL white study's midtones and highlights.
-const WHITE_LINEAR_SCALE = 0.9;
+let whiteLinearScale = 0.9;
 export const whiteMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff, roughness: 0.88, metalness: 0, side: THREE.DoubleSide
 });
-whiteMaterial.color.multiplyScalar(WHITE_LINEAR_SCALE);
+whiteMaterial.color.multiplyScalar(whiteLinearScale);
 export const wireMaterial = new THREE.MeshBasicMaterial({
   color: 0x111111, wireframe: true, side: THREE.DoubleSide
 });
@@ -44,9 +44,12 @@ const whiteVariants = new WeakMap();
 function whiteVariant(original) {
   if (!original?.clone) return whiteMaterial;
   const cached = whiteVariants.get(original);
-  if (cached) return cached;
+  if (cached) {
+    cached.color?.set(0xffffff).multiplyScalar(whiteLinearScale);
+    return cached;
+  }
   const variant = original.clone();
-  variant.color?.set(0xffffff).multiplyScalar(WHITE_LINEAR_SCALE);
+  variant.color?.set(0xffffff).multiplyScalar(whiteLinearScale);
   variant.emissive?.set(0);
   if ("roughness" in variant) variant.roughness = 0.88;
   if ("metalness" in variant) variant.metalness = 0;
@@ -60,6 +63,16 @@ function whiteVariant(original) {
 }
 export function getWhiteMaterial(original) {
   return Array.isArray(original) ? original.map(whiteVariant) : whiteVariant(original);
+}
+
+export function setWhiteMaterialScale(value, visibleModel) {
+  whiteLinearScale = value;
+  whiteMaterial.color.set(0xffffff).multiplyScalar(value);
+  visibleModel?.traverse(node => {
+    if (!node.isMesh) return;
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    for (const material of materials) material?.color?.set(0xffffff).multiplyScalar(value);
+  });
 }
 
 // Match the WebGL B/W shader: classify the final sunlit Lambert result,

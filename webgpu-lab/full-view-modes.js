@@ -7,7 +7,7 @@
 
 import * as THREE from "three";
 import { State } from "../js/core/state.js";
-import { scene, hemi, sun, DEFAULT_HEMI_INTENSITY, neutralBackground } from "../js/core/scene.js";
+import { scene, renderer, hemi, sun, DEFAULT_HEMI_INTENSITY, neutralBackground } from "../js/core/scene.js";
 import { forEachMesh } from "../js/core/model-utils.js";
 import {
   lightSection,
@@ -21,6 +21,7 @@ import {
   getRenaissanceMaterial,
   hasRenaissanceCutout,
   getWhiteMaterial,
+  setWhiteMaterialScale,
   isEntirelyTranslucent,
   isTranslucentMaterial,
   applyTranslucentAppearance
@@ -30,6 +31,7 @@ import { applyClipping } from "../js/section/section-plane.js";
 import { applyGroupVisibility } from "../js/ui/group-filter.js";
 import { deactivatePhoto1 } from "../js/view/photo1.js";
 import { WEBGPU_GROUND_SHADOW_OPACITY } from "../js/view/ground-sun.js";
+import { initWebGpuTuning } from "./full-tuning.js";
 
 let shadowSettingBeforeWireframe = null;
 const blackBackButton = document.querySelector("#blackBackButton");
@@ -38,6 +40,30 @@ const WEBGPU_WHITE_GROUND_FILL = 0xc0bbb4;
 const DEFAULT_HEMI_GROUND_COLOR = 0x888888;
 const WEBGPU_WHITE_SHADOW_NORMAL_BIAS = 0.005;
 const DEFAULT_SHADOW_NORMAL_BIAS = 0.02;
+let previewTuning = null;
+let appliedWhiteScale = 0.9;
+
+function applyPreviewTuning() {
+  if (!previewTuning || State.pathTracerActive) return;
+  const settings = previewTuning;
+  renderer.toneMappingExposure = settings.exposure;
+  renderer.domElement.style.filter = settings.brightness === 1 &&
+    settings.contrast === 1 && settings.saturation === 1
+    ? "none"
+    : `brightness(${settings.brightness}) contrast(${settings.contrast}) saturate(${settings.saturation})`;
+  sun.intensity = settings.sunStrength;
+  neutralBackground.set(0xefefed).multiplyScalar(settings.backdrop);
+  updateBlackBackground();
+  const whiteStudy = State.currentMode === "white" || State.currentMode === "hidden";
+  hemi.intensity = State.currentMode === "renaissance" ? 0
+    : whiteStudy ? settings.skyFill : DEFAULT_HEMI_INTENSITY;
+  hemi.groundColor.set(whiteStudy ? WEBGPU_WHITE_GROUND_FILL : DEFAULT_HEMI_GROUND_COLOR);
+  if (whiteStudy) hemi.groundColor.multiplyScalar(settings.groundBounce);
+  if (settings.whiteSurface !== appliedWhiteScale) {
+    setWhiteMaterialScale(settings.whiteSurface, whiteStudy ? State.model : null);
+    appliedWhiteScale = settings.whiteSurface;
+  }
+}
 
 function updateTransparencyAppearance(event = null) {
   const transparencyEnabled = ["original", "white", "hidden"].includes(State.currentMode);
@@ -271,4 +297,10 @@ export function setViewMode(mode) {
   applyGroupVisibility();
 
   applyClipping();
+  applyPreviewTuning();
 }
+
+previewTuning = initWebGpuTuning(settings => {
+  previewTuning = settings;
+  applyPreviewTuning();
+});
