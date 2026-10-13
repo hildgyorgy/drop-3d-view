@@ -22,6 +22,7 @@ import {
   hasRenaissanceCutout,
   getWhiteMaterial,
   setWhiteMaterialScale,
+  renaissanceGlassMaterial,
   isEntirelyTranslucent,
   isTranslucentMaterial,
   applyTranslucentAppearance
@@ -31,7 +32,7 @@ import { applyClipping } from "../js/section/section-plane.js";
 import { applyGroupVisibility } from "../js/ui/group-filter.js";
 import { deactivatePhoto1 } from "../js/view/photo1.js";
 import { WEBGPU_GROUND_SHADOW_OPACITY } from "../js/view/ground-sun.js";
-import { initWebGpuTuning } from "./full-tuning.js";
+import { initWebGpuTuning, syncWebGpuTuningControl } from "./full-tuning.js";
 
 let shadowSettingBeforeWireframe = null;
 const blackBackButton = document.querySelector("#blackBackButton");
@@ -42,6 +43,7 @@ const WEBGPU_WHITE_SHADOW_NORMAL_BIAS = 0.005;
 const DEFAULT_SHADOW_NORMAL_BIAS = 0.02;
 let previewTuning = null;
 let appliedWhiteScale = 0.9;
+let appliedWhiteGlassTransparency = 68;
 
 function applyPreviewTuning() {
   if (!previewTuning || State.pathTracerActive) return;
@@ -63,6 +65,11 @@ function applyPreviewTuning() {
     setWhiteMaterialScale(settings.whiteSurface, whiteStudy ? State.model : null);
     appliedWhiteScale = settings.whiteSurface;
   }
+  if (whiteStudy && settings.whiteGlassTransparency !== appliedWhiteGlassTransparency) {
+    updateTransparencyAppearance();
+    appliedWhiteGlassTransparency = settings.whiteGlassTransparency;
+  }
+  renaissanceGlassMaterial.opacity = 1 - settings.bwGlassTransparency / 100;
 }
 
 function updateTransparencyAppearance(event = null) {
@@ -70,7 +77,13 @@ function updateTransparencyAppearance(event = null) {
 
   if (!State.model || !transparencyEnabled) return;
 
+  if (event?.isTrusted && ["white", "hidden"].includes(State.currentMode) && previewTuning) {
+    syncWebGpuTuningControl("whiteGlassTransparency", Number(transparency.value));
+  }
   const opacity = 1 - Number(transparency.value) / 100;
+  const whiteOpacity = previewTuning && ["white", "hidden"].includes(State.currentMode)
+    ? 1 - previewTuning.whiteGlassTransparency / 100
+    : opacity;
   const physicalTransmission =
     event?.type === "input"
       ? transmissionFromTransparencyControl(
@@ -90,12 +103,19 @@ function updateTransparencyAppearance(event = null) {
       ? visibleMaterial
       : [visibleMaterial];
 
-    [...materials, ...visibleMaterials].forEach(material => {
+    materials.forEach(material => {
       if (isTranslucentMaterial(material)) {
         applyTranslucentAppearance(material, opacity, physicalTransmission);
       }
     });
+    visibleMaterials.forEach(material => {
+      if (isTranslucentMaterial(material)) {
+        applyTranslucentAppearance(material, whiteOpacity, physicalTransmission);
+      }
+    });
   });
+  if (previewTuning && ["white", "hidden"].includes(State.currentMode))
+    appliedWhiteGlassTransparency = previewTuning.whiteGlassTransparency;
 }
 
 transparency?.addEventListener("input", updateTransparencyAppearance);

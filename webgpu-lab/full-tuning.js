@@ -5,6 +5,8 @@ export const DEFAULT_WEBGPU_TUNING = Object.freeze({
   contrast: 1,
   saturation: 1,
   whiteSurface: 0.9,
+  whiteGlassTransparency: 68,
+  bwGlassTransparency: 82,
   skyFill: 1.15,
   groundBounce: 1,
   sunStrength: 3.3,
@@ -18,11 +20,21 @@ const controls = [
   ["contrast", "SCREEN CONTRAST", 0.6, 1.6, 0.01],
   ["saturation", "SATURATION", 0, 1.8, 0.01],
   ["whiteSurface", "WHITE SURFACE", 0.4, 1.8, 0.01],
+  ["whiteGlassTransparency", "WHITE GLASS TRANSPARENCY", 0, 100, 1],
+  ["bwGlassTransparency", "B&W GLASS TRANSPARENCY", 0, 100, 1],
   ["skyFill", "SKY FILL", 0, 2.5, 0.01],
   ["groundBounce", "GROUND BOUNCE", 0, 2, 0.01],
   ["sunStrength", "SUN STRENGTH", 0, 6, 0.01],
   ["backdrop", "BACKDROP", 1, 2.5, 0.01]
 ];
+let syncActiveControl = null;
+
+const displayValue = (key, value) => key.endsWith("GlassTransparency")
+  ? `${Math.round(value)}%` : Number(value).toFixed(2);
+
+export function syncWebGpuTuningControl(key, value) {
+  syncActiveControl?.(key, value);
+}
 
 function boundedSettings(candidate) {
   const settings = { ...DEFAULT_WEBGPU_TUNING };
@@ -47,7 +59,7 @@ export function initWebGpuTuning(onChange) {
   panel.className = "webgpu-tuning";
   panel.innerHTML = `<summary>WEBGPU TUNING</summary>
     <div class="webgpu-tuning-body">
-      <p>Live preview settings. WHITE SURFACE, SKY FILL and GROUND BOUNCE affect the white study.</p>
+      <p>Live preview settings. The two glass controls affect WHITE/HIDDEN and B&W separately.</p>
       <div class="webgpu-tuning-controls"></div>
       <div class="webgpu-tuning-actions">
         <button type="button" data-action="save">SAVE</button>
@@ -90,16 +102,23 @@ export function initWebGpuTuning(onChange) {
     const input = document.createElement("input");
     Object.assign(input, { type: "range", min, max, step });
     input.value = settings[key];
-    value.textContent = Number(settings[key]).toFixed(2);
+    value.textContent = displayValue(key, settings[key]);
     input.addEventListener("input", () => {
       settings[key] = Number(input.value);
-      value.textContent = settings[key].toFixed(2);
+      value.textContent = displayValue(key, settings[key]);
       onChange(settings);
     });
     label.append(caption, input);
     container.appendChild(label);
     inputs.set(key, { input, value });
   }
+  syncActiveControl = (key, value) => {
+    const control = inputs.get(key);
+    if (!control || !Number.isFinite(value)) return;
+    settings[key] = value;
+    control.input.value = value;
+    control.value.textContent = displayValue(key, value);
+  };
 
   const status = panel.querySelector(".webgpu-tuning-body > output");
   const jsonFallback = document.createElement("textarea");
@@ -129,7 +148,7 @@ export function initWebGpuTuning(onChange) {
     Object.assign(settings, DEFAULT_WEBGPU_TUNING);
     for (const [key, { input, value }] of inputs) {
       input.value = settings[key];
-      value.textContent = settings[key].toFixed(2);
+      value.textContent = displayValue(key, settings[key]);
     }
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* The live reset still works. */ }
     jsonFallback.hidden = true;
