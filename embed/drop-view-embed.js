@@ -52,8 +52,12 @@
         width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; }
       .drop-view-inline .drop-view-frame { position: absolute; inset: 0; }
       .drop-view-expand { position: absolute; z-index: 3; right: 16px; bottom: 16px;
-        padding: 10px 14px; border: 0; border-radius: 3px; cursor: pointer;
-        background: #222; color: white; font: 600 12px/1.2 system-ui, sans-serif; }
+        display: grid; place-items: center; width: 40px; height: 40px;
+        border: 0; border-radius: 3px; cursor: pointer;
+        background: #222; color: white; }
+      .drop-view-expand svg { display: block; width: 22px; height: 22px;
+        fill: none; stroke: currentColor; stroke-width: 2;
+        stroke-linecap: round; stroke-linejoin: round; }
       .drop-view-inline .drop-view-close { display: none; }
       .drop-view-inline.expanded .drop-view-close { display: block; }
       .drop-view-inline.expanded .drop-view-expand { display: none; }
@@ -86,8 +90,9 @@
     const expandButton = document.createElement("button");
     expandButton.className = "drop-view-expand";
     expandButton.type = "button";
-    expandButton.textContent = "TELJES KÉPERNYŐ / FULL SCREEN ↗";
     expandButton.setAttribute("aria-label", "3D nézet megnyitása teljes képernyőn");
+    expandButton.title = "Teljes képernyő / Full screen";
+    expandButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m0-6 7 7m5 11h6v-6m0 6-7-7"/></svg>';
 
     const closeButton = document.createElement("button");
     closeButton.className = "drop-view-close";
