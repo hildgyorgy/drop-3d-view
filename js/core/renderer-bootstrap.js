@@ -1,6 +1,7 @@
 /* One document/UI, with renderer-specific module graphs selected at startup. */
 import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js";
 import { saveBackendHandoff, readBackendHandoff, clearBackendHandoff } from "./backend-handoff.js";
+import { enableEmbedBridge } from "./embed-bridge.js";
 
 const localComparison = location.hostname === "127.0.0.1" && location.port === "8001";
 const packagedRenderers = window.__DROP_VIEW_RENDERER_PACKAGES__ || null;
@@ -83,6 +84,7 @@ async function start() {
         : await import("../main.js?v=renderer-ab");
     }
     await app.bootPromise;
+    enableEmbedBridge(app);
 
     const handoff = comparison ? await readBackendHandoff() : null;
     if (handoff?.file) {

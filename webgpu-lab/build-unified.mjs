@@ -37,14 +37,14 @@ if (publish) {
   process.exit(0);
 }
 
-for (const folder of ["css", "demo", "assets"]) {
+for (const folder of ["css", "demo", "assets", "embed"]) {
   await cp(path.join(projectRoot, folder), path.join(output, folder), {
     recursive: true,
     force: true
   });
 }
 await mkdir(path.join(output, "js/core"), { recursive: true });
-for (const file of ["renderer-bootstrap.js", "backend-choice.js", "backend-handoff.js"]) {
+for (const file of ["renderer-bootstrap.js", "backend-choice.js", "backend-handoff.js", "embed-bridge.js"]) {
   await cp(
     path.join(projectRoot, "js/core", file),
     path.join(output, "js/core", file)

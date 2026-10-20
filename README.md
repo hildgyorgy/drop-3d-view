@@ -57,6 +57,20 @@ To share a project, send the model file and the viewer's web address. There is n
 
 The published app serves its renderer packages, environment image and demo from its own website. If a GLB uses Draco compression, the decoder is fetched from jsDelivr. External online converters are separate services with their own upload processes and privacy terms.
 
+### Experimental website embed
+
+An architect can keep a public GLB on their own website and place this classic script at the desired point in an HTML page:
+
+```html
+<script
+  src="https://hildgyorgy.github.io/drop-3d-view/embed/drop-view-embed.js"
+  data-model="/images/projects/tiszato/szabics_03.glb"
+  data-title="3D walkthrough"
+></script>
+```
+
+`data-poster="/path/to/preview.webp"` adds an optional cover image. The GLB URL must be on the **same origin as the architect's page** and end in `.glb`. The script makes a preview button and loads the model only after a click. The host page fetches its own file and passes a browser Blob to a full-screen Drop & View iframe using an origin-checked message; it does not upload the file to Drop & View, and no CORS configuration is needed. The model remains publicly downloadable from the architect's website. The pilot currently uses the normal WebGL viewer and does not change the standalone OPEN/DEMO workflow.
+
 ## Free to use; proprietary code
 
 The published Drop & View web app is **free to use for personal and commercial projects**, including client work. You retain your rights in your models and may share images of your own work produced with the viewer, subject to any third-party rights in that content.
