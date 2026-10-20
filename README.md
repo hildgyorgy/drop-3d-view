@@ -71,6 +71,8 @@ An architect can keep a public GLB on their own website and place this classic s
 
 `data-poster="/path/to/preview.webp"` adds an optional cover image. The GLB URL must be on the **same origin as the architect's page** and end in `.glb`. The script makes a preview button and loads the model only after a click. The host page fetches its own file and passes a browser Blob to a full-screen Drop & View iframe using an origin-checked message; it does not upload the file to Drop & View, and no CORS configuration is needed. The model remains publicly downloadable from the architect's website. The pilot currently uses the normal WebGL viewer and does not change the standalone OPEN/DEMO workflow.
 
+For an interactive model directly in the page, add `data-inline="true"`. The iframe loads near the viewport, allows orbit/zoom without the viewer UI, and expands the **same iframe** to full screen with the usual controls. The model and camera are kept when expanding or returning to the page. The Tisza-tó V3 pilot uses this mode.
+
 ## Free to use; proprietary code
 
 The published Drop & View web app is **free to use for personal and commercial projects**, including client work. You retain your rights in your models and may share images of your own work produced with the viewer, subject to any third-party rights in that content.

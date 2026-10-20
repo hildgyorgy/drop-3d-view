@@ -7,6 +7,13 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="theme-color" content="#efefed" />
+    <script>
+      if (
+        window.parent !== window &&
+        new URLSearchParams(location.search).get("embed") === "1" &&
+        new URLSearchParams(location.search).get("inline") === "1"
+      ) document.documentElement.classList.add("embed-inline");
+    </script>
     <title>Drop & View</title>
     <link rel="icon" type="image/png" sizes="1024x1024" href="./icon.png" />
     <link rel="apple-touch-icon" sizes="1024x1024" href="./icon.png" />
@@ -23,7 +30,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=renderer-ab" />
+    <link rel="stylesheet" href="css/style.css?v=inline-embed-2" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">

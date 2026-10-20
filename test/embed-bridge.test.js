@@ -9,13 +9,66 @@ test("embed mode requires a real parent window and exact parent origin", () => {
   const originalWindow = globalThis.window;
   try {
     globalThis.window = { parent: {} };
-    assert.deepEqual(readEmbedConfiguration(url), { channel: "pilot", parentOrigin });
+    assert.deepEqual(readEmbedConfiguration(url), { channel: "pilot", parentOrigin, inline: false });
+    assert.deepEqual(readEmbedConfiguration(`${url}&inline=1`), {
+      channel: "pilot", parentOrigin, inline: true
+    });
     assert.equal(readEmbedConfiguration("https://viewer.example/"), null);
     assert.equal(readEmbedConfiguration(url.replace("https%3A", "javascript%3A")), null);
     globalThis.window.parent = globalThis.window;
     assert.equal(readEmbedConfiguration(url), null);
   } finally {
     globalThis.window = originalWindow;
+  }
+});
+
+test("inline embed hides viewer controls and restores them without reopening the model", async () => {
+  const originalWindow = globalThis.window;
+  const originalDocument = globalThis.document;
+  const parent = { postMessage: () => {} };
+  let listener;
+  let inline = true;
+  let expanded = false;
+  let orbitClicks = 0;
+  globalThis.window = {
+    parent,
+    addEventListener: (name, callback) => {
+      if (name === "message") listener = callback;
+    }
+  };
+  globalThis.document = {
+    documentElement: {
+      classList: {
+        toggle: (name, enabled) => {
+          if (name === "embed-inline") inline = enabled;
+          else if (name === "embed-expanded") expanded = enabled;
+          else assert.fail(`Unexpected class ${name}`);
+        }
+      }
+    },
+    querySelector: () => ({ click: () => { orbitClicks++; } })
+  };
+  let opens = 0;
+  try {
+    enableEmbedBridge({ openFile: async () => { opens++; } }, {
+      channel: "pilot", parentOrigin, inline: true
+    });
+    const send = async event => listener({
+      source: parent,
+      origin: parentOrigin,
+      data: { type: "drop-view-embed", channel: "pilot", event }
+    });
+    await send("expanded");
+    assert.equal(inline, false);
+    assert.equal(expanded, true);
+    await send("inline");
+    assert.equal(inline, true);
+    assert.equal(expanded, false);
+    assert.equal(orbitClicks, 1);
+    assert.equal(opens, 0);
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDocument;
   }
 });
 

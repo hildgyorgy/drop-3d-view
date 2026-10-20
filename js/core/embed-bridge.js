@@ -17,7 +17,7 @@ export function readEmbedConfiguration(url = location.href) {
   try {
     const origin = new URL(parentOrigin);
     if (origin.origin !== parentOrigin || !/^https?:$/.test(origin.protocol)) return null;
-    return { channel, parentOrigin };
+    return { channel, parentOrigin, inline: page.searchParams.get("inline") === "1" };
   } catch {
     return null;
   }
@@ -38,6 +38,17 @@ export function enableEmbedBridge(app, config = readEmbedConfiguration()) {
     if (message.source !== window.parent || message.origin !== config.parentOrigin)
       return;
     const data = message.data;
+    if (
+      config.inline && data?.type === MESSAGE_TYPE && data.channel === config.channel &&
+      (data.event === "inline" || data.event === "expanded")
+    ) {
+      const isInline = data.event === "inline";
+      document.documentElement.classList.toggle("embed-inline", isInline);
+      document.documentElement.classList.toggle("embed-expanded", !isInline);
+      if (isInline)
+        document.querySelector('[data-navigation-mode="orbit"]')?.click();
+      return;
+    }
     if (
       data?.type !== MESSAGE_TYPE ||
       data.channel !== config.channel ||

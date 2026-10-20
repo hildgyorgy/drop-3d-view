@@ -58,6 +58,20 @@ canvas {
   z-index: 20;
   pointer-events: none;
 }
+/* Inline embeds show only the model; fullscreen restores the usual viewer UI. */
+.embed-inline #viewerUI {
+  display: none;
+}
+/* Leave room for the host page's close button without moving the other labels. */
+.embed-expanded .view-dock {
+  margin-right: 60px;
+}
+@media (pointer: coarse) {
+  .embed-inline canvas {
+    /* OrbitControls sets an inline "none"; let vertical swipes scroll the page. */
+    touch-action: pan-y !important;
+  }
+}
 #topbar {
   position: absolute;
   top: max(26px, env(safe-area-inset-top));
