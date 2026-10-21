@@ -28,6 +28,8 @@ export const openButton = document.querySelector("#openButton");
 
 export const demoButton = document.querySelector("#demoButton");
 
+export const demo2Button = document.querySelector("#demo2Button");
+
 export const openAgain = document.querySelector("#openAgain");
 
 export const fileInput = document.querySelector("#fileInput");

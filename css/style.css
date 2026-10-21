@@ -746,12 +746,13 @@ input[type="checkbox"]:checked,
 .drop-title-dot {
   letter-spacing: 0;
 }
-.demo-button {
-  pointer-events: auto;
+.demo-choice {
   font-size: 16px;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
-.demo-button span {
+.demo-button {
+  pointer-events: auto;
   color: var(--red);
   font-family: var(--mono);
   font-weight: 400;
@@ -890,7 +891,7 @@ body.dragging .drop-title {
   .drop-title {
     font-size: clamp(12px, 4.5vw, 20px);
   }
-  .demo-button {
+  .demo-choice {
     font-size: 13px;
   }
   .privacy-note {

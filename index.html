@@ -12,7 +12,8 @@
         window.parent !== window &&
         new URLSearchParams(location.search).get("embed") === "1" &&
         new URLSearchParams(location.search).get("inline") === "1"
-      ) document.documentElement.classList.add("embed-inline");
+      )
+        document.documentElement.classList.add("embed-inline");
     </script>
     <title>Drop & View</title>
     <link rel="icon" type="image/png" sizes="1024x1024" href="./icon.png" />
@@ -30,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=inline-embed-2" />
+    <link rel="stylesheet" href="css/style.css?v=material-variants-1" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -126,11 +127,7 @@
         </div>
         <nav class="style-toolbar" aria-label="Display style">
           <div class="original-mode">
-            <button
-              class="tool-button active"
-              data-mode="original"
-              aria-pressed="true"
-            >
+            <button class="tool-button active" data-mode="original" aria-pressed="true">
               ORIGINAL
             </button>
             <button
@@ -232,12 +229,17 @@
             <span class="drop-title-format">GLB</span>
             <span class="drop-title-dot" aria-hidden="true">•</span> FILE HERE
           </div>
-          <button class="demo-button" id="demoButton" type="button">
-            OR TRY THIS <span>DEMO</span> FIRST
-          </button>
+          <div class="demo-choice">
+            OR TRY THIS
+            <button class="demo-button" id="demoButton" type="button">DEMO 1</button> OR
+            <button class="demo-button" id="demo2Button" type="button">DEMO 2</button>
+            FIRST
+          </div>
           <div id="startMessage" class="privacy-note" role="status" aria-live="polite">
             <svg class="privacy-shield" viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M10 1.5 16.5 4v5c0 4-2.7 6.8-6.5 9-3.8-2.2-6.5-5-6.5-9V4L10 1.5Z" />
+              <path
+                d="M10 1.5 16.5 4v5c0 4-2.7 6.8-6.5 9-3.8-2.2-6.5-5-6.5-9V4L10 1.5Z"
+              />
               <path d="m6.7 9.7 2.1 2.1 4.5-4.7" />
             </svg>
             <span id="startMessageText">YOUR FILES ARE SAFE, NOTHING IS UPLOADED</span>
@@ -309,12 +311,23 @@
           aria-label="Section controls"
         >
           <div class="axis-buttons" role="group" aria-label="Section axis">
-            <div class="axis-row"><button data-axis="x" aria-pressed="false">X</button></div>
             <div class="axis-row">
-              <button id="sectionFlip" type="button" aria-pressed="false" title="Flip the section side">FLIP</button>
+              <button data-axis="x" aria-pressed="false">X</button>
+            </div>
+            <div class="axis-row">
+              <button
+                id="sectionFlip"
+                type="button"
+                aria-pressed="false"
+                title="Flip the section side"
+              >
+                FLIP
+              </button>
               <button data-axis="y" class="active" aria-pressed="true">Y</button>
             </div>
-            <div class="axis-row"><button data-axis="z" aria-pressed="false">Z</button></div>
+            <div class="axis-row">
+              <button data-axis="z" aria-pressed="false">Z</button>
+            </div>
           </div>
           <div
             class="section-color-control"
@@ -450,10 +463,10 @@
     <script>
       // The published page uses two same-origin renderer packages. Vite's
       // two-port development comparison still imports source modules instead.
-      if (!(["8001", "8002"].includes(location.port))) {
+      if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=tuning-defaults-20261013",
-          webgl: "renderers/webgl/main.js"
+          webgpu: "renderers/webgpu/main.js?v=material-variants-1",
+          webgl: "renderers/webgl/main.js?v=material-variants-1"
         };
       }
     </script>

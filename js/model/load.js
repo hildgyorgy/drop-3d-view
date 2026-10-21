@@ -22,6 +22,7 @@ import {
   showAllButton,
   openButton,
   demoButton,
+  demo2Button,
   openAgain,
   fileInput,
   sunAngle,
@@ -40,6 +41,7 @@ import { centreModel, fitCamera, applyExportedInitialView } from "../view/camera
 import { zoomAllImmediately } from "../view/show-all.js";
 import { readDropViewMetadata, readWindowLightEmitters } from "./drop-view-metadata.js";
 import { isGlbFile } from "./file-format.js";
+import { applyMaterialVariant } from "./material-variants.js";
 import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun, applyImportedSun } from "../view/ground-sun.js";
 import { configureWindowLights, clearWindowLights } from "../view/window-lights.js";
@@ -50,10 +52,7 @@ import { setViewMode } from "../view/view-modes.js";
 import { setStatus, resetStartMessage, showStartError } from "../ui/status.js";
 import { disposeSectionCap } from "../section/section-cap.js";
 import { updateSectionPlane } from "../section/section-plane.js";
-import {
-  deactivatePhoto1,
-  updatePhoto1Availability
-} from "../view/photo1.js";
+import { deactivatePhoto1, updatePhoto1Availability } from "../view/photo1.js";
 
 /*
    Draco decoder for compressed GLB files.
@@ -90,28 +89,37 @@ openButton.onclick = openAgain.onclick = () => {
   fileInput.click();
 };
 
-if (demoButton) {
-  demoButton.onclick = async () => {
-    demoButton.disabled = true;
+const demoButtons = [demoButton, demo2Button].filter(Boolean);
+for (const [button, url] of [
+  [demoButton, demoModelUrl],
+  [demo2Button, "demo/demo_house_2.glb"]
+]) {
+  if (!button) continue;
+  button.onclick = async () => {
+    demoButtons.forEach(item => {
+      item.disabled = true;
+    });
 
     resetStartMessage();
 
     try {
-      const response = await fetch(demoModelUrl);
+      const response = await fetch(url);
 
       if (!response.ok) throw new Error(`Demo model request failed (${response.status})`);
 
       const blob = await response.blob();
 
       await openFile(
-        new File([blob], demoModelUrl.split("/").at(-1), { type: "application/octet-stream" })
+        new File([blob], url.split("/").at(-1), { type: "application/octet-stream" })
       );
     } catch (error) {
       console.error(error);
 
       showStartError("THE DEMO MODEL COULD NOT BE OPENED. PLEASE TRY AGAIN.");
     } finally {
-      demoButton.disabled = false;
+      demoButtons.forEach(item => {
+        item.disabled = false;
+      });
     }
   };
 }
@@ -175,6 +183,9 @@ export async function openFile(file, { viewSession = null } = {}) {
     loader.setDRACOLoader(dracoLoader);
 
     const result = await loader.loadAsync(State.currentObjectURL);
+    if (new URLSearchParams(location.search).has("rendererDebug")) {
+      await applyMaterialVariant(result, "Maxon / Redshift PBR");
+    }
     preserveGLTFGroupLabels(result);
     const metadata = readDropViewMetadata(result);
     metadata.windowLightEmitters = readWindowLightEmitters(result);
@@ -244,7 +255,8 @@ export function prepareModel(object, file, gltf = null, metadata = {}) {
       if (
         !applyExportedInitialView(gltf, metadata.initialView, modelTranslation) ||
         !zoomAllImmediately()
-      ) fitCamera();
+      )
+        fitCamera();
     } catch (error) {
       console.warn("Exported camera could not be applied; using the fitted view", error);
       fitCamera();
@@ -341,7 +353,9 @@ export function disposeCurrentModel() {
     });
   });
 
-  disposeRenaissanceCutoutMaterials({ disposeTextures: State.currentMode === "renaissance" });
+  disposeRenaissanceCutoutMaterials({
+    disposeTextures: State.currentMode === "renaissance"
+  });
 
   if (State.edgeGroup) {
     State.edgeGroup.parent?.remove(State.edgeGroup);
