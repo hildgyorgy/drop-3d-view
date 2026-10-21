@@ -191,6 +191,8 @@ export async function openFile(file, { viewSession = null } = {}) {
     metadata.windowLightEmitters = readWindowLightEmitters(result);
 
     prepareModel(result.scene, file, result, metadata);
+    if (new URLSearchParams(location.search).has("rendererDebug"))
+      window.dispatchEvent(new CustomEvent("dropview:model-loaded", { detail: { gltf: result, file } }));
     if (viewSession) {
       try {
         restoreCurrentViewSession(viewSession);
@@ -289,6 +291,8 @@ export function prepareModel(object, file, gltf = null, metadata = {}) {
 }
 
 export function disposeCurrentModel() {
+  if (new URLSearchParams(location.search).has("rendererDebug"))
+    window.dispatchEvent(new Event("dropview:model-cleared"));
   deactivatePhoto1({ restoreStatus: false });
   clearWindowLights();
   if (State.hasImportedSun) {

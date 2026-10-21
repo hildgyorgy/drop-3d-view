@@ -83,6 +83,8 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
+  if (new URLSearchParams(location.search).has("rendererDebug"))
+    await import("./ui/material-workbench.js");
   renderer.setAnimationLoop(animate);
 
   // Optional local comparison fixture; regular users still choose OPEN/DEMO.

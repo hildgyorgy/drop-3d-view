@@ -1,0 +1,42 @@
+#materialWorkbench {
+  position: fixed;
+  z-index: 110;
+  top: 225px;
+  right: 28px;
+  width: min(320px, calc(100vw - 56px));
+  max-height: calc(100vh - 250px);
+  overflow: auto;
+  box-sizing: border-box;
+  background: rgba(239, 239, 237, .96);
+  color: #242424;
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: .06em;
+  box-shadow: 0 2px 10px #0002;
+}
+#materialWorkbench summary {
+  cursor: pointer;
+  padding: 11px 13px;
+  font-weight: 700;
+  list-style: none;
+}
+#materialWorkbench summary::before { content: "▶ "; }
+#materialWorkbench[open] summary::before { content: "▼ "; }
+#materialWorkbench .workbench-body { padding: 0 13px 13px; display: grid; gap: 10px; }
+#materialWorkbench .workbench-hint { margin: 0; color: #555; letter-spacing: 0; }
+#materialWorkbench .workbench-selected { font-weight: 700; overflow-wrap: anywhere; }
+#materialWorkbench label { display: grid; gap: 3px; }
+#materialWorkbench label:has(input[type="range"]) { grid-template-columns: 1fr 100px 38px; align-items: center; }
+#materialWorkbench label:has(input[type="range"]):not(:has(output)) { grid-template-columns: 1fr 138px; }
+#materialWorkbench input[type="range"] { width: 100%; accent-color: #ff3b30; }
+#materialWorkbench input[type="file"] { width: 100%; font: inherit; letter-spacing: 0; }
+#materialWorkbench .workbench-file { border: 1px dashed #888; padding: 9px; }
+#materialWorkbench select { font: inherit; padding: 4px; }
+#materialWorkbench .workbench-maps { color: #666; overflow-wrap: anywhere; letter-spacing: 0; }
+#materialWorkbench .workbench-actions { display: flex; gap: 8px; }
+#materialWorkbench button { flex: 1; cursor: pointer; border: 1px solid #333; padding: 7px 5px; background: transparent; color: inherit; font: inherit; }
+#materialWorkbench button:hover { color: #ff3b30; border-color: #ff3b30; }
+#materialWorkbench.workbench-dragging { outline: 2px dashed #ff3b30; }
+#workbenchStatus { min-height: 1.4em; color: #666; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  #materialWorkbench { top: 175px; right: 12px; max-height: calc(100vh - 190px); }
+}
