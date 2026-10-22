@@ -18,7 +18,7 @@ let busy = false;
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = new URL("../../css/material-workbench.css?v=1", import.meta.url).href;
+stylesheet.href = new URL("../../css/material-workbench.css?v=2", import.meta.url).href;
 document.head.append(stylesheet);
 
 const panel = document.createElement("details");
@@ -30,7 +30,10 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
     <label class="workbench-file">DROP MAPS HERE OR CHOOSE · JPG/PNG
       <input id="workbenchFiles" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
     </label>
-    <div id="workbenchMaps" class="workbench-maps">NO MAPS LOADED</div>
+    <div class="workbench-map-row">
+      <div id="workbenchMaps" class="workbench-maps">NO MAPS LOADED</div>
+      <button id="workbenchClearMaps" type="button" disabled>CLEAR MAPS</button>
+    </div>
     <label>TYPE <select id="workbenchType">
       <option value="surface">SURFACE</option><option value="metal">POLISHED METAL</option>
       <option value="car">CAR PAINT</option>
@@ -118,6 +121,7 @@ function classify(name) {
 function showMaps() {
   const labels = Object.entries(packageImages).filter(([, file]) => file).map(([kind, file]) => `${kind}: ${file.name}`);
   $("workbenchMaps").textContent = labels.length ? labels.join(" · ") : "NO MAPS LOADED";
+  $("workbenchClearMaps").disabled = labels.length === 0;
 }
 
 function showValues() {
@@ -314,6 +318,12 @@ function acceptFiles(files) {
     "NO RECOGNIZED MAPS · USE DIFF / ROUGH / NOR_GL / ARM NAMES");
 }
 $("workbenchFiles").addEventListener("change", event => acceptFiles(event.target.files));
+$("workbenchClearMaps").addEventListener("click", () => {
+  packageImages = {};
+  $("workbenchFiles").value = "";
+  showMaps();
+  status("MAPS CLEARED · APPLIED MATERIALS UNCHANGED");
+});
 panel.addEventListener("dragover", event => {
   event.preventDefault();
   event.stopPropagation();

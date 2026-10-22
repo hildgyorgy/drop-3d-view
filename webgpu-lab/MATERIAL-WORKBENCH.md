@@ -13,6 +13,10 @@ rotation and X/Y shift apply to the uploaded maps as one aligned set. Click
 **APPLY** for a live preview in ORIGINAL mode, then **SAVE NEW GLB** to download
 `*_pbr.glb`.
 
+To use a different package on the next surface, click **CLEAR MAPS**, then
+choose or drop the new files. This clears only the pending map selection;
+materials already applied to the model remain in the preview and saved edits.
+
 The original file is never modified. The downloaded GLB is based on the
 original JSON and binary geometry, not a Three.js scene re-export, so scene
 metadata and custom extensions survive. Edits are written to both the default

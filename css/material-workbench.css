@@ -32,9 +32,14 @@
 #materialWorkbench .workbench-file { border: 1px dashed #888; padding: 9px; }
 #materialWorkbench select { font: inherit; padding: 4px; }
 #materialWorkbench .workbench-maps { color: #666; overflow-wrap: anywhere; letter-spacing: 0; }
+#materialWorkbench .workbench-map-row { display: flex; align-items: flex-start; gap: 8px; }
+#materialWorkbench .workbench-map-row .workbench-maps { flex: 1; min-width: 0; }
+#materialWorkbench .workbench-map-row button { flex: 0 0 auto; }
 #materialWorkbench .workbench-actions { display: flex; gap: 8px; }
 #materialWorkbench button { flex: 1; cursor: pointer; border: 1px solid #333; padding: 7px 5px; background: transparent; color: inherit; font: inherit; }
 #materialWorkbench button:hover { color: #ff3b30; border-color: #ff3b30; }
+#materialWorkbench button:disabled { cursor: default; color: #999; border-color: #aaa; }
+#materialWorkbench button:disabled:hover { color: #999; border-color: #aaa; }
 #materialWorkbench.workbench-dragging { outline: 2px dashed #ff3b30; }
 #workbenchStatus { min-height: 1.4em; color: #666; overflow-wrap: anywhere; }
 @media (max-width: 600px) {
