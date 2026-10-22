@@ -29,6 +29,9 @@
 #materialWorkbench label:has(input[type="range"]):not(:has(output)) { grid-template-columns: 1fr 138px; }
 #materialWorkbench input[type="range"] { width: 100%; accent-color: #ff3b30; }
 #materialWorkbench input[type="file"] { width: 100%; font: inherit; letter-spacing: 0; }
+#materialWorkbench input:disabled { opacity: .45; }
+#materialWorkbench .workbench-color-label { grid-template-columns: 1fr 72px; align-items: center; }
+#materialWorkbench input[type="color"] { width: 72px; height: 28px; padding: 2px; cursor: pointer; }
 #materialWorkbench .workbench-file { border: 1px dashed #888; padding: 9px; }
 #materialWorkbench select { font: inherit; padding: 4px; }
 #materialWorkbench .workbench-maps { color: #666; overflow-wrap: anywhere; letter-spacing: 0; }
@@ -36,6 +39,7 @@
 #materialWorkbench .workbench-map-row .workbench-maps { flex: 1; min-width: 0; }
 #materialWorkbench .workbench-map-row button { flex: 0 0 auto; }
 #materialWorkbench .workbench-actions { display: flex; gap: 8px; }
+#materialWorkbench .workbench-actions button { min-width: 0; }
 #materialWorkbench button { flex: 1; cursor: pointer; border: 1px solid #333; padding: 7px 5px; background: transparent; color: inherit; font: inherit; }
 #materialWorkbench button:hover { color: #ff3b30; border-color: #ff3b30; }
 #materialWorkbench button:disabled { cursor: default; color: #999; border-color: #aaa; }

@@ -55,3 +55,22 @@ test("embeds a complete three-map package in the GLB structure", async () => {
   assert.deepEqual(edited.binary.slice(0, original.binary.length), original.binary);
   assert.equal(edited.json.buffers[0].byteLength, edited.binary.length);
 });
+
+test("solid car paint ignores uploaded maps and replaces source texture with color", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const original = readGlb(source);
+  const image = { bytes: new Uint8Array([1, 2, 3]), mimeType: "image/png" };
+  const edited = readGlb(patchGlbMaterials(source, [{
+    materialIndex: 0, images: { color: image, normal: image },
+    solidColor: true, color: [0.25, 0.5, 0.75],
+    roughness: 0.35, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08
+  }]));
+  const material = edited.json.materials[0];
+  assert.equal(material.pbrMetallicRoughness.baseColorTexture, undefined);
+  assert.equal(material.pbrMetallicRoughness.metallicRoughnessTexture, undefined);
+  assert.equal(material.normalTexture, undefined);
+  assert.deepEqual(material.pbrMetallicRoughness.baseColorFactor, [0.25, 0.5, 0.75, 1]);
+  assert.equal(material.extensions.KHR_materials_clearcoat.clearcoatFactor, 1);
+  assert.equal(edited.json.images.length, original.json.images.length);
+});

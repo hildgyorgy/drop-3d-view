@@ -7,15 +7,20 @@ material. Every primitive sharing that material is edited together.
 Drop JPEG/PNG maps onto the panel or choose several files at once. Filenames
 containing `diff`/`albedo`/`basecolor`, `rough`, `nor_gl`/`normal`, or `arm`/`orm`
 are recognized. OpenGL normal maps are expected. If both a standalone roughness
-map and an ARM map are supplied, the ARM map takes precedence. Use **TYPE** for
-an ordinary nonmetal surface, polished metal, or clear-coated car paint. Size,
-rotation and X/Y shift apply to the uploaded maps as one aligned set. Click
+map and an ARM map are supplied, the ARM map takes precedence. Uploaded maps
+are used only in **SURFACE** mode. **POLISHED METAL** and **CAR PAINT** ignore
+them and use the native **COLOR** picker for a solid color. Size, rotation and
+X/Y shift apply to uploaded maps as one aligned set. Click
 **APPLY** for a live preview in ORIGINAL mode, then **SAVE NEW GLB** to download
 `*_pbr.glb`.
 
 To use a different package on the next surface, click **CLEAR MAPS**, then
 choose or drop the new files. This clears only the pending map selection;
 materials already applied to the model remain in the preview and saved edits.
+**UNDO** reverses the most recent APPLY or RESET MATERIAL action. **RESET
+MATERIAL** restores only the currently selected material to the source GLB
+appearance; all other edited materials remain in place. Reload the page to
+discard the whole editing session.
 
 The original file is never modified. The downloaded GLB is based on the
 original JSON and binary geometry, not a Three.js scene re-export, so scene
