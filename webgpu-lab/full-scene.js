@@ -4,6 +4,7 @@ import { WebGPURenderer } from "three/webgpu";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { DEFAULT_WEBGPU_TUNING } from "./full-tuning.js";
 import { environmentSunDirectionFromPixel } from "../js/model/sun-metadata.js";
+import { enableDebugGlassShadows } from "./full-glass-shadows.js";
 
 export const backendKind = "webgpu";
 
@@ -21,6 +22,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = DEFAULT_WEBGPU_TUNING.exposure;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
+enableDebugGlassShadows(renderer);
 document.body.appendChild(renderer.domElement);
 
 export const perspectiveCamera = new THREE.PerspectiveCamera(

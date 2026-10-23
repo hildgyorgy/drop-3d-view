@@ -7,6 +7,7 @@ export const DEFAULT_WEBGPU_TUNING = Object.freeze({
   whiteSurface: 0.9,
   whiteGlassTransparency: 85,
   bwGlassTransparency: 96,
+  glassShadowLight: 0.9,
   skyFill: 1,
   groundBounce: 0.9,
   sunStrength: 3.3,
@@ -24,6 +25,7 @@ const controls = [
   ["whiteSurface", "WHITE SURFACE", 0.4, 1.8, 0.01],
   ["whiteGlassTransparency", "WHITE GLASS TRANSPARENCY", 0, 100, 1],
   ["bwGlassTransparency", "B&W GLASS TRANSPARENCY", 0, 100, 1],
+  ["glassShadowLight", "WINDOW SHADOW LIGHT · TEST", 0, 1, 0.01],
   ["skyFill", "SKY FILL", 0, 2.5, 0.01],
   ["groundBounce", "GROUND BOUNCE", 0, 2, 0.01],
   ["sunStrength", "SUN STRENGTH", 0, 6, 0.01],
@@ -65,7 +67,7 @@ export function initWebGpuTuning(onChange) {
   panel.className = "webgpu-tuning";
   panel.innerHTML = `<summary>WEBGPU TUNING</summary>
     <div class="webgpu-tuning-body">
-      <p>Live preview settings. The two glass controls affect WHITE/HIDDEN and B&W separately.</p>
+      <p>Live preview settings. Glass transparency affects WHITE/HIDDEN and B&W; window shadow light tests ORIGINAL only.</p>
       <div class="webgpu-tuning-controls"></div>
       <div class="webgpu-tuning-actions">
         <button type="button" data-action="save">SAVE</button>
