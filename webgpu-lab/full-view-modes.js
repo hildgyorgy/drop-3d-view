@@ -33,7 +33,6 @@ import { applyGroupVisibility } from "../js/ui/group-filter.js";
 import { deactivatePhoto1 } from "../js/view/photo1.js";
 import { WEBGPU_GROUND_SHADOW_OPACITY } from "../js/view/ground-sun.js";
 import { DEFAULT_WEBGPU_TUNING, initWebGpuTuning, syncWebGpuTuningControl } from "./full-tuning.js";
-import { prepareDebugGlassShadow, setDebugGlassShadowLight } from "./full-glass-shadows.js";
 
 let shadowSettingBeforeWireframe = null;
 const blackBackButton = document.querySelector("#blackBackButton");
@@ -49,7 +48,6 @@ let appliedWhiteGlassTransparency = DEFAULT_WEBGPU_TUNING.whiteGlassTransparency
 function applyPreviewTuning() {
   if (!previewTuning || State.pathTracerActive) return;
   const settings = previewTuning;
-  setDebugGlassShadowLight(settings.glassShadowLight);
   renderer.toneMappingExposure = settings.exposure;
   renderer.domElement.style.filter = settings.brightness === 1 &&
     settings.contrast === 1 && settings.saturation === 1
@@ -241,9 +239,8 @@ export function setViewMode(mode) {
       case "original":
         node.material = original;
 
-        // In debug WebGPU only, selected clear glass transmits light through
-        // the shadow map. Other translucent materials keep their old behavior.
-        node.castShadow = !isEntirelyTranslucent(original) || prepareDebugGlassShadow(original);
+        // Transparent glass must not cast an opaque shadow in Model mode.
+        node.castShadow = !isEntirelyTranslucent(original);
 
         node.visible = true;
 
