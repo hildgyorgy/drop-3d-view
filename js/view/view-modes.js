@@ -32,6 +32,8 @@ import { deactivatePhoto1 } from "./photo1.js";
 
 let shadowSettingBeforeWireframe = null;
 const blackBackButton = document.querySelector("#blackBackButton");
+const neutralBackground = new THREE.Color(0xefefed);
+const blackBackground = new THREE.Color(0x000000);
 
 function updateTransparencyAppearance(event = null) {
   const transparencyEnabled = ["original", "white", "hidden"].includes(State.currentMode);
@@ -75,8 +77,9 @@ function updateBlackBackground() {
     Boolean(State.model) &&
     State.currentMode === "renaissance" &&
     blackBackButton.getAttribute("aria-pressed") === "true";
-  scene.background.set(active ? 0x000000 : 0xefefed);
+  scene.background = active ? blackBackground : neutralBackground;
   document.documentElement.classList.toggle("black-back-active", active);
+  window.dispatchEvent(new Event("dropview:base-background-changed"));
 }
 
 blackBackButton.addEventListener("click", () => {
