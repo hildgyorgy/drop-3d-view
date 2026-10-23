@@ -19,7 +19,7 @@ the same `demo/demo_house_2.glb` in both views:
 /?rendererDebug=1&model=demo/demo_house_2.glb
 ```
 
-The start screen's DEMO 1 keeps the existing backend-specific demo; DEMO 2
+The start screen's DEMO 1 uses the same model in both backends; DEMO 2
 opens the dual-material file in either view. In the debug view, the renderer
 picker can switch between WEBGL and WEBGPU without changing which material
 variant is selected.

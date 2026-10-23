@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import path from "node:path";
 import { dependencyAliases, projectRoot } from "./dependency-aliases.js";
+import { externalDracoDecoder } from "./external-draco-decoder.js";
 
 // Temporary compatibility checkpoint: the unchanged production HTML and
 // WebGL app logic, using the WebGPU lab's pinned Three.js dependency set.
@@ -8,6 +9,7 @@ import { dependencyAliases, projectRoot } from "./dependency-aliases.js";
 export default defineConfig({
   root: projectRoot,
   resolve: { alias: dependencyAliases },
+  plugins: [externalDracoDecoder()],
   server: { host: "127.0.0.1", port: 8002, strictPort: true },
   build: {
     outDir: "/tmp/drop-view-webgl-compat-build",

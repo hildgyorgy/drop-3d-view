@@ -43,8 +43,8 @@ sun.shadow.bias = -0.0001;
 sun.shadow.normalBias = 0.02;
 scene.add(sun, sun.target);
 
-// The manually selected WebGPU backend uses restrained HDRI fill for its PBR
-// demo. WebGL keeps its original lighting; the neutral backdrop stays intact.
+// The manually selected WebGPU backend uses restrained HDRI fill. Both
+// backends share the same demo models and keep a neutral backdrop.
 let previewHdriSun = null;
 let previewHdriLoaded = false;
 let previewHdriTexture = null;
@@ -58,7 +58,7 @@ export function syncWebGpuEnvironmentToSun(direction) {
   );
 }
 
-const environmentUrl = new URL("../assets/hdri/backdrop.hdr", import.meta.url).href;
+const environmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
 new HDRLoader().setDataType(THREE.FloatType).loadAsync(environmentUrl)
   .then(texture => {
       const { data, width, height } = texture.image ?? {};

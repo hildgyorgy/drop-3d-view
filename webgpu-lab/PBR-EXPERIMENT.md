@@ -1,11 +1,9 @@
-# WebGPU PBR demo
+# Archived WebGPU PBR fixture experiment
 
-The ordinary viewer still starts in WebGL and loads the original
-`demo/demo_house.glb`. With `?rendererDebug=1`, manually selecting WEBGPU loads
-the WebGPU renderer; its DEMO button loads the versioned
-`demo/demo_house_pbr.glb`. WEBGL and AUTO continue to use the original model.
-Switching renderers preserves an already-open model. To see the other backend's
-built-in demo variant, reload the page after the switch, then click DEMO.
+Both renderers now use `demo/demo_house.glb` for DEMO 1 and
+`demo/demo_house_2.glb` for DEMO 2. The former `demo_house_pbr.glb` was an
+experimental local fixture, not a bundled third demo. The recipe below is
+preserved only for reproducing that material study outside the public app.
 
 The PBR variant replaces only the `Felület-beton` and
 `fa - szemcsés vízszintes fenyő` materials with the two Poly Haven 1K glTF
@@ -19,11 +17,11 @@ Glass, groups, metadata and other materials remain unchanged.
 The WebGPU preview uses the existing HDRI at intensity 0.2, aligned to the sun
 control, as fill and reflection lighting. The sun remains the key light and the
 background stays neutral. The path tracer retains its own HDRI; on exit, the
-preview lighting is restored. WebGL lighting is unchanged.
+preview lighting is restored. The normal WebGL viewer also has 0.2-strength
+HDRI fill and reflections.
 
-The PBR GLB is about 27 MiB. The former 2K test assets and local generated
-fixture are not part of the repository. To regenerate the committed GLB from
-the downloaded 1K packs and height maps:
+The former PBR GLB was about 27 MiB and is not part of the repository. To
+recreate a local fixture from the downloaded 1K packs and height maps:
 
 ```sh
 python3 webgpu-lab/build-pbr-demo.py \

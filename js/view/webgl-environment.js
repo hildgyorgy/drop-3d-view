@@ -23,7 +23,7 @@ function alignWithSun() {
 async function loadEnvironment() {
   if (environment || loading) return loading;
   loading = new HDRLoader().setDataType(THREE.FloatType)
-    .loadAsync(new URL("../../assets/hdri/backdrop.hdr", import.meta.url).href)
+    .loadAsync(new URL("assets/hdri/backdrop.hdr", document.baseURI).href)
     .then(texture => {
       const { data, width, height } = texture.image ?? {};
       if (data instanceof Float32Array && width && height) {

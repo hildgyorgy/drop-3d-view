@@ -1,12 +1,11 @@
 import { defineConfig } from "vite";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { dependencyAliases, projectRoot } from "./dependency-aliases.js";
+import { externalDracoDecoder } from "./external-draco-decoder.js";
 
 const root = projectRoot;
 const replacementModules = new Map([
   ["js/core/scene.js", "webgpu-lab/full-scene.js"],
-  ["js/core/demo-source.js", "webgpu-lab/full-demo-source.js"],
   ["js/view/photo1.js", "webgpu-lab/full-photo.js"],
   ["js/model/materials.js", "webgpu-lab/full-materials.js"],
   ["js/section/section-plane.js", "webgpu-lab/full-section-plane.js"],
@@ -24,6 +23,7 @@ export default defineConfig({
     alias: dependencyAliases
   },
   plugins: [
+    externalDracoDecoder(),
     {
       name: "drop-view-webgpu-full-adapters",
       enforce: "pre",
@@ -43,11 +43,7 @@ export default defineConfig({
   build: {
     outDir: "/tmp/drop-view-webgpu-build",
     rollupOptions: {
-      input: {
-        lab: fileURLToPath(new URL("index.html", import.meta.url)),
-        full: fileURLToPath(new URL("../index.html", import.meta.url)),
-        legacyFull: fileURLToPath(new URL("full.html", import.meta.url))
-      }
+      input: path.join(root, "index.html")
     }
   }
 });

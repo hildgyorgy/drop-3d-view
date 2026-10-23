@@ -10,7 +10,7 @@ import { environmentSunDirectionFromPixel } from "../js/model/sun-metadata.js";
 import { getSunDirectionFromControls } from "../js/view/ground-sun.js";
 import { setStatus } from "../js/ui/status.js";
 
-const environmentUrl = new URL("../assets/hdri/backdrop.hdr", import.meta.url).href;
+const environmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
 // The WebGPU preview background is HDR-scaled above 1. The path tracer packs
 // scene.background into an 8-bit texture, where that value wraps to dark gray.
 // Use the page's own background colour instead of a separate sky colour.

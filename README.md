@@ -8,7 +8,7 @@ A lightweight browser-based 3D model viewer by **György Hild**. Open a model, e
 
 ## Getting started
 
-1. Drop a **GLB** file onto the page, or choose **OPEN**. You can also try the **DEMO** on the start screen.
+1. Drop a **GLB** file onto the page, or choose **OPEN**. You can also try **DEMO 1** or **DEMO 2** on the start screen; both renderers use the same two files.
 2. Drag with the left mouse button to orbit, drag with the right button to pan, and scroll or pinch to zoom.
 3. Double-click a point on the model to bring it to the centre of the view.
 4. Lost your model while zooming or panning? Choose **ZOOM ALL** at the bottom centre to fit the whole model back into view while keeping the viewing direction, projection and group visibility.
@@ -97,6 +97,8 @@ python3 -m http.server 8000
 
 Open `http://localhost:8000`. ES modules require an HTTP server; opening `index.html` directly with a `file://` URL is not sufficient. The published root contains prebuilt WebGPU and WebGL renderer packages under `renderers/`; `AUTO` uses WebGL. The manual comparison selector, including WebGPU, is available only with `?rendererDebug=1`. Without that parameter, the page uses WebGL even if WebGPU was selected during an earlier debug session. To rebuild the packages after source changes, run `pnpm build:public` from `webgpu-lab/` (after `pnpm install`). Do not edit the generated `renderers/` files by hand.
 
+Draco-compressed user GLBs remain supported. Their decoder is fetched on demand from the pinned Three.js CDN version, so opening such a file requires a network connection; no decoder copy is shipped in either renderer package. The two bundled demo GLBs are unchanged and do not use Draco compression.
+
 The baked WebGPU preview calibration also applies outside debug mode. With `?rendererDebug=1` and WEBGPU selected, open the **WEBGPU TUNING** panel at the upper right to adjust it live, including separate glass transparency for WHITE/HIDDEN and B&W. SAVE keeps the values in this browser for later debug sessions; COPY JSON gives you the exact numbers to share or bake into the defaults. RESET restores the current code defaults. The controls are disabled while the path tracer is active.
 
 The model, camera, backend and section logic have automated tests. With Node.js installed, run:
@@ -109,14 +111,14 @@ npm test
 
 - `index.html` — shared viewer interface and renderer bootstrap
 - `renderers/` — generated, same-origin WebGPU and WebGL packages for GitHub Pages
-- `webgpu-lab/` — renderer adapters and build scripts for both packages
+- `webgpu-lab/` — renderer adapters and build scripts for both packages (the old standalone lab page is retired)
 - `css/` — layout and visual styling
 - `js/core/` — scene, cameras, controls and application state
 - `js/model/` — model loading and materials
 - `js/view/` — display modes, navigation, framing, lighting and edges
 - `js/section/` — clipping, intersection collection, planar contours, fill triangulation and section rendering
 - `js/ui/` — menus, messages and model inspection helpers
-- `assets/hdri/` — bundled environment lighting used by PATH TRACER
+- `assets/hdri/` — one shared environment image for normal HDRI fill and the path tracers
 - `demo/` — sample model used by the viewer
 - `test/` — automated tests for model, backend, camera and section logic
 

@@ -31,10 +31,7 @@ import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
 import { getSunDirectionFromControls } from "./ground-sun.js";
 import { setStatus } from "../ui/status.js";
 
-const photoEnvironmentUrl = new URL(
-  "../../assets/hdri/backdrop.hdr",
-  import.meta.url
-).href;
+const photoEnvironmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
 // Dormant interior-lighting experiment. True restores the GLASS LIGHT button;
 // false leaves the authored-glass emission code available but never uses it.
 // Useful when a bright interior matters more than seeing through the windows.

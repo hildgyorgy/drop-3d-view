@@ -56,13 +56,13 @@ import { deactivatePhoto1, updatePhoto1Availability } from "../view/photo1.js";
 
 /*
    Draco decoder for compressed GLB files.
-   The decoder files are served from the same Three.js CDN version as the
-   import map, so compressed geometry is transparently decoded in-browser.
+   Decoder files load on demand from the pinned Three.js CDN version.
+   The build intentionally omits unused local decoder copies.
 */
 const dracoLoader = new DRACOLoader();
 
 dracoLoader.setDecoderPath(
-  "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/"
+  "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/libs/draco/"
 );
 
 function preserveGLTFGroupLabels(result) {
