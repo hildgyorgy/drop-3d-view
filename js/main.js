@@ -85,8 +85,8 @@ async function boot() {
   bindFocusCanvas(renderer.domElement);
   if (new URLSearchParams(location.search).has("rendererDebug"))
     await import("./ui/material-workbench.js");
-  if (backendKind === "webgl" && new URLSearchParams(location.search).has("rendererDebug"))
-    await import("./ui/webgl-hdri-tuning.js");
+  if (backendKind === "webgl")
+    await import("./view/webgl-environment.js");
   renderer.setAnimationLoop(animate);
 
   // Optional local comparison fixture; regular users still choose OPEN/DEMO.
