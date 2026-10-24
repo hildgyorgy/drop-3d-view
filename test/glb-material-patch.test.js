@@ -56,21 +56,50 @@ test("embeds a complete three-map package in the GLB structure", async () => {
   assert.equal(edited.json.buffers[0].byteLength, edited.binary.length);
 });
 
-test("solid car paint ignores uploaded maps and replaces source texture with color", async () => {
+test("polished metal ignores uploaded maps and replaces source texture with color", async () => {
   const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
   const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
   const original = readGlb(source);
   const image = { bytes: new Uint8Array([1, 2, 3]), mimeType: "image/png" };
   const edited = readGlb(patchGlbMaterials(source, [{
     materialIndex: 0, images: { color: image, normal: image },
-    solidColor: true, color: [0.25, 0.5, 0.75],
-    roughness: 0.35, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08
+    ignoreMaps: true, color: [0.25, 0.5, 0.75],
+    roughness: 0.25, metalness: 1, clearcoat: 0, clearcoatRoughness: 0
   }]));
   const material = edited.json.materials[0];
   assert.equal(material.pbrMetallicRoughness.baseColorTexture, undefined);
   assert.equal(material.pbrMetallicRoughness.metallicRoughnessTexture, undefined);
   assert.equal(material.normalTexture, undefined);
   assert.deepEqual(material.pbrMetallicRoughness.baseColorFactor, [0.25, 0.5, 0.75, 1]);
-  assert.equal(material.extensions.KHR_materials_clearcoat.clearcoatFactor, 1);
+  assert.equal(material.pbrMetallicRoughness.metallicFactor, 1);
+  assert.equal(material.extensions?.KHR_materials_clearcoat, undefined);
   assert.equal(edited.json.images.length, original.json.images.length);
+});
+
+test("surface color without an uploaded color map becomes a solid color", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const edited = readGlb(patchGlbMaterials(source, [{
+    materialIndex: 0, images: {}, color: [0.2, 0.6, 0.3],
+    roughness: 0.75, metalness: 0, clearcoat: 0
+  }]));
+  const material = edited.json.materials[0];
+  assert.equal(material.pbrMetallicRoughness.baseColorTexture, undefined);
+  assert.deepEqual(material.pbrMetallicRoughness.baseColorFactor, [0.2, 0.6, 0.3, 1]);
+});
+
+test("lacquered texture retains a tinted base map under the clear coat", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const image = { bytes: new Uint8Array([1, 2, 3, 4]), mimeType: "image/png" };
+  const edited = readGlb(patchGlbMaterials(source, [{
+    materialIndex: 0, images: { color: image }, color: [0.4, 0.7, 0.9],
+    roughness: 0.35, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08
+  }]));
+  const material = edited.json.materials[0];
+  assert.ok(material.pbrMetallicRoughness.baseColorTexture);
+  assert.deepEqual(material.pbrMetallicRoughness.baseColorFactor, [0.4, 0.7, 0.9, 1]);
+  assert.deepEqual(material.extensions.KHR_materials_clearcoat, {
+    clearcoatFactor: 1, clearcoatRoughnessFactor: 0.08
+  });
 });

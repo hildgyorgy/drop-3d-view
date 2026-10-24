@@ -76,13 +76,13 @@ export function patchGlbMaterials(source, edits) {
     const pbr = material.pbrMetallicRoughness ??= {};
     pbr.roughnessFactor = edit.roughness;
     pbr.metallicFactor = edit.metalness;
-    if (edit.solidColor) {
-      // Solid metal and car-paint presets intentionally ignore both uploaded
-      // maps and any base maps that came from the source GLB.
-      delete pbr.baseColorTexture;
+    // A new color without an uploaded color map replaces the source base map.
+    // With a map, this factor tints it; white is neutral. Metal ignores maps.
+    delete pbr.baseColorTexture;
+    pbr.baseColorFactor = [...(edit.color ?? [1, 1, 1]), pbr.baseColorFactor?.[3] ?? 1];
+    if (edit.ignoreMaps) {
       delete pbr.metallicRoughnessTexture;
       delete material.normalTexture;
-      pbr.baseColorFactor = [...edit.color, pbr.baseColorFactor?.[3] ?? 1];
     }
     for (const [field, target] of [
       ["color", "baseColorTexture"],
@@ -90,12 +90,10 @@ export function patchGlbMaterials(source, edits) {
       ["normal", "normalTexture"]
     ]) {
       const image = edit.images[field];
-      if (!image || edit.solidColor) continue;
+      if (!image || edit.ignoreMaps) continue;
       const info = textureInfo(json, binaryParts, image, edit.transform, textureCache);
       if (target === "normalTexture") material.normalTexture = info;
       else pbr[target] = info;
-      if (target === "baseColorTexture")
-        pbr.baseColorFactor = [1, 1, 1, pbr.baseColorFactor?.[3] ?? 1];
     }
     if (edit.clearcoat > 0) {
       material.extensions ??= {};

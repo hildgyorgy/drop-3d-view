@@ -27,7 +27,7 @@ const panel = document.createElement("details");
 panel.id = "materialWorkbench";
 panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
   <div class="workbench-body">
-    <p class="workbench-hint">Open a GLB, then click a surface. Edits affect every part sharing its material. Maps are used only by SURFACE; METAL and CAR PAINT use the chosen color.</p>
+    <p class="workbench-hint">Open a GLB, then click a surface. Edits affect every part sharing its material. SURFACE and LACQUERED use color or uploaded maps; white leaves a color map unchanged. POLISHED METAL uses a solid color.</p>
     <div id="workbenchMaterial" class="workbench-selected">NO MATERIAL SELECTED</div>
     <label class="workbench-file">DROP MAPS HERE OR CHOOSE · JPG/PNG
       <input id="workbenchFiles" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
@@ -38,7 +38,7 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
     </div>
     <label>TYPE <select id="workbenchType">
       <option value="surface">SURFACE</option><option value="metal">POLISHED METAL</option>
-      <option value="car">CAR PAINT</option>
+      <option value="lacquered">LACQUERED</option>
     </select></label>
     <label class="workbench-color-label">COLOR <input id="workbenchColor" type="color" value="#ffffff" aria-label="Material color"></label>
     <label>ROUGHNESS <input id="workbenchRoughness" type="range" min="0.02" max="1" step="0.01" value="0.75"><output id="workbenchRoughnessValue">0.75</output></label>
@@ -66,10 +66,10 @@ function updateButtons() {
 }
 
 function updateModeControls() {
-  const surface = $("workbenchType").value === "surface";
-  $("workbenchFiles").disabled = !surface;
-  $("workbenchColor").disabled = surface;
-  for (const id of textureControls) $(id).disabled = !surface;
+  const usesMaps = $("workbenchType").value !== "metal";
+  $("workbenchFiles").disabled = !usesMaps;
+  $("workbenchColor").disabled = false;
+  for (const id of textureControls) $(id).disabled = !usesMaps;
 }
 
 function materialIndexFor(object) {
@@ -283,11 +283,11 @@ async function apply() {
   try {
     const inputs = Object.fromEntries([...controls, "workbenchType", "workbenchColor"].map(id => [id, $(id).value]));
     const type = inputs.workbenchType;
-    const surface = type === "surface";
+    const usesMaps = type !== "metal";
     const metalness = type === "metal" ? 1 : 0;
-    const clearcoat = type === "car" ? 1 : 0;
-    const images = surface ? { ...packageImages } : {};
-    const packed = surface ? await packedRoughnessImage(images, metalness) : null;
+    const clearcoat = type === "lacquered" ? 1 : 0;
+    const images = usesMaps ? { ...packageImages } : {};
+    const packed = usesMaps ? await packedRoughnessImage(images, metalness) : null;
     const transform = transformFromInputs(inputs);
     const [colorMap, roughMap, normalMap] = await Promise.all([
       imageForPreview(images.color, true),
@@ -310,21 +310,21 @@ async function apply() {
         material.roughness = Number(inputs.workbenchRoughness);
         material.clearcoat = clearcoat;
         material.clearcoatRoughness = clearcoat ? 0.08 : 0;
-        if (!surface) {
+        material.clearcoatMap = null;
+        material.clearcoatRoughnessMap = null;
+        material.clearcoatNormalMap = null;
+        if (!usesMaps) {
           material.map = null;
           material.roughnessMap = null;
           material.metalnessMap = null;
           material.normalMap = null;
           material.bumpMap = null;
           material.displacementMap = null;
-          material.clearcoatMap = null;
-          material.clearcoatRoughnessMap = null;
-          material.clearcoatNormalMap = null;
-          material.color.set(inputs.workbenchColor);
-        } else if (colorMap) {
+        } else {
+          // No uploaded base-color map means a solid color, not the source GLB's old map.
           material.map = colorMap;
-          material.color.set(0xffffff);
         }
+        material.color.set(inputs.workbenchColor);
         if (roughMap) material.roughnessMap = roughMap;
         if (roughMap) material.metalnessMap = roughMap;
         if (normalMap) material.normalMap = normalMap;
@@ -363,11 +363,11 @@ async function download() {
       ]);
       for (const materialIndex of edit.materialIndices) patches.push({
         materialIndex, images: { color, roughness, normal },
-        solidColor: edit.inputs.workbenchType !== "surface",
+        ignoreMaps: edit.inputs.workbenchType === "metal",
         color: new THREE.Color(edit.inputs.workbenchColor).toArray(),
         roughness: Number(edit.inputs.workbenchRoughness),
         metalness: edit.inputs.workbenchType === "metal" ? 1 : 0,
-        clearcoat: edit.inputs.workbenchType === "car" ? 1 : 0,
+        clearcoat: edit.inputs.workbenchType === "lacquered" ? 1 : 0,
         clearcoatRoughness: 0.08,
         transform: transformFromInputs(edit.inputs)
       });
@@ -450,7 +450,7 @@ panel.addEventListener("drop", event => {
 for (const id of controls) $(id).addEventListener("input", showValues);
 $("workbenchType").addEventListener("change", event => {
   $("workbenchRoughness").value = event.target.value === "metal" ? "0.25" :
-    event.target.value === "car" ? "0.35" : "0.75";
+    event.target.value === "lacquered" ? "0.35" : "0.75";
   showValues();
   updateModeControls();
 });

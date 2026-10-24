@@ -8,9 +8,12 @@ Drop JPEG/PNG maps onto the panel or choose several files at once. Filenames
 containing `diff`/`albedo`/`basecolor`, `rough`, `nor_gl`/`normal`, or `arm`/`orm`
 are recognized. OpenGL normal maps are expected. If both a standalone roughness
 map and an ARM map are supplied, the ARM map takes precedence. Uploaded maps
-are used only in **SURFACE** mode. **POLISHED METAL** and **CAR PAINT** ignore
-them and use the native **COLOR** picker for a solid color. Size, rotation and
-X/Y shift apply to uploaded maps as one aligned set. Click
+are used in **SURFACE** and **LACQUERED** modes. Both modes also allow the
+native **COLOR** picker: without an uploaded color map it makes a solid base
+color; with one, it tints the map (white is neutral). **LACQUERED** adds a
+clear coat over either base. **POLISHED METAL** remains solid-colored and
+ignores uploaded maps. Size, rotation and X/Y shift apply to uploaded maps as
+one aligned set. Click
 **APPLY** for a live preview in ORIGINAL mode, then **SAVE NEW GLB** to download
 `*_pbr.glb`.
 
@@ -27,7 +30,7 @@ original JSON and binary geometry, not a Three.js scene re-export, so scene
 metadata and custom extensions survive. Edits are written to both the default
 material and its debug Maxon variant (when present); the PBR appearance is
 therefore visible in either viewer after saving. Uploaded map transforms are
-stored with `KHR_texture_transform`, and car paint uses
+stored with `KHR_texture_transform`, and LACQUERED uses
 `KHR_materials_clearcoat`.
 
 This deliberately small first version does not repair UV coordinates, perform
