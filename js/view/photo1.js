@@ -7,6 +7,7 @@
 */
 
 import * as THREE from "three";
+import { photoMeterGeometry } from "./photo-meter-uv.js";
 import { State } from "../core/state.js";
 import { scene, renderer, sun } from "../core/scene.js";
 import {
@@ -404,25 +405,28 @@ function convertMaterial(material) {
 
 function withPhotoMaterials(callback) {
   const swaps = [];
-
-  State.model?.traverse(object => {
-    if (!object.isMesh || !object.material) return;
-    swaps.push([object, object.material]);
-    object.material = Array.isArray(object.material)
-      ? object.material.map(convertMaterial)
-      : convertMaterial(object.material);
-  });
-
-  if (State.ground) {
-    swaps.push([State.ground, State.ground.material]);
-    State.ground.material = photoGroundMaterial;
-  }
+  const meterGeometryCache = new WeakMap();
 
   try {
+    State.model?.traverse(object => {
+      if (!object.isMesh || !object.material) return;
+      swaps.push([object, object.material, object.geometry]);
+      object.material = Array.isArray(object.material)
+        ? object.material.map(convertMaterial)
+        : convertMaterial(object.material);
+      object.geometry = photoMeterGeometry(object.geometry, object.material, meterGeometryCache);
+    });
+
+    if (State.ground) {
+      swaps.push([State.ground, State.ground.material, State.ground.geometry]);
+      State.ground.material = photoGroundMaterial;
+    }
+
     return withPhotoEnvironment(callback);
   } finally {
-    swaps.forEach(([object, material]) => {
+    swaps.forEach(([object, material, geometry]) => {
       object.material = material;
+      object.geometry = geometry;
     });
   }
 }

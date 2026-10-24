@@ -22,7 +22,7 @@ let busy = false;
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = new URL("../../css/material-workbench.css?v=4", import.meta.url).href;
+stylesheet.href = new URL("../../css/material-workbench.css?v=5", import.meta.url).href;
 document.head.append(stylesheet);
 
 const panel = document.createElement("details");
@@ -45,9 +45,7 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
     <label class="workbench-color-label">COLOR <input id="workbenchColor" type="color" value="#ffffff" aria-label="Material color"></label>
     <label>ROUGHNESS <input id="workbenchRoughness" type="range" min="0.02" max="1" step="0.01" value="0.75"><output id="workbenchRoughnessValue">0.75</output></label>
     <label id="workbenchGlassTransparencyRow" hidden>TRANSPARENCY <input id="workbenchGlassTransparency" type="range" min="0.05" max="1" step="0.01" value="0.98"><output id="workbenchGlassTransparencyValue">98%</output></label>
-    <label>TEXTURE SIZE <input id="workbenchScale" type="range" min="0.25" max="8" step="0.05" value="1"><output id="workbenchScaleValue">1.00×</output></label>
-    <label class="workbench-meter-toggle">SIZE IN METERS · TEST <input id="workbenchMeterUv" type="checkbox"></label>
-    <label id="workbenchMeterRow" hidden>TILE SIZE <input id="workbenchTileMetres" type="range" min="0.1" max="20" step="0.1" value="2"><output id="workbenchTileMetresValue">2.0 m</output></label>
+    <label>TEXTURE SIZE <input id="workbenchTileMetres" type="range" min="0.1" max="20" step="0.1" value="2"><output id="workbenchTileMetresValue">2.0 m</output></label>
     <label>ROTATION <input id="workbenchRotation" type="range" min="-180" max="180" step="1" value="0"><output id="workbenchRotationValue">0°</output></label>
     <label>SHIFT X <input id="workbenchOffsetX" type="range" min="-1" max="1" step="0.01" value="0"></label>
     <label>SHIFT Y <input id="workbenchOffsetY" type="range" min="-1" max="1" step="0.01" value="0"></label>
@@ -61,8 +59,8 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
 document.body.append(panel);
 const $ = id => panel.querySelector(`#${id}`);
 const status = message => { $("workbenchStatus").textContent = message; };
-const controls = ["workbenchRoughness", "workbenchGlassTransparency", "workbenchScale", "workbenchTileMetres", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
-const textureControls = ["workbenchScale", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
+const controls = ["workbenchRoughness", "workbenchGlassTransparency", "workbenchTileMetres", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
+const textureControls = ["workbenchTileMetres", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
 
 function updateButtons() {
   $("workbenchUndo").disabled = !lastAction || busy;
@@ -82,10 +80,6 @@ function updateModeControls() {
   $("workbenchFiles").disabled = !usesMaps;
   $("workbenchColor").disabled = false;
   for (const id of textureControls) $(id).disabled = !usesMaps;
-  $("workbenchMeterUv").disabled = !usesMaps;
-  $("workbenchMeterRow").hidden = !usesMaps || !$("workbenchMeterUv").checked;
-  $("workbenchScale").disabled = !usesMaps || $("workbenchMeterUv").checked;
-  $("workbenchTileMetres").disabled = !usesMaps || !$("workbenchMeterUv").checked;
 }
 
 function selectedGlassMaterial() {
@@ -160,9 +154,7 @@ function select(object) {
   $("workbenchMaterial").textContent = `${name} · #${index}`;
   const saved = edits.get(index);
   if (saved) {
-    for (const [id, value] of Object.entries(saved.inputs))
-      if (id !== "workbenchMeterUv") $(id).value = value;
-    $("workbenchMeterUv").checked = Boolean(saved.inputs.workbenchMeterUv);
+    for (const [id, value] of Object.entries(saved.inputs)) $(id).value = value;
     // Keep the staging area independent from the last applied edit: choosing
     // another file must not silently alter what SAVE NEW GLB would export.
     packageImages = { ...saved.images };
@@ -170,8 +162,6 @@ function select(object) {
     $("workbenchType").value = selectedGlassMaterial() ? "glass" : "surface";
     $("workbenchRoughness").value = "0.75";
     $("workbenchGlassTransparency").value = "0.98";
-    $("workbenchScale").value = "1";
-    $("workbenchMeterUv").checked = false;
     $("workbenchTileMetres").value = "2";
     $("workbenchRotation").value = "0";
     $("workbenchOffsetX").value = "0";
@@ -221,7 +211,6 @@ function showMaps() {
 function showValues() {
   $("workbenchRoughnessValue").textContent = Number($("workbenchRoughness").value).toFixed(2);
   $("workbenchGlassTransparencyValue").textContent = `${Math.round(Number($("workbenchGlassTransparency").value) * 100)}%`;
-  $("workbenchScaleValue").textContent = `${Number($("workbenchScale").value).toFixed(2)}×`;
   $("workbenchTileMetresValue").textContent = `${Number($("workbenchTileMetres").value).toFixed(1)} m`;
   $("workbenchRotationValue").textContent = `${$("workbenchRotation").value}°`;
 }
@@ -264,7 +253,7 @@ async function packedRoughnessImage(images, metalness) {
 
 function transformFromInputs(inputs) {
   return {
-    scale: Number(inputs.workbenchScale),
+    scale: 1,
     rotation: Number(inputs.workbenchRotation) * Math.PI / 180,
     offsetX: Number(inputs.workbenchOffsetX),
     offsetY: Number(inputs.workbenchOffsetY)
@@ -343,7 +332,6 @@ async function apply() {
   let before = null;
   try {
     const inputs = Object.fromEntries([...controls, "workbenchType", "workbenchColor"].map(id => [id, $(id).value]));
-    inputs.workbenchMeterUv = $("workbenchMeterUv").checked;
     const type = inputs.workbenchType;
     const glass = type === "glass";
     if (glass !== selectedGlassMaterial())
@@ -352,11 +340,10 @@ async function apply() {
     const metalness = type === "metal" ? 1 : 0;
     const clearcoat = type === "lacquered" ? 1 : 0;
     const images = usesMaps ? { ...packageImages } : {};
-    const meterUv = usesMaps && inputs.workbenchMeterUv &&
+    const meterUv = usesMaps &&
       Boolean(images.color || images.normal || images.arm || images.roughness || images.metalness);
     const packed = usesMaps ? await packedRoughnessImage(images, metalness) : null;
     const transform = transformFromInputs(inputs);
-    if (meterUv) transform.scale = 1;
     const [colorMap, roughMap, normalMap] = await Promise.all([
       imageForPreview(images.color, true),
       imageForPreview(packed),
@@ -414,6 +401,13 @@ async function apply() {
         } else if (usesMaps) {
           // No uploaded base-color map means a solid color, not the source GLB's old map.
           material.map = colorMap;
+          // A newly applied package replaces the former surface maps as a set.
+          // Otherwise an old UV0 roughness/normal map would conflict with UV1.
+          material.roughnessMap = null;
+          material.metalnessMap = null;
+          material.normalMap = null;
+          material.bumpMap = null;
+          material.displacementMap = null;
         }
         material.color.set(inputs.workbenchColor);
         if (roughMap) material.roughnessMap = roughMap;
@@ -465,8 +459,7 @@ async function download() {
         metalness: edit.inputs.workbenchType === "metal" ? 1 : 0,
         clearcoat: edit.inputs.workbenchType === "lacquered" ? 1 : 0,
         clearcoatRoughness: 0.08,
-        transform: { ...transformFromInputs(edit.inputs),
-          scale: edit.meterUvs?.length ? 1 : Number(edit.inputs.workbenchScale) }
+        transform: transformFromInputs(edit.inputs)
       });
     }
     const buffer = patchGlbMaterials(await sourceFile.arrayBuffer(), patches);
@@ -546,7 +539,6 @@ panel.addEventListener("drop", event => {
   acceptFiles(event.dataTransfer.files);
 });
 for (const id of controls) $(id).addEventListener("input", showValues);
-$("workbenchMeterUv").addEventListener("change", updateModeControls);
 $("workbenchType").addEventListener("change", event => {
   if (selectedGlassMaterial() && event.target.value !== "glass") event.target.value = "glass";
   if (!selectedGlassMaterial() && event.target.value === "glass") event.target.value = "surface";

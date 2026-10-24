@@ -126,14 +126,13 @@ export function patchGlbMaterials(source, edits) {
     const pbr = material.pbrMetallicRoughness ??= {};
     pbr.roughnessFactor = edit.roughness;
     pbr.metallicFactor = edit.metalness;
-    // A new color without an uploaded color map replaces the source base map.
-    // With a map, this factor tints it; white is neutral. Metal ignores maps.
+    // The new package replaces the source surface maps as a set. Otherwise
+    // leftover UV0 roughness/normal maps would conflict with meter UV1 maps.
+    // With a base map, this color factor tints it; white is neutral.
     delete pbr.baseColorTexture;
+    delete pbr.metallicRoughnessTexture;
+    delete material.normalTexture;
     pbr.baseColorFactor = [...(edit.color ?? [1, 1, 1]), pbr.baseColorFactor?.[3] ?? 1];
-    if (edit.ignoreMaps) {
-      delete pbr.metallicRoughnessTexture;
-      delete material.normalTexture;
-    }
     for (const [field, target] of [
       ["color", "baseColorTexture"],
       ["roughness", "metallicRoughnessTexture"],

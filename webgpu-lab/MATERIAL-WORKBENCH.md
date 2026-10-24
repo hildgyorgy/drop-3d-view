@@ -16,24 +16,22 @@ ignores uploaded maps. **GLASS** appears only on clear-glass materials explicitl
 marked by the Archicad exporter. It adjusts tint, physical transmission
 (TRANSPARENCY), and roughness from clear to frosted; uploaded maps are ignored,
 but any existing glass maps are preserved.
-The original IOR is retained. Size, rotation and X/Y shift apply to uploaded maps as
+The original IOR is retained. TEXTURE SIZE sets the repeat width in metres
+(0.1–20 m, initially 2 m). Rotation and X/Y shift apply to uploaded maps as
 one aligned set. Click
 **APPLY** for a live preview in ORIGINAL mode, then **SAVE NEW GLB** to download
 `*_pbr.glb`.
 
-**SIZE IN METERS · TEST** can be enabled for uploaded maps. TILE SIZE then gives
-the real-world repeat width in metres (for example, 2 m), instead of scaling
-the exporter's original UVs. The preview projects from mesh positions and
+Uploaded maps use real-world metre mapping instead of scaling the exporter's
+original UVs. The preview projects from mesh positions and
 normals into a separate UV set. SAVE NEW GLB appends those coordinates as
 `TEXCOORD_1`, and only the newly uploaded maps read them. The original
 `TEXCOORD_0` and source geometry bytes stay intact. This is a box projection:
 curved surfaces can show seams where the projection axis changes. Meshes that
 already have `TEXCOORD_1` are refused, to avoid overwriting their existing
-maps. Test on Rhino - 017 and Rhino - 012, then on a previously textured
-surface before considering a single metre-based control for all materials.
-The WebGL path tracer currently samples the first UV set, so this experimental
-mode is for the normal WebGL/WebGPU preview and GLB export comparison; evaluate
-path tracing separately before making metre mapping the universal default.
+maps. The WebGL path tracer samples only the first UV set, so scene preparation
+temporarily aliases the new metre UVs to that set for edited materials. The
+source geometry and normal WebGL/WebGPU views keep their original UV sets.
 
 To use a different package on the next surface, click **CLEAR MAPS**, then
 choose or drop the new files. This clears only the pending map selection;
