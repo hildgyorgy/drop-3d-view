@@ -5,12 +5,14 @@ import { State } from "../core/state.js";
 import { renderer } from "../core/scene.js";
 import { setViewMode } from "../view/view-modes.js";
 import { patchGlbMaterials } from "../model/glb-material-patch.js";
+import { makeMeterUvs } from "../model/meter-uv.js";
 
 const variantName = "Maxon / Redshift PBR";
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const edits = new Map();
 const baselineMaterials = new Map();
+const baselineGeometries = new Map();
 let gltf = null;
 let sourceFile = null;
 let selectedIndex = null;
@@ -20,7 +22,7 @@ let busy = false;
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = new URL("../../css/material-workbench.css?v=3", import.meta.url).href;
+stylesheet.href = new URL("../../css/material-workbench.css?v=4", import.meta.url).href;
 document.head.append(stylesheet);
 
 const panel = document.createElement("details");
@@ -44,6 +46,8 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
     <label>ROUGHNESS <input id="workbenchRoughness" type="range" min="0.02" max="1" step="0.01" value="0.75"><output id="workbenchRoughnessValue">0.75</output></label>
     <label id="workbenchGlassTransparencyRow" hidden>TRANSPARENCY <input id="workbenchGlassTransparency" type="range" min="0.05" max="1" step="0.01" value="0.98"><output id="workbenchGlassTransparencyValue">98%</output></label>
     <label>TEXTURE SIZE <input id="workbenchScale" type="range" min="0.25" max="8" step="0.05" value="1"><output id="workbenchScaleValue">1.00×</output></label>
+    <label class="workbench-meter-toggle">SIZE IN METERS · TEST <input id="workbenchMeterUv" type="checkbox"></label>
+    <label id="workbenchMeterRow" hidden>TILE SIZE <input id="workbenchTileMetres" type="range" min="0.1" max="20" step="0.1" value="2"><output id="workbenchTileMetresValue">2.0 m</output></label>
     <label>ROTATION <input id="workbenchRotation" type="range" min="-180" max="180" step="1" value="0"><output id="workbenchRotationValue">0°</output></label>
     <label>SHIFT X <input id="workbenchOffsetX" type="range" min="-1" max="1" step="0.01" value="0"></label>
     <label>SHIFT Y <input id="workbenchOffsetY" type="range" min="-1" max="1" step="0.01" value="0"></label>
@@ -57,7 +61,7 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
 document.body.append(panel);
 const $ = id => panel.querySelector(`#${id}`);
 const status = message => { $("workbenchStatus").textContent = message; };
-const controls = ["workbenchRoughness", "workbenchGlassTransparency", "workbenchScale", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
+const controls = ["workbenchRoughness", "workbenchGlassTransparency", "workbenchScale", "workbenchTileMetres", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
 const textureControls = ["workbenchScale", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
 
 function updateButtons() {
@@ -78,6 +82,10 @@ function updateModeControls() {
   $("workbenchFiles").disabled = !usesMaps;
   $("workbenchColor").disabled = false;
   for (const id of textureControls) $(id).disabled = !usesMaps;
+  $("workbenchMeterUv").disabled = !usesMaps;
+  $("workbenchMeterRow").hidden = !usesMaps || !$("workbenchMeterUv").checked;
+  $("workbenchScale").disabled = !usesMaps || $("workbenchMeterUv").checked;
+  $("workbenchTileMetres").disabled = !usesMaps || !$("workbenchMeterUv").checked;
 }
 
 function selectedGlassMaterial() {
@@ -124,6 +132,7 @@ function captureMaterial(index) {
     objects: materialObjects(index).map(object => ({
       object,
       material: object.material,
+      geometry: object.geometry,
       originalMaterial: State.originalMaterials.get(object.uuid)
     })),
     edit: edits.get(index)
@@ -131,8 +140,9 @@ function captureMaterial(index) {
 }
 
 function restoreMaterial(snapshot) {
-  for (const { object, material, originalMaterial } of snapshot.objects) {
+  for (const { object, material, geometry, originalMaterial } of snapshot.objects) {
     object.material = material;
+    object.geometry = geometry;
     if (originalMaterial) State.originalMaterials.set(object.uuid, originalMaterial);
     else State.originalMaterials.delete(object.uuid);
   }
@@ -150,7 +160,9 @@ function select(object) {
   $("workbenchMaterial").textContent = `${name} · #${index}`;
   const saved = edits.get(index);
   if (saved) {
-    for (const [id, value] of Object.entries(saved.inputs)) $(id).value = value;
+    for (const [id, value] of Object.entries(saved.inputs))
+      if (id !== "workbenchMeterUv") $(id).value = value;
+    $("workbenchMeterUv").checked = Boolean(saved.inputs.workbenchMeterUv);
     // Keep the staging area independent from the last applied edit: choosing
     // another file must not silently alter what SAVE NEW GLB would export.
     packageImages = { ...saved.images };
@@ -159,6 +171,8 @@ function select(object) {
     $("workbenchRoughness").value = "0.75";
     $("workbenchGlassTransparency").value = "0.98";
     $("workbenchScale").value = "1";
+    $("workbenchMeterUv").checked = false;
+    $("workbenchTileMetres").value = "2";
     $("workbenchRotation").value = "0";
     $("workbenchOffsetX").value = "0";
     $("workbenchOffsetY").value = "0";
@@ -208,6 +222,7 @@ function showValues() {
   $("workbenchRoughnessValue").textContent = Number($("workbenchRoughness").value).toFixed(2);
   $("workbenchGlassTransparencyValue").textContent = `${Math.round(Number($("workbenchGlassTransparency").value) * 100)}%`;
   $("workbenchScaleValue").textContent = `${Number($("workbenchScale").value).toFixed(2)}×`;
+  $("workbenchTileMetresValue").textContent = `${Number($("workbenchTileMetres").value).toFixed(1)} m`;
   $("workbenchRotationValue").textContent = `${$("workbenchRotation").value}°`;
 }
 
@@ -275,6 +290,30 @@ function setTransform(texture, transform) {
   texture.needsUpdate = true;
 }
 
+function meterGeometry(object, tileMetres) {
+  const original = baselineGeometries.get(object.uuid);
+  const position = original?.getAttribute("position");
+  const normal = original?.getAttribute("normal");
+  if (original?.getAttribute("uv1"))
+    throw new Error("This mesh already uses a second UV set; meter UVs would replace it.");
+  if (!position || !normal || position.count !== normal.count)
+    throw new Error("This mesh has no matching positions and normals for meter UVs.");
+  object.updateWorldMatrix(true, false);
+  const normalMatrix = new THREE.Matrix3().getNormalMatrix(object.matrixWorld);
+  const point = new THREE.Vector3();
+  const direction = new THREE.Vector3();
+  const positions = new Float32Array(position.count * 3);
+  const normals = new Float32Array(normal.count * 3);
+  for (let i = 0; i < position.count; i++) {
+    point.fromBufferAttribute(position, i).applyMatrix4(object.matrixWorld).toArray(positions, i * 3);
+    direction.fromBufferAttribute(normal, i).applyMatrix3(normalMatrix).normalize().toArray(normals, i * 3);
+  }
+  const uv = makeMeterUvs(positions, normals, tileMetres);
+  const geometry = original.clone();
+  geometry.setAttribute("uv1", new THREE.BufferAttribute(uv, 2));
+  return { geometry, uv };
+}
+
 function editableMaterial(original) {
   if (original.isMeshPhysicalMaterial) return original.clone();
   // MeshPhysicalMaterial.copy() expects physical-only colour and vector fields;
@@ -304,6 +343,7 @@ async function apply() {
   let before = null;
   try {
     const inputs = Object.fromEntries([...controls, "workbenchType", "workbenchColor"].map(id => [id, $(id).value]));
+    inputs.workbenchMeterUv = $("workbenchMeterUv").checked;
     const type = inputs.workbenchType;
     const glass = type === "glass";
     if (glass !== selectedGlassMaterial())
@@ -312,18 +352,36 @@ async function apply() {
     const metalness = type === "metal" ? 1 : 0;
     const clearcoat = type === "lacquered" ? 1 : 0;
     const images = usesMaps ? { ...packageImages } : {};
+    const meterUv = usesMaps && inputs.workbenchMeterUv &&
+      Boolean(images.color || images.normal || images.arm || images.roughness || images.metalness);
     const packed = usesMaps ? await packedRoughnessImage(images, metalness) : null;
     const transform = transformFromInputs(inputs);
+    if (meterUv) transform.scale = 1;
     const [colorMap, roughMap, normalMap] = await Promise.all([
       imageForPreview(images.color, true),
       imageForPreview(packed),
       imageForPreview(images.normal)
     ]);
-    for (const texture of [colorMap, roughMap, normalMap]) setTransform(texture, transform);
+    for (const texture of [colorMap, roughMap, normalMap]) {
+      setTransform(texture, transform);
+      if (texture && meterUv) texture.channel = 1;
+    }
     before = captureMaterial(selectedIndex);
     if (!before.objects.length) throw new Error("No model part uses the selected material.");
     const applied = new Map();
+    const meterUvs = [];
     for (const { object } of before.objects) {
+      if (meterUv) {
+        const projected = meterGeometry(object, Number(inputs.workbenchTileMetres));
+        object.geometry = projected.geometry;
+        const association = gltf.parser.associations.get(object);
+        if (!Number.isInteger(association?.meshes) || !Number.isInteger(association?.primitives))
+          throw new Error("Could not identify this mesh primitive for GLB export.");
+        meterUvs.push({ meshIndex: association.meshes, primitiveIndex: association.primitives,
+          coordinates: projected.uv });
+      } else {
+        object.geometry = baselineGeometries.get(object.uuid);
+      }
       const baseline = baselineMaterials.get(object.uuid);
       const original = Array.isArray(baseline) ? baseline[0] : baseline;
       if (!original) throw new Error("The original material is no longer available.");
@@ -367,7 +425,7 @@ async function apply() {
       object.material = material;
       State.originalMaterials.set(object.uuid, material);
     }
-    edits.set(selectedIndex, { inputs, images, packed,
+    edits.set(selectedIndex, { inputs, images, packed, meterUvs,
       materialIndices: materialTargets(selectedIndex).filter(index => !glass ||
         (gltf.parser.json.materials[index]?.extras?.archicad?.clearGlassOverride === true &&
          Number(gltf.parser.json.materials[index]?.extensions?.KHR_materials_transmission?.transmissionFactor) > 0)) });
@@ -396,8 +454,10 @@ async function download() {
       const [color, roughness, normal] = await Promise.all([
         imageRecord(edit.images.color), imageRecord(edit.packed), imageRecord(edit.images.normal)
       ]);
-      for (const materialIndex of edit.materialIndices) patches.push({
+      for (const [targetIndex, materialIndex] of edit.materialIndices.entries()) patches.push({
         materialIndex, images: { color, roughness, normal },
+        meterUvs: targetIndex === 0 ? edit.meterUvs : undefined,
+        texCoord: edit.meterUvs?.length ? 1 : 0,
         ignoreMaps: edit.inputs.workbenchType === "metal",
         glassTransmission: edit.inputs.workbenchType === "glass" ? Number(edit.inputs.workbenchGlassTransparency) : undefined,
         color: new THREE.Color(edit.inputs.workbenchColor).toArray(),
@@ -405,7 +465,8 @@ async function download() {
         metalness: edit.inputs.workbenchType === "metal" ? 1 : 0,
         clearcoat: edit.inputs.workbenchType === "lacquered" ? 1 : 0,
         clearcoatRoughness: 0.08,
-        transform: transformFromInputs(edit.inputs)
+        transform: { ...transformFromInputs(edit.inputs),
+          scale: edit.meterUvs?.length ? 1 : Number(edit.inputs.workbenchScale) }
       });
     }
     const buffer = patchGlbMaterials(await sourceFile.arrayBuffer(), patches);
@@ -443,6 +504,7 @@ function resetMaterial() {
   for (const { object } of previous.objects) {
     const baseline = baselineMaterials.get(object.uuid);
     object.material = baseline;
+    object.geometry = baselineGeometries.get(object.uuid);
     State.originalMaterials.set(object.uuid, baseline);
   }
   edits.delete(selectedIndex);
@@ -484,6 +546,7 @@ panel.addEventListener("drop", event => {
   acceptFiles(event.dataTransfer.files);
 });
 for (const id of controls) $(id).addEventListener("input", showValues);
+$("workbenchMeterUv").addEventListener("change", updateModeControls);
 $("workbenchType").addEventListener("change", event => {
   if (selectedGlassMaterial() && event.target.value !== "glass") event.target.value = "glass";
   if (!selectedGlassMaterial() && event.target.value === "glass") event.target.value = "surface";
@@ -507,9 +570,13 @@ window.addEventListener("dropview:model-loaded", event => {
   $("workbenchFiles").value = "";
   edits.clear();
   baselineMaterials.clear();
+  baselineGeometries.clear();
   lastAction = null;
   State.model?.traverse(object => {
-    if (object.isMesh) baselineMaterials.set(object.uuid, State.originalMaterials.get(object.uuid) || object.material);
+    if (object.isMesh) {
+      baselineMaterials.set(object.uuid, State.originalMaterials.get(object.uuid) || object.material);
+      baselineGeometries.set(object.uuid, object.geometry);
+    }
   });
   $("workbenchMaterial").textContent = "CLICK A SURFACE TO SELECT ITS MATERIAL";
   showMaps();
@@ -521,6 +588,7 @@ window.addEventListener("dropview:model-cleared", () => {
   gltf = null; sourceFile = null; selectedIndex = null; packageImages = {}; edits.clear();
   $("workbenchType").value = "surface";
   baselineMaterials.clear(); lastAction = null;
+  baselineGeometries.clear();
   $("workbenchFiles").value = "";
   $("workbenchMaterial").textContent = "NO MATERIAL SELECTED";
   showMaps();

@@ -21,6 +21,20 @@ one aligned set. Click
 **APPLY** for a live preview in ORIGINAL mode, then **SAVE NEW GLB** to download
 `*_pbr.glb`.
 
+**SIZE IN METERS · TEST** can be enabled for uploaded maps. TILE SIZE then gives
+the real-world repeat width in metres (for example, 2 m), instead of scaling
+the exporter's original UVs. The preview projects from mesh positions and
+normals into a separate UV set. SAVE NEW GLB appends those coordinates as
+`TEXCOORD_1`, and only the newly uploaded maps read them. The original
+`TEXCOORD_0` and source geometry bytes stay intact. This is a box projection:
+curved surfaces can show seams where the projection axis changes. Meshes that
+already have `TEXCOORD_1` are refused, to avoid overwriting their existing
+maps. Test on Rhino - 017 and Rhino - 012, then on a previously textured
+surface before considering a single metre-based control for all materials.
+The WebGL path tracer currently samples the first UV set, so this experimental
+mode is for the normal WebGL/WebGPU preview and GLB export comparison; evaluate
+path tracing separately before making metre mapping the universal default.
+
 To use a different package on the next surface, click **CLEAR MAPS**, then
 choose or drop the new files. This clears only the pending map selection;
 materials already applied to the model remain in the preview and saved edits.
@@ -38,6 +52,6 @@ stored with `KHR_texture_transform`, and LACQUERED uses
 `KHR_materials_clearcoat`. GLASS writes `KHR_materials_transmission` only into
 the downloaded copy. Demo GLBs and the public viewer defaults are unchanged.
 
-This deliberately small first version does not repair UV coordinates, perform
+This deliberately small first version does not repair source UV coordinates, perform
 displacement/subdivision, edit non-clear transparent materials, or show changes in the active
 progressive path-tracing session. Leave PATH TRACER before applying edits.

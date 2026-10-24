@@ -1,5 +1,5 @@
-// Edit only glTF material/image records. Geometry, metadata and binary payload
-// from the source GLB are copied byte-for-byte into the downloaded copy.
+// Patch material/image records and optionally append meter-projected TEXCOORD_1.
+// The source geometry and its original TEXCOORD_0 bytes remain untouched.
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const JSON_CHUNK = 0x4e4f534a;
@@ -27,19 +27,23 @@ export function readGlb(buffer) {
   return { json, binary };
 }
 
-function textureInfo(json, binaryParts, imageRecord, transform, cache) {
+function textureInfo(json, binaryParts, imageRecord, transform, texCoord, cache) {
   if (!imageRecord) return null;
-  if (cache.has(imageRecord)) return cache.get(imageRecord);
-  const { bytes, mimeType } = imageRecord;
-  const byteOffset = binaryParts.reduce((length, part) => length + part.length, 0);
-  const bufferView = json.bufferViews.length;
-  json.bufferViews.push({ buffer: 0, byteOffset, byteLength: bytes.length });
-  binaryParts.push(bytes, new Uint8Array(pad4(bytes.length) - bytes.length));
-  const image = json.images.length;
-  json.images.push({ bufferView, mimeType });
-  const texture = json.textures.length;
-  json.textures.push({ source: image, sampler: ensureRepeatSampler(json) });
+  let texture = cache.get(imageRecord);
+  if (texture === undefined) {
+    const { bytes, mimeType } = imageRecord;
+    const byteOffset = binaryParts.reduce((length, part) => length + part.length, 0);
+    const bufferView = json.bufferViews.length;
+    json.bufferViews.push({ buffer: 0, byteOffset, byteLength: bytes.length });
+    binaryParts.push(bytes, new Uint8Array(pad4(bytes.length) - bytes.length));
+    const image = json.images.length;
+    json.images.push({ bufferView, mimeType });
+    texture = json.textures.length;
+    json.textures.push({ source: image, sampler: ensureRepeatSampler(json) });
+    cache.set(imageRecord, texture);
+  }
   const info = { index: texture };
+  if (texCoord) info.texCoord = texCoord;
   if (transform && (transform.scale !== 1 || transform.rotation !== 0 || transform.offsetX || transform.offsetY)) {
     info.extensions = {
       KHR_texture_transform: {
@@ -52,8 +56,36 @@ function textureInfo(json, binaryParts, imageRecord, transform, cache) {
     if (!json.extensionsUsed.includes("KHR_texture_transform"))
       json.extensionsUsed.push("KHR_texture_transform");
   }
-  cache.set(imageRecord, info);
   return info;
+}
+
+function appendMeterUvs(json, binaryParts, records, seen) {
+  for (const { meshIndex, primitiveIndex, coordinates } of records) {
+    const primitive = json.meshes?.[meshIndex]?.primitives?.[primitiveIndex];
+    const count = json.accessors?.[primitive?.attributes?.POSITION]?.count;
+    if (!primitive || primitive.mode !== undefined && primitive.mode !== 4 ||
+        primitive.attributes.TEXCOORD_1 !== undefined ||
+        !(coordinates instanceof Float32Array) || coordinates.length !== count * 2 ||
+        coordinates.some(value => !Number.isFinite(value)))
+      throw new Error("Meter UVs do not match a triangle mesh primitive.");
+    const key = `${meshIndex}:${primitiveIndex}`;
+    if (seen.has(key)) {
+      const previous = seen.get(key);
+      if (previous.length !== coordinates.length || previous.some((value, i) => value !== coordinates[i]))
+        throw new Error("One shared mesh has different meter UVs in separate instances.");
+      continue;
+    }
+    seen.set(key, coordinates);
+    const byteOffset = binaryParts.reduce((length, part) => length + part.length, 0);
+    if (byteOffset % 4 !== 0) throw new Error("GLB buffer is not aligned for meter UVs.");
+    const bytes = new Uint8Array(coordinates.buffer, coordinates.byteOffset, coordinates.byteLength);
+    const bufferView = json.bufferViews.length;
+    json.bufferViews.push({ buffer: 0, byteOffset, byteLength: bytes.length, target: 34962 });
+    binaryParts.push(bytes);
+    const accessor = json.accessors.length;
+    json.accessors.push({ bufferView, componentType: 5126, count, type: "VEC2" });
+    primitive.attributes.TEXCOORD_1 = accessor;
+  }
 }
 
 function ensureRepeatSampler(json) {
@@ -70,9 +102,14 @@ export function patchGlbMaterials(source, edits) {
   json.textures ??= [];
   const binaryParts = [binary.slice()];
   const textureCache = new WeakMap();
+  const uvPrimitives = new Map();
+  const meterMaterials = new Set();
   for (const edit of edits) {
     const material = json.materials?.[edit.materialIndex];
     if (!material) throw new Error(`Material ${edit.materialIndex} is missing.`);
+    if (edit.meterUvs?.length) appendMeterUvs(json, binaryParts, edit.meterUvs, uvPrimitives);
+    if (edit.texCoord === 1 && Object.values(edit.images || {}).some(Boolean))
+      meterMaterials.add(edit.materialIndex);
     if (edit.glassTransmission !== undefined) {
       const authoredTransmission = Number(material.extensions?.KHR_materials_transmission?.transmissionFactor);
       if (material.extras?.archicad?.clearGlassOverride !== true ||
@@ -104,7 +141,7 @@ export function patchGlbMaterials(source, edits) {
     ]) {
       const image = edit.images[field];
       if (!image || edit.ignoreMaps) continue;
-      const info = textureInfo(json, binaryParts, image, edit.transform, textureCache);
+      const info = textureInfo(json, binaryParts, image, edit.transform, edit.texCoord || 0, textureCache);
       if (target === "normalTexture") material.normalTexture = info;
       else pbr[target] = info;
     }
@@ -120,6 +157,12 @@ export function patchGlbMaterials(source, edits) {
     } else if (material.extensions) {
       delete material.extensions.KHR_materials_clearcoat;
     }
+  }
+  for (const mesh of json.meshes || []) for (const primitive of mesh.primitives || []) {
+    const materials = [primitive.material, ...(primitive.extensions?.KHR_materials_variants?.mappings || [])
+      .map(mapping => mapping.material)];
+    if (materials.some(index => meterMaterials.has(index)) && primitive.attributes?.TEXCOORD_1 === undefined)
+      throw new Error("A material using meter UVs has a mesh part without TEXCOORD_1.");
   }
   const binaryLength = binaryParts.reduce((length, part) => length + part.length, 0);
   json.buffers[0].byteLength = binaryLength;
