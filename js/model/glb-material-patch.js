@@ -73,6 +73,19 @@ export function patchGlbMaterials(source, edits) {
   for (const edit of edits) {
     const material = json.materials?.[edit.materialIndex];
     if (!material) throw new Error(`Material ${edit.materialIndex} is missing.`);
+    if (edit.glassTransmission !== undefined) {
+      const authoredTransmission = Number(material.extensions?.KHR_materials_transmission?.transmissionFactor);
+      if (material.extras?.archicad?.clearGlassOverride !== true ||
+          !Number.isFinite(authoredTransmission) || authoredTransmission <= 0)
+        throw new Error(`Material ${edit.materialIndex} is not exporter-selected clear glass.`);
+      if (!Number.isFinite(edit.glassTransmission) || edit.glassTransmission < 0 || edit.glassTransmission > 1)
+        throw new Error("Glass transparency must be between 0 and 1.");
+      const pbr = material.pbrMetallicRoughness ??= {};
+      pbr.baseColorFactor = [...(edit.color ?? [1, 1, 1]), 1];
+      pbr.roughnessFactor = edit.roughness;
+      material.extensions.KHR_materials_transmission.transmissionFactor = edit.glassTransmission;
+      continue;
+    }
     const pbr = material.pbrMetallicRoughness ??= {};
     pbr.roughnessFactor = edit.roughness;
     pbr.metallicFactor = edit.metalness;

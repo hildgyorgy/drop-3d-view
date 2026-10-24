@@ -103,3 +103,37 @@ test("lacquered texture retains a tinted base map under the clear coat", async (
     clearcoatFactor: 1, clearcoatRoughnessFactor: 0.08
   });
 });
+
+test("glass edits only exporter-selected clear glass and retain its IOR", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const original = readGlb(source);
+  const clearIndex = original.json.materials.findIndex(material =>
+    material.extras?.archicad?.clearGlassOverride === true &&
+    material.extensions?.KHR_materials_transmission?.transmissionFactor > 0);
+  const nonClearIndex = original.json.materials.findIndex(material =>
+    material.extras?.archicad?.clearGlassOverride === false &&
+    material.extensions?.KHR_materials_transmission?.transmissionFactor > 0);
+  assert.ok(clearIndex >= 0);
+  assert.ok(nonClearIndex >= 0);
+  const edited = readGlb(patchGlbMaterials(source, [{
+    materialIndex: clearIndex,
+    glassTransmission: 0.65,
+    color: [0.4, 0.7, 0.9],
+    roughness: 0.4
+  }]));
+  const before = original.json.materials[clearIndex];
+  const after = edited.json.materials[clearIndex];
+  assert.equal(after.extensions.KHR_materials_transmission.transmissionFactor, 0.65);
+  assert.deepEqual(after.pbrMetallicRoughness.baseColorFactor, [0.4, 0.7, 0.9, 1]);
+  assert.equal(after.pbrMetallicRoughness.roughnessFactor, 0.4);
+  assert.equal(after.pbrMetallicRoughness.metallicFactor, before.pbrMetallicRoughness.metallicFactor);
+  assert.deepEqual(after.extensions.KHR_materials_ior, before.extensions.KHR_materials_ior);
+  assert.deepEqual(after.extras, before.extras);
+  assert.deepEqual(edited.json.materials[nonClearIndex], original.json.materials[nonClearIndex]);
+  assert.deepEqual(edited.binary, original.binary);
+  assert.equal(original.json.materials[clearIndex].extensions.KHR_materials_transmission.transmissionFactor, 0.98);
+  assert.throws(() => patchGlbMaterials(source, [{
+    materialIndex: nonClearIndex, glassTransmission: 0.5, color: [1, 1, 1], roughness: 0.2
+  }]), /not exporter-selected clear glass/);
+});

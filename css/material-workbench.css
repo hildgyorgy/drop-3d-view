@@ -25,6 +25,7 @@
 #materialWorkbench .workbench-hint { margin: 0; color: #555; letter-spacing: 0; }
 #materialWorkbench .workbench-selected { font-weight: 700; overflow-wrap: anywhere; }
 #materialWorkbench label { display: grid; gap: 3px; }
+#materialWorkbench [hidden] { display: none; }
 #materialWorkbench label:has(input[type="range"]) { grid-template-columns: 1fr 100px 38px; align-items: center; }
 #materialWorkbench label:has(input[type="range"]):not(:has(output)) { grid-template-columns: 1fr 138px; }
 #materialWorkbench input[type="range"] { width: 100%; accent-color: #ff3b30; }

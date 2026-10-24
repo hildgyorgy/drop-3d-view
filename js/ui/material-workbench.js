@@ -27,7 +27,7 @@ const panel = document.createElement("details");
 panel.id = "materialWorkbench";
 panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
   <div class="workbench-body">
-    <p class="workbench-hint">Open a GLB, then click a surface. Edits affect every part sharing its material. SURFACE and LACQUERED use color or uploaded maps; white leaves a color map unchanged. POLISHED METAL uses a solid color.</p>
+    <p class="workbench-hint">Open a GLB, then click a surface. Edits affect every part sharing its material. SURFACE and LACQUERED use color or uploaded maps; white leaves a color map unchanged. POLISHED METAL uses a solid color. GLASS is available only for exporter-selected clear glass.</p>
     <div id="workbenchMaterial" class="workbench-selected">NO MATERIAL SELECTED</div>
     <label class="workbench-file">DROP MAPS HERE OR CHOOSE · JPG/PNG
       <input id="workbenchFiles" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
@@ -38,10 +38,11 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
     </div>
     <label>TYPE <select id="workbenchType">
       <option value="surface">SURFACE</option><option value="metal">POLISHED METAL</option>
-      <option value="lacquered">LACQUERED</option>
+      <option value="lacquered">LACQUERED</option><option value="glass">GLASS</option>
     </select></label>
     <label class="workbench-color-label">COLOR <input id="workbenchColor" type="color" value="#ffffff" aria-label="Material color"></label>
     <label>ROUGHNESS <input id="workbenchRoughness" type="range" min="0.02" max="1" step="0.01" value="0.75"><output id="workbenchRoughnessValue">0.75</output></label>
+    <label id="workbenchGlassTransparencyRow" hidden>TRANSPARENCY <input id="workbenchGlassTransparency" type="range" min="0.05" max="1" step="0.01" value="0.98"><output id="workbenchGlassTransparencyValue">98%</output></label>
     <label>TEXTURE SIZE <input id="workbenchScale" type="range" min="0.25" max="8" step="0.05" value="1"><output id="workbenchScaleValue">1.00×</output></label>
     <label>ROTATION <input id="workbenchRotation" type="range" min="-180" max="180" step="1" value="0"><output id="workbenchRotationValue">0°</output></label>
     <label>SHIFT X <input id="workbenchOffsetX" type="range" min="-1" max="1" step="0.01" value="0"></label>
@@ -56,7 +57,7 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
 document.body.append(panel);
 const $ = id => panel.querySelector(`#${id}`);
 const status = message => { $("workbenchStatus").textContent = message; };
-const controls = ["workbenchRoughness", "workbenchScale", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
+const controls = ["workbenchRoughness", "workbenchGlassTransparency", "workbenchScale", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
 const textureControls = ["workbenchScale", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
 
 function updateButtons() {
@@ -66,10 +67,24 @@ function updateButtons() {
 }
 
 function updateModeControls() {
-  const usesMaps = $("workbenchType").value !== "metal";
+  const glass = $("workbenchType").value === "glass";
+  const usesMaps = $("workbenchType").value === "surface" || $("workbenchType").value === "lacquered";
+  const clearGlass = selectedGlassMaterial();
+  for (const option of $("workbenchType").options) {
+    option.disabled = option.value === "glass" ? !clearGlass : clearGlass;
+  }
+  $("workbenchGlassTransparencyRow").hidden = !glass;
+  $("workbenchGlassTransparency").disabled = !glass;
   $("workbenchFiles").disabled = !usesMaps;
   $("workbenchColor").disabled = false;
   for (const id of textureControls) $(id).disabled = !usesMaps;
+}
+
+function selectedGlassMaterial() {
+  if (selectedIndex === null || !gltf) return false;
+  const material = gltf.parser.json.materials?.[selectedIndex];
+  return material?.extras?.archicad?.clearGlassOverride === true &&
+    Number(material.extensions?.KHR_materials_transmission?.transmissionFactor) > 0;
 }
 
 function materialIndexFor(object) {
@@ -140,14 +155,20 @@ function select(object) {
     // another file must not silently alter what SAVE NEW GLB would export.
     packageImages = { ...saved.images };
   } else {
-    $("workbenchType").value = "surface";
+    $("workbenchType").value = selectedGlassMaterial() ? "glass" : "surface";
     $("workbenchRoughness").value = "0.75";
+    $("workbenchGlassTransparency").value = "0.98";
     $("workbenchScale").value = "1";
     $("workbenchRotation").value = "0";
     $("workbenchOffsetX").value = "0";
     $("workbenchOffsetY").value = "0";
     const original = baselineMaterials.get(object.uuid);
     const material = Array.isArray(original) ? original[0] : original;
+    if (selectedGlassMaterial()) {
+      const authored = gltf.parser.json.materials[index];
+      $("workbenchRoughness").value = String(authored.pbrMetallicRoughness?.roughnessFactor ?? 0.03);
+      $("workbenchGlassTransparency").value = String(authored.extensions.KHR_materials_transmission.transmissionFactor);
+    }
     $("workbenchColor").value = material?.color ? `#${material.color.getHexString(THREE.SRGBColorSpace)}` : "#ffffff";
   }
   showMaps();
@@ -185,6 +206,7 @@ function showMaps() {
 
 function showValues() {
   $("workbenchRoughnessValue").textContent = Number($("workbenchRoughness").value).toFixed(2);
+  $("workbenchGlassTransparencyValue").textContent = `${Math.round(Number($("workbenchGlassTransparency").value) * 100)}%`;
   $("workbenchScaleValue").textContent = `${Number($("workbenchScale").value).toFixed(2)}×`;
   $("workbenchRotationValue").textContent = `${$("workbenchRotation").value}°`;
 }
@@ -283,7 +305,10 @@ async function apply() {
   try {
     const inputs = Object.fromEntries([...controls, "workbenchType", "workbenchColor"].map(id => [id, $(id).value]));
     const type = inputs.workbenchType;
-    const usesMaps = type !== "metal";
+    const glass = type === "glass";
+    if (glass !== selectedGlassMaterial())
+      throw new Error(glass ? "GLASS is only available for exporter-selected clear glass." : "Clear glass must use GLASS mode.");
+    const usesMaps = type === "surface" || type === "lacquered";
     const metalness = type === "metal" ? 1 : 0;
     const clearcoat = type === "lacquered" ? 1 : 0;
     const images = usesMaps ? { ...packageImages } : {};
@@ -306,21 +331,29 @@ async function apply() {
       if (!material) {
         material = editableMaterial(original);
         material.name = `${original.name} · workbench`;
-        material.metalness = metalness;
+        if (!glass) material.metalness = metalness;
         material.roughness = Number(inputs.workbenchRoughness);
-        material.clearcoat = clearcoat;
-        material.clearcoatRoughness = clearcoat ? 0.08 : 0;
-        material.clearcoatMap = null;
-        material.clearcoatRoughnessMap = null;
-        material.clearcoatNormalMap = null;
-        if (!usesMaps) {
+        if (!glass) {
+          material.clearcoat = clearcoat;
+          material.clearcoatRoughness = clearcoat ? 0.08 : 0;
+          material.clearcoatMap = null;
+          material.clearcoatRoughnessMap = null;
+          material.clearcoatNormalMap = null;
+        }
+        if (glass) {
+          material.transmission = Number(inputs.workbenchGlassTransparency);
+          material.opacity = 1;
+          material.transparent = false;
+          material.depthWrite = true;
+        }
+        if (!usesMaps && !glass) {
           material.map = null;
           material.roughnessMap = null;
           material.metalnessMap = null;
           material.normalMap = null;
           material.bumpMap = null;
           material.displacementMap = null;
-        } else {
+        } else if (usesMaps) {
           // No uploaded base-color map means a solid color, not the source GLB's old map.
           material.map = colorMap;
         }
@@ -335,7 +368,9 @@ async function apply() {
       State.originalMaterials.set(object.uuid, material);
     }
     edits.set(selectedIndex, { inputs, images, packed,
-      materialIndices: materialTargets(selectedIndex) });
+      materialIndices: materialTargets(selectedIndex).filter(index => !glass ||
+        (gltf.parser.json.materials[index]?.extras?.archicad?.clearGlassOverride === true &&
+         Number(gltf.parser.json.materials[index]?.extensions?.KHR_materials_transmission?.transmissionFactor) > 0)) });
     setViewMode("original");
     lastAction = before;
     status(`${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} READY · SAVE A NEW GLB`);
@@ -364,6 +399,7 @@ async function download() {
       for (const materialIndex of edit.materialIndices) patches.push({
         materialIndex, images: { color, roughness, normal },
         ignoreMaps: edit.inputs.workbenchType === "metal",
+        glassTransmission: edit.inputs.workbenchType === "glass" ? Number(edit.inputs.workbenchGlassTransparency) : undefined,
         color: new THREE.Color(edit.inputs.workbenchColor).toArray(),
         roughness: Number(edit.inputs.workbenchRoughness),
         metalness: edit.inputs.workbenchType === "metal" ? 1 : 0,
@@ -449,8 +485,11 @@ panel.addEventListener("drop", event => {
 });
 for (const id of controls) $(id).addEventListener("input", showValues);
 $("workbenchType").addEventListener("change", event => {
+  if (selectedGlassMaterial() && event.target.value !== "glass") event.target.value = "glass";
+  if (!selectedGlassMaterial() && event.target.value === "glass") event.target.value = "surface";
   $("workbenchRoughness").value = event.target.value === "metal" ? "0.25" :
-    event.target.value === "lacquered" ? "0.35" : "0.75";
+    event.target.value === "lacquered" ? "0.35" :
+    event.target.value === "glass" ? "0.03" : "0.75";
   showValues();
   updateModeControls();
 });
@@ -463,6 +502,7 @@ window.addEventListener("dropview:model-loaded", event => {
   gltf = event.detail.gltf;
   sourceFile = event.detail.file;
   selectedIndex = null;
+  $("workbenchType").value = "surface";
   packageImages = {};
   $("workbenchFiles").value = "";
   edits.clear();
@@ -479,6 +519,7 @@ window.addEventListener("dropview:model-loaded", event => {
 });
 window.addEventListener("dropview:model-cleared", () => {
   gltf = null; sourceFile = null; selectedIndex = null; packageImages = {}; edits.clear();
+  $("workbenchType").value = "surface";
   baselineMaterials.clear(); lastAction = null;
   $("workbenchFiles").value = "";
   $("workbenchMaterial").textContent = "NO MATERIAL SELECTED";
