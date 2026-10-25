@@ -15,6 +15,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { State } from "../core/state.js";
 import { scene } from "../core/scene.js";
 import { demoModelUrl } from "../core/demo-source.js";
+import { createLatestRequestGate } from "../core/latest-request.js";
 import { restoreCurrentViewSession } from "../core/session-runtime.js";
 import { forEachMesh } from "../core/model-utils.js";
 import {
@@ -42,6 +43,7 @@ import { zoomAllImmediately } from "../view/show-all.js";
 import { readDropViewMetadata, readWindowLightEmitters } from "./drop-view-metadata.js";
 import { isGlbFile } from "./file-format.js";
 import { applyMaterialVariant } from "./material-variants.js";
+import { disposeDetachedModel } from "./model-resource-disposal.js";
 import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun, applyImportedSun } from "../view/ground-sun.js";
 import { configureWindowLights, clearWindowLights } from "../view/window-lights.js";
@@ -60,6 +62,7 @@ import { deactivatePhoto1, updatePhoto1Availability } from "../view/photo1.js";
    The build intentionally omits unused local decoder copies.
 */
 const dracoLoader = new DRACOLoader();
+const modelOpenGate = createLatestRequestGate();
 
 dracoLoader.setDecoderPath(
   "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/libs/draco/"
@@ -96,6 +99,7 @@ for (const [button, url] of [
 ]) {
   if (!button) continue;
   button.onclick = async () => {
+    const request = modelOpenGate.begin();
     demoButtons.forEach(item => {
       item.disabled = true;
     });
@@ -108,11 +112,14 @@ for (const [button, url] of [
       if (!response.ok) throw new Error(`Demo model request failed (${response.status})`);
 
       const blob = await response.blob();
+      if (!request.isCurrent()) return;
 
       await openFile(
-        new File([blob], url.split("/").at(-1), { type: "application/octet-stream" })
+        new File([blob], url.split("/").at(-1), { type: "application/octet-stream" }),
+        { request }
       );
     } catch (error) {
+      if (!request.isCurrent()) return;
       console.error(error);
 
       showStartError("THE DEMO MODEL COULD NOT BE OPENED. PLEASE TRY AGAIN.");
@@ -158,7 +165,8 @@ window.addEventListener("drop", event => {
    OPEN MODEL
 ====================================================== */
 
-export async function openFile(file, { viewSession = null } = {}) {
+export async function openFile(file, { viewSession = null, request = null } = {}) {
+  request ??= modelOpenGate.begin();
   disposeCurrentModel();
   resetStartMessage();
 
@@ -176,15 +184,24 @@ export async function openFile(file, { viewSession = null } = {}) {
 
   startScreen.classList.add("hidden");
 
-  State.currentObjectURL = URL.createObjectURL(file);
+  const objectUrl = URL.createObjectURL(file);
+  let result = null;
 
   try {
     const loader = new GLTFLoader();
     loader.setDRACOLoader(dracoLoader);
 
-    const result = await loader.loadAsync(State.currentObjectURL);
+    result = await loader.loadAsync(objectUrl);
+    if (!request.isCurrent()) {
+      disposeDetachedModel(result.scene);
+      return false;
+    }
     if (new URLSearchParams(location.search).has("rendererDebug")) {
       await applyMaterialVariant(result, "Maxon / Redshift PBR");
+      if (!request.isCurrent()) {
+        disposeDetachedModel(result.scene);
+        return false;
+      }
     }
     preserveGLTFGroupLabels(result);
     const metadata = readDropViewMetadata(result);
@@ -202,11 +219,20 @@ export async function openFile(file, { viewSession = null } = {}) {
     }
     return true;
   } catch (error) {
+    // A stale request must never clear a newer model or overwrite its status.
+    if (!request.isCurrent()) {
+      if (result?.scene) disposeDetachedModel(result.scene);
+      return false;
+    }
     console.error(error);
 
+    if (result?.scene && State.model !== result.scene)
+      disposeDetachedModel(result.scene);
     disposeCurrentModel();
     showStartError("THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE.");
     return false;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
   }
 }
 
@@ -311,12 +337,6 @@ export function disposeCurrentModel() {
   State.currentFile = null;
   updatePhoto1Availability();
 
-  // A failed loader can leave an object URL without a model to dispose.
-  if (State.currentObjectURL) {
-    URL.revokeObjectURL(State.currentObjectURL);
-    State.currentObjectURL = null;
-  }
-
   if (!State.model) return;
 
   if (State.sectionCapFrame !== null) {
@@ -374,12 +394,6 @@ export function disposeCurrentModel() {
     State.ground.material.dispose();
 
     State.ground = null;
-  }
-
-  if (State.currentObjectURL) {
-    URL.revokeObjectURL(State.currentObjectURL);
-
-    State.currentObjectURL = null;
   }
 
   State.originalMaterials.clear();

@@ -30,7 +30,6 @@ export const State = {
   modelCenter: new THREE.Vector3(),
   modelBounds: null,
   maxModelSize: 10,
-  currentObjectURL: null,
   currentFile: null,
   currentFileName: null,
   currentMode: "original",
