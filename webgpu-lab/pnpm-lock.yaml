@@ -12,8 +12,8 @@ importers:
         specifier: 0.186.0
         version: 0.186.0
       three-gpu-pathtracer:
-        specifier: git+https://github.com/gkjohnson/three-gpu-pathtracer.git#894bf9b8ce17a8189e34f7f6345b5886aa9bcb09
-        version: https://codeload.github.com/gkjohnson/three-gpu-pathtracer/tar.gz/894bf9b8ce17a8189e34f7f6345b5886aa9bcb09(three-mesh-bvh@0.9.15(three@0.186.0))(three@0.186.0)(xatlas-web@0.1.0)
+        specifier: 0.0.27
+        version: 0.0.27(three-mesh-bvh@0.9.15(three@0.186.0))(three@0.186.0)(xatlas-web@0.1.0)
       three-mesh-bvh:
         specifier: 0.9.15
         version: 0.9.15(three@0.186.0)
@@ -243,9 +243,8 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
-  three-gpu-pathtracer@https://codeload.github.com/gkjohnson/three-gpu-pathtracer/tar.gz/894bf9b8ce17a8189e34f7f6345b5886aa9bcb09:
-    resolution: {gitHosted: true, integrity: sha512-G/dlDfvwhCvp5RcRpbMFnfdE4Mfgu5hW/p1MYNU+Q6NpM/g6URg6IgaTqDOSkWrvrQhy4oIPrmRhfhTRaeAG2A==, tarball: https://codeload.github.com/gkjohnson/three-gpu-pathtracer/tar.gz/894bf9b8ce17a8189e34f7f6345b5886aa9bcb09}
-    version: 0.0.26
+  three-gpu-pathtracer@0.0.27:
+    resolution: {integrity: sha512-NLUYnL9nSLcUFurIHHLHbnmpKLaXi8JbGqfTeWRSx4h+l7Ndpllwj2DK2uOYTSUaN5+PuZ1JRqv1ynHEB1XCwQ==}
     peerDependencies:
       three: '>=0.185.0'
       three-mesh-bvh: '>=0.9.15'
@@ -453,7 +452,7 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  three-gpu-pathtracer@https://codeload.github.com/gkjohnson/three-gpu-pathtracer/tar.gz/894bf9b8ce17a8189e34f7f6345b5886aa9bcb09(three-mesh-bvh@0.9.15(three@0.186.0))(three@0.186.0)(xatlas-web@0.1.0):
+  three-gpu-pathtracer@0.0.27(three-mesh-bvh@0.9.15(three@0.186.0))(three@0.186.0)(xatlas-web@0.1.0):
     dependencies:
       three: 0.186.0
       three-mesh-bvh: 0.9.15(three@0.186.0)
