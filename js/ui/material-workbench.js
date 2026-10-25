@@ -6,6 +6,11 @@ import { renderer } from "../core/scene.js";
 import { setViewMode } from "../view/view-modes.js";
 import { patchGlbMaterials } from "../model/glb-material-patch.js";
 import { makeMeterUvs } from "../model/meter-uv.js";
+import { disposeTextureResources } from "../model/model-resource-disposal.js";
+import {
+  captureWorkbenchOperation,
+  isWorkbenchOperationCurrent
+} from "./workbench-operation.js";
 
 const variantName = "Maxon / Redshift PBR";
 const raycaster = new THREE.Raycaster();
@@ -82,9 +87,9 @@ function updateModeControls() {
   for (const id of textureControls) $(id).disabled = !usesMaps;
 }
 
-function selectedGlassMaterial() {
-  if (selectedIndex === null || !gltf) return false;
-  const material = gltf.parser.json.materials?.[selectedIndex];
+function selectedGlassMaterial(index = selectedIndex, sourceGltf = gltf) {
+  if (index === null || !sourceGltf) return false;
+  const material = sourceGltf.parser.json.materials?.[index];
   return material?.extras?.archicad?.clearGlassOverride === true &&
     Number(material.extensions?.KHR_materials_transmission?.transmissionFactor) > 0;
 }
@@ -147,6 +152,7 @@ function restoreMaterial(snapshot) {
 }
 
 function select(object) {
+  if (busy) return;
   const index = materialIndexFor(object);
   if (!Number.isInteger(index)) return;
   selectedIndex = index;
@@ -159,7 +165,7 @@ function select(object) {
     // another file must not silently alter what SAVE NEW GLB would export.
     packageImages = { ...saved.images };
   } else {
-    $("workbenchType").value = selectedGlassMaterial() ? "glass" : "surface";
+    $("workbenchType").value = selectedGlassMaterial(index) ? "glass" : "surface";
     $("workbenchRoughness").value = "0.75";
     $("workbenchGlassTransparency").value = "0.98";
     $("workbenchTileMetres").value = "2";
@@ -168,7 +174,7 @@ function select(object) {
     $("workbenchOffsetY").value = "0";
     const original = baselineMaterials.get(object.uuid);
     const material = Array.isArray(original) ? original[0] : original;
-    if (selectedGlassMaterial()) {
+    if (selectedGlassMaterial(index)) {
       const authored = gltf.parser.json.materials[index];
       $("workbenchRoughness").value = String(authored.pbrMetallicRoughness?.roughnessFactor ?? 0.03);
       $("workbenchGlassTransparency").value = String(authored.extensions.KHR_materials_transmission.transmissionFactor);
@@ -183,7 +189,7 @@ function select(object) {
 }
 
 function onCanvasClick(event) {
-  if (!panel.open || !State.model || !gltf || State.pathTracerActive) return;
+  if (busy || !panel.open || !State.model || !gltf || State.pathTracerActive) return;
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.set((event.clientX - rect.left) / rect.width * 2 - 1,
     -(event.clientY - rect.top) / rect.height * 2 + 1);
@@ -327,14 +333,17 @@ function editableMaterial(original) {
 async function apply() {
   if (busy || selectedIndex === null || !gltf || !sourceFile) return;
   if (State.pathTracerActive) { status("EXIT PATH TRACER BEFORE EDITING"); return; }
+  const operation = captureWorkbenchOperation(selectedIndex, gltf, State.model);
+  const materialIndex = operation.materialIndex;
   busy = true;
   updateButtons();
   let before = null;
+  let previewTextures = [];
   try {
     const inputs = Object.fromEntries([...controls, "workbenchType", "workbenchColor"].map(id => [id, $(id).value]));
     const type = inputs.workbenchType;
     const glass = type === "glass";
-    if (glass !== selectedGlassMaterial())
+    if (glass !== selectedGlassMaterial(materialIndex, operation.gltf))
       throw new Error(glass ? "GLASS is only available for exporter-selected clear glass." : "Clear glass must use GLASS mode.");
     const usesMaps = type === "surface" || type === "lacquered";
     const metalness = type === "metal" ? 1 : 0;
@@ -343,17 +352,24 @@ async function apply() {
     const meterUv = usesMaps &&
       Boolean(images.color || images.normal || images.arm || images.roughness || images.metalness);
     const packed = usesMaps ? await packedRoughnessImage(images, metalness) : null;
+    if (!isWorkbenchOperationCurrent(operation, gltf, State.model)) return;
     const transform = transformFromInputs(inputs);
     const [colorMap, roughMap, normalMap] = await Promise.all([
       imageForPreview(images.color, true),
       imageForPreview(packed),
       imageForPreview(images.normal)
     ]);
+    previewTextures = [colorMap, roughMap, normalMap].filter(Boolean);
+    if (!isWorkbenchOperationCurrent(operation, gltf, State.model)) {
+      disposeTextureResources(previewTextures);
+      previewTextures = [];
+      return;
+    }
     for (const texture of [colorMap, roughMap, normalMap]) {
       setTransform(texture, transform);
       if (texture && meterUv) texture.channel = 1;
     }
-    before = captureMaterial(selectedIndex);
+    before = captureMaterial(materialIndex);
     if (!before.objects.length) throw new Error("No model part uses the selected material.");
     const applied = new Map();
     const meterUvs = [];
@@ -361,7 +377,7 @@ async function apply() {
       if (meterUv) {
         const projected = meterGeometry(object, Number(inputs.workbenchTileMetres));
         object.geometry = projected.geometry;
-        const association = gltf.parser.associations.get(object);
+        const association = operation.gltf.parser.associations.get(object);
         if (!Number.isInteger(association?.meshes) || !Number.isInteger(association?.primitives))
           throw new Error("Could not identify this mesh primitive for GLB export.");
         meterUvs.push({ meshIndex: association.meshes, primitiveIndex: association.primitives,
@@ -419,15 +435,18 @@ async function apply() {
       object.material = material;
       State.originalMaterials.set(object.uuid, material);
     }
-    edits.set(selectedIndex, { inputs, images, packed, meterUvs,
-      materialIndices: materialTargets(selectedIndex).filter(index => !glass ||
-        (gltf.parser.json.materials[index]?.extras?.archicad?.clearGlassOverride === true &&
-         Number(gltf.parser.json.materials[index]?.extensions?.KHR_materials_transmission?.transmissionFactor) > 0)) });
+    edits.set(materialIndex, { inputs, images, packed, meterUvs,
+      materialIndices: materialTargets(materialIndex).filter(index => !glass ||
+        (operation.gltf.parser.json.materials[index]?.extras?.archicad?.clearGlassOverride === true &&
+         Number(operation.gltf.parser.json.materials[index]?.extensions?.KHR_materials_transmission?.transmissionFactor) > 0)) });
     setViewMode("original");
     lastAction = before;
     status(`${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} READY · SAVE A NEW GLB`);
+    // The applied materials own these textures from this point onward.
+    previewTextures = [];
   } catch (error) {
     if (before) restoreMaterial(before);
+    disposeTextureResources(previewTextures);
     console.error("Material preview failed", error);
     status(`COULD NOT APPLY: ${error.message}`);
   } finally { busy = false; updateButtons(); }

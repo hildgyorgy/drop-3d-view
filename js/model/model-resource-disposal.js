@@ -6,6 +6,17 @@ function addMaterial(materials, material) {
   }
 }
 
+export function disposeTextureResources(textureValues) {
+  const textures = new Set([...textureValues].filter(value => value?.isTexture));
+  const images = new Set();
+  for (const texture of textures) {
+    const image = texture.image;
+    if (image && typeof image.close === "function") images.add(image);
+  }
+  textures.forEach(texture => texture.dispose());
+  images.forEach(image => image.close());
+}
+
 // Dispose an object hierarchy plus resources that are no longer attached to
 // it (for example original materials while WIRE is active). Sets prevent
 // shared geometries, materials, textures and ImageBitmaps from being released
@@ -37,18 +48,11 @@ export function disposeModelResources(
     }
   }
 
-  const images = new Set();
-  for (const texture of textures) {
-    const image = texture.image;
-    if (image && typeof image.close === "function") images.add(image);
-  }
-
-  textures.forEach(texture => texture.dispose());
+  disposeTextureResources(textures);
   materials.forEach(material => {
     if (!isExcluded(material)) material.dispose();
   });
   geometries.forEach(geometry => geometry.dispose());
-  images.forEach(image => image.close());
 }
 
 export function disposeDetachedModel(model) {
