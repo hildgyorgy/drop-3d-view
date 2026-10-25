@@ -46,8 +46,8 @@ async function start() {
             updatePicker();
             return;
           }
-          const current = app?.getBackendHandoff();
-          if (current?.file) await saveBackendHandoff(current.file, current.viewSession);
+          const current = await app?.getBackendHandoff();
+          if (current?.file) await saveBackendHandoff(current.file, current.viewSession, current.workbench);
           localStorage.setItem(modeKey, nextMode);
           restartRequested = true;
           location.reload();
@@ -86,10 +86,11 @@ async function start() {
     await app.bootPromise;
     enableEmbedBridge(app);
 
-    const handoff = comparison ? await readBackendHandoff() : null;
-    if (handoff?.file) {
-      const file = new File([handoff.file], handoff.fileName, { type: "model/gltf-binary" });
-      if (await app.openFile(file, { viewSession: handoff.viewSession }))
+    const handoff = showPicker ? await readBackendHandoff() : null;
+    if (handoff?.fileBytes || handoff?.file) {
+      const file = new File([handoff.fileBytes ?? handoff.file], handoff.fileName,
+        { type: "model/gltf-binary" });
+      if (await app.openBackendHandoff(file, handoff))
         await clearBackendHandoff();
     }
   } finally {

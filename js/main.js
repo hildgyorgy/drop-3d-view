@@ -25,7 +25,7 @@ import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
 import { bindFocusCanvas } from "./view/focus.js";
 import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
-import { captureCurrentViewSession } from "./core/session-runtime.js";
+import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -68,6 +68,8 @@ function animate(time) {
   updateAdaptiveContrast(time);
 }
 
+let materialWorkbench = null;
+
 async function boot() {
   if (backendKind === "webgpu") {
     if (!navigator.gpu) throw new Error("This browser does not support WebGPU.");
@@ -84,7 +86,7 @@ async function boot() {
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
   if (new URLSearchParams(location.search).has("rendererDebug"))
-    await import("./ui/material-workbench.js");
+    materialWorkbench = await import("./ui/material-workbench.js");
   if (backendKind === "webgl")
     await import("./view/webgl-environment.js");
   renderer.setAnimationLoop(animate);
@@ -115,10 +117,22 @@ async function boot() {
 
 export { openFile };
 
-export function getBackendHandoff() {
+export async function getBackendHandoff() {
   return State.currentFile
-    ? { file: State.currentFile, viewSession: captureCurrentViewSession() }
+    ? { file: State.currentFile, viewSession: captureCurrentViewSession(),
+        workbench: await materialWorkbench?.captureWorkbenchHandoff() }
     : null;
+}
+
+export async function openBackendHandoff(file, { viewSession, workbench } = {}) {
+  if (!await openFile(file)) return false;
+  if (workbench && materialWorkbench)
+    await materialWorkbench.restoreWorkbenchHandoff(workbench);
+  if (viewSession) {
+    try { restoreCurrentViewSession(viewSession); }
+    catch (error) { console.warn("Saved view could not be restored; using the fitted view", error); }
+  }
+  return true;
 }
 
 export const bootPromise = boot();

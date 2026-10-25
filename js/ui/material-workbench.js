@@ -438,6 +438,46 @@ async function imageRecord(file) {
   return { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type || "image/png" };
 }
 
+export async function captureWorkbenchHandoff() {
+  if (!edits.size) return null;
+  return {
+    version: 1,
+    selectedIndex,
+    edits: await Promise.all([...edits.entries()].map(async ([index, edit]) => ({
+      index,
+      inputs: { ...edit.inputs },
+      images: await Promise.all(Object.entries(edit.images).filter(([, file]) => file)
+        .map(async ([kind, file]) => ({ kind, name: file.name, type: file.type,
+          bytes: await file.arrayBuffer() })))
+    })))
+  };
+}
+
+export async function restoreWorkbenchHandoff(handoff) {
+  if (handoff?.version !== 1 || !Array.isArray(handoff.edits))
+    throw new Error("Unsupported material workbench handoff.");
+  for (const entry of handoff.edits) {
+    const object = materialObjects(entry.index)[0];
+    if (!object) throw new Error(`Material ${entry.index} is missing after renderer switching.`);
+    select(object);
+    for (const [id, value] of Object.entries(entry.inputs)) {
+      const control = $(id);
+      if (control) control.value = value;
+    }
+    packageImages = Object.fromEntries(entry.images.map(({ kind, name, type, bytes }) =>
+      [kind, new File([bytes], name, { type })]));
+    showMaps();
+    showValues();
+    updateModeControls();
+    await apply();
+    if (!edits.has(entry.index))
+      throw new Error(`Material ${entry.index} could not be restored after renderer switching.`);
+  }
+  const selected = materialObjects(handoff.selectedIndex)[0];
+  if (selected) select(selected);
+  status(`${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} KEPT · SAVE A NEW GLB`);
+}
+
 async function download() {
   if (busy || !sourceFile || !edits.size) return;
   busy = true;
