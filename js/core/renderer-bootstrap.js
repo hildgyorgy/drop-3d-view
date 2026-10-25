@@ -1,6 +1,6 @@
 /* One document/UI, with renderer-specific module graphs selected at startup. */
 import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js";
-import { saveBackendHandoff, readBackendHandoff, clearBackendHandoff } from "./backend-handoff.js";
+import { saveBackendHandoff, takeBackendHandoff } from "./backend-handoff.js";
 import { enableEmbedBridge } from "./embed-bridge.js";
 
 const localComparison = location.hostname === "127.0.0.1" && location.port === "8001";
@@ -86,12 +86,11 @@ async function start() {
     await app.bootPromise;
     enableEmbedBridge(app);
 
-    const handoff = showPicker ? await readBackendHandoff() : null;
+    const handoff = showPicker ? await takeBackendHandoff() : null;
     if (handoff?.fileBytes || handoff?.file) {
       const file = new File([handoff.fileBytes ?? handoff.file], handoff.fileName,
         { type: "model/gltf-binary" });
-      if (await app.openBackendHandoff(file, handoff))
-        await clearBackendHandoff();
+      await app.openBackendHandoff(file, handoff);
     }
   } finally {
     enablePicker();

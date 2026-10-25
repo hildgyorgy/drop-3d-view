@@ -26,6 +26,7 @@ import { bindFocusCanvas } from "./view/focus.js";
 import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
+import { restoreBackendHandoff } from "./core/backend-restore.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -125,14 +126,19 @@ export async function getBackendHandoff() {
 }
 
 export async function openBackendHandoff(file, { viewSession, workbench } = {}) {
-  if (!await openFile(file)) return false;
-  if (workbench && materialWorkbench)
-    await materialWorkbench.restoreWorkbenchHandoff(workbench);
-  if (viewSession) {
-    try { restoreCurrentViewSession(viewSession); }
-    catch (error) { console.warn("Saved view could not be restored; using the fitted view", error); }
-  }
-  return true;
+  return restoreBackendHandoff(file, { viewSession, workbench }, {
+    openFile,
+    restoreWorkbench: materialWorkbench
+      ? state => materialWorkbench.restoreWorkbenchHandoff(state)
+      : null,
+    restoreView: restoreCurrentViewSession,
+    onError(stage, error) {
+      if (stage === "workbench")
+        console.warn("Material edits could not be restored after renderer switching", error);
+      else
+        console.warn("Saved view could not be restored; using the fitted view", error);
+    }
+  });
 }
 
 export const bootPromise = boot();

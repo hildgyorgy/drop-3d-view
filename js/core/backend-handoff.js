@@ -40,6 +40,29 @@ export async function readBackendHandoff() {
   return (await transact("readonly", store => store.get("current"))) ?? null;
 }
 
+// Read and delete in one transaction so a broken or partially restorable
+// handoff cannot be replayed on every later debug-mode startup.
+export async function takeBackendHandoff() {
+  const database = await openDatabase();
+  try {
+    return await new Promise((resolve, reject) => {
+      const transaction = database.transaction(storeName, "readwrite");
+      const store = transaction.objectStore(storeName);
+      const request = store.get("current");
+      let result = null;
+      request.onsuccess = () => {
+        result = request.result ?? null;
+        if (result) store.delete("current");
+      };
+      transaction.oncomplete = () => resolve(result);
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+  } finally {
+    database.close();
+  }
+}
+
 export function clearBackendHandoff() {
   return transact("readwrite", store => store.delete("current"));
 }
