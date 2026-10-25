@@ -31,6 +31,7 @@ export const whiteMaterial = new THREE.MeshStandardMaterial({
 });
 
 const whiteMaterialVariants = new WeakMap();
+const whiteMaterialVariantSet = new Set();
 
 function getWhiteMaterialVariant(original) {
   if (!original?.clone) return whiteMaterial;
@@ -78,8 +79,18 @@ function getWhiteMaterialVariant(original) {
 
   material.needsUpdate = true;
   whiteMaterialVariants.set(original, material);
+  whiteMaterialVariantSet.add(material);
 
   return material;
+}
+
+export function isWhiteMaterialVariant(material) {
+  return whiteMaterialVariantSet.has(material);
+}
+
+export function disposeWhiteMaterialVariants() {
+  whiteMaterialVariantSet.forEach(material => material.dispose());
+  whiteMaterialVariantSet.clear();
 }
 
 /* ------------------------------------------------------

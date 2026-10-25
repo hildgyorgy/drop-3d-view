@@ -41,6 +41,7 @@ export const sectionDebugBranchMaterial = new THREE.PointsMaterial({
 });
 
 const whiteVariants = new WeakMap();
+const whiteVariantSet = new Set();
 function whiteVariant(original) {
   if (!original?.clone) return whiteMaterial;
   const cached = whiteVariants.get(original);
@@ -59,7 +60,15 @@ function whiteVariant(original) {
   prepareWhitePhysicalGlassVariant(original, variant);
   variant.needsUpdate = true;
   whiteVariants.set(original, variant);
+  whiteVariantSet.add(variant);
   return variant;
+}
+export function isWhiteMaterialVariant(material) {
+  return whiteVariantSet.has(material);
+}
+export function disposeWhiteMaterialVariants() {
+  whiteVariantSet.forEach(material => material.dispose());
+  whiteVariantSet.clear();
 }
 export function getWhiteMaterial(original) {
   return Array.isArray(original) ? original.map(whiteVariant) : whiteVariant(original);

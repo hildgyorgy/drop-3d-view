@@ -616,7 +616,19 @@ window.addEventListener("dropview:model-loaded", event => {
   updateButtons();
   status("ORIGINAL FILE STAYS UNCHANGED");
 });
-window.addEventListener("dropview:model-cleared", () => {
+window.addEventListener("dropview:model-cleared", event => {
+  const resources = event.detail;
+  if (resources?.materials && resources?.geometries) {
+    baselineMaterials.forEach(material => resources.materials.add(material));
+    baselineGeometries.forEach(geometry => resources.geometries.add(geometry));
+    for (const snapshot of [lastAction].filter(Boolean)) {
+      for (const { material, geometry, originalMaterial } of snapshot.objects) {
+        resources.materials.add(material);
+        if (originalMaterial) resources.materials.add(originalMaterial);
+        if (geometry) resources.geometries.add(geometry);
+      }
+    }
+  }
   gltf = null; sourceFile = null; selectedIndex = null; packageImages = {}; edits.clear();
   $("workbenchType").value = "surface";
   baselineMaterials.clear(); lastAction = null;

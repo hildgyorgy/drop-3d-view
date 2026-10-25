@@ -32,8 +32,11 @@ import {
 import {
   whiteMaterial,
   wireMaterial,
+  edgeMaterial,
   renaissanceMaterial,
   renaissanceGlassMaterial,
+  isWhiteMaterialVariant,
+  disposeWhiteMaterialVariants,
   isRenaissanceCutoutMaterial,
   disposeRenaissanceCutoutMaterials,
   sectionCapMaterial
@@ -43,7 +46,7 @@ import { zoomAllImmediately } from "../view/show-all.js";
 import { readDropViewMetadata, readWindowLightEmitters } from "./drop-view-metadata.js";
 import { isGlbFile } from "./file-format.js";
 import { applyMaterialVariant } from "./material-variants.js";
-import { disposeDetachedModel } from "./model-resource-disposal.js";
+import { disposeDetachedModel, disposeModelResources } from "./model-resource-disposal.js";
 import { buildEdges } from "../view/edges.js";
 import { createGround, configureSun, applyImportedSun } from "../view/ground-sun.js";
 import { configureWindowLights, clearWindowLights } from "../view/window-lights.js";
@@ -316,8 +319,12 @@ export function prepareModel(object, file, gltf = null, metadata = {}) {
 }
 
 export function disposeCurrentModel() {
+  const workbenchMaterials = new Set();
+  const workbenchGeometries = new Set();
   if (new URLSearchParams(location.search).has("rendererDebug"))
-    window.dispatchEvent(new Event("dropview:model-cleared"));
+    window.dispatchEvent(new CustomEvent("dropview:model-cleared", {
+      detail: { materials: workbenchMaterials, geometries: workbenchGeometries }
+    }));
   deactivatePhoto1({ restoreStatus: false });
   clearWindowLights();
   if (State.hasImportedSun) {
@@ -337,7 +344,15 @@ export function disposeCurrentModel() {
   State.currentFile = null;
   updatePhoto1Availability();
 
-  if (!State.model) return;
+  if (!State.model) {
+    disposeModelResources(null, {
+      materials: workbenchMaterials,
+      geometries: workbenchGeometries
+    });
+    disposeWhiteMaterialVariants();
+    disposeRenaissanceCutoutMaterials();
+    return;
+  }
 
   if (State.sectionCapFrame !== null) {
     cancelAnimationFrame(State.sectionCapFrame);
@@ -347,41 +362,26 @@ export function disposeCurrentModel() {
   disposeSectionCap();
   State.model.parent?.remove(State.model);
 
-  forEachMesh(State.model, node => {
-    node.geometry?.dispose();
-
-    const materials = Array.isArray(node.material) ? node.material : [node.material];
-
-    materials.forEach(material => {
-      if (!material) return;
-
-      /*
-             A megosztott viewer-materialokat
-             nem akarjuk itt eldobni.
-          */
-
-      if (
-        material === whiteMaterial ||
-        material === wireMaterial ||
-        material === renaissanceMaterial ||
-        material === renaissanceGlassMaterial ||
-        isRenaissanceCutoutMaterial(material) ||
-        material === sectionCapMaterial
-      )
-        return;
-
-      material.map?.dispose();
-
-      material.dispose();
-    });
+  disposeModelResources(State.model, {
+    materials: [...State.originalMaterials.values(), ...workbenchMaterials],
+    geometries: workbenchGeometries,
+    excludedMaterials: [
+      whiteMaterial,
+      wireMaterial,
+      renaissanceMaterial,
+      renaissanceGlassMaterial,
+      sectionCapMaterial
+    ],
+    excludeMaterial: material =>
+      isWhiteMaterialVariant(material) || isRenaissanceCutoutMaterial(material)
   });
 
-  disposeRenaissanceCutoutMaterials({
-    disposeTextures: State.currentMode === "renaissance"
-  });
+  disposeWhiteMaterialVariants();
+  disposeRenaissanceCutoutMaterials();
 
   if (State.edgeGroup) {
     State.edgeGroup.parent?.remove(State.edgeGroup);
+    disposeModelResources(State.edgeGroup, { excludedMaterials: [edgeMaterial] });
 
     State.edgeGroup = null;
   }
