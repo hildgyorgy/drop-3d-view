@@ -109,6 +109,8 @@ npm test
 
 ## Project layout
 
+For a new development chat, start with the [project handoff](PROJECT_HANDOFF.md).
+
 - `index.html` — shared viewer interface and renderer bootstrap
 - `renderers/` — generated, same-origin WebGPU and WebGL packages for GitHub Pages
 - `webgpu-lab/` — renderer adapters and build scripts for both packages (the old standalone lab page is retired)
