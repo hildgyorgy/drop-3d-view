@@ -10,7 +10,10 @@ import * as THREE from "three";
 import { State } from "../core/state.js";
 import { perspectiveCamera, orthoCamera } from "../core/scene.js";
 import { createControls } from "../core/controls.js";
-import { restoreCameraPose } from "../core/view-session.js";
+import {
+  assertValidCameraSnapshot,
+  restoreCameraPose
+} from "../core/view-session.js";
 import { setNavigationMode, updateFlyAvailability } from "./navigation.js";
 import { perspectiveButton, axonButton, orthoButton, cameraFov } from "../core/dom.js";
 import {
@@ -246,7 +249,7 @@ export function getCameraPreset() {
 }
 
 export function restoreCameraView(snapshot) {
-  const saved = snapshot.camera;
+  const saved = assertValidCameraSnapshot(snapshot.camera);
   if (!["perspective", "axon", "ortho"].includes(saved?.projection))
     throw new Error("Unsupported saved camera projection");
   if (saved.preset && presetDirections[saved.preset]) preset = saved.preset;

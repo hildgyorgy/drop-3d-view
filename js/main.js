@@ -25,7 +25,9 @@ import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
 import { bindFocusCanvas } from "./view/focus.js";
 import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
+import { resolveComparisonModelUrl } from "./model/file-format.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
+import { assertValidViewSession } from "./core/view-session.js";
 import { restoreBackendHandoff } from "./core/backend-restore.js";
 import { getSafeViewportSize } from "./view/viewport-size.js";
 import { resizeSectionRenderer } from "./section/section-resize.js";
@@ -103,13 +105,16 @@ async function boot() {
   renderer.setAnimationLoop(animate);
 
   // Optional local comparison fixture; regular users still choose OPEN/DEMO.
-  const fixture = new URLSearchParams(location.search).get("model");
+  const fixtureValue = new URLSearchParams(location.search).get("model");
+  const fixture = resolveComparisonModelUrl(fixtureValue, location.href);
+  if (fixtureValue && !fixture)
+    console.warn("Ignored unsafe comparison model URL");
   if (fixture) {
     const savedView = new URLSearchParams(location.search).get("viewSession");
     let viewSession = null;
     if (savedView) {
       try {
-        viewSession = JSON.parse(savedView);
+        viewSession = assertValidViewSession(JSON.parse(savedView));
       } catch (error) {
         console.warn("Invalid comparison view session; using the fitted view", error);
       }

@@ -13,7 +13,7 @@ import {
   windowLightsIntensity,
   windowLightsToggle
 } from "./dom.js";
-import { captureViewSession } from "./view-session.js";
+import { assertValidViewSession, captureViewSession } from "./view-session.js";
 import { getCameraPreset, restoreCameraView } from "../view/camera.js";
 import {
   getGroupVisibilitySnapshot,
@@ -108,6 +108,7 @@ function restoreSection(section, settings = {}) {
 export function restoreCurrentViewSession(snapshot) {
   if (!State.model || snapshot?.version !== 1)
     throw new Error("No model or unsupported view session");
+  assertValidViewSession(snapshot);
   deactivatePhoto1(); // The accumulated image cannot survive a renderer restart.
   if (["original", "white", "hidden", "wireframe", "renaissance"].includes(snapshot.displayMode))
     setViewMode(snapshot.displayMode);
