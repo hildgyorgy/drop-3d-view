@@ -40,7 +40,7 @@ let fileAcceptGeneration = 0;
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
 stylesheet.href = new URL(
-  "../../css/material-workbench.css?v=2.0-workbench-redesign",
+  "../../css/material-workbench.css?v=2.0-workbench-redesign-2",
   import.meta.url
 ).href;
 document.head.append(stylesheet);
@@ -53,6 +53,7 @@ panel.innerHTML = `<div class="workbench-header">
     <span>MATERIAL WORKBENCH</span>
     <button id="workbenchClose" class="workbench-close" type="button">EXIT</button>
   </div>
+  <div id="workbenchContext" class="workbench-context"></div>
   <div class="workbench-body">
     <p id="workbenchLockMessage" class="workbench-lock-message" hidden>THIS MODEL IS VIEW-ONLY · ASK THE MODEL OWNER FOR AN EDITABLE GLB TO USE MATERIAL WORKBENCH</p>
     <div id="workbenchEditor" class="workbench-editor">
@@ -106,7 +107,6 @@ const textureControls = [
   "workbenchOffsetY"
 ];
 const entry = document.querySelector("#materialWorkbenchEntry");
-const aboutButton = document.querySelector("#aboutButton");
 const aboutMenu = document.querySelector("#aboutMenu");
 
 function currentAccess() {
@@ -120,6 +120,7 @@ function updateWorkbenchAccess() {
   const access = currentAccess();
   if (entry) entry.hidden = !access.visible;
   aboutMenu?.classList.toggle("has-workbench-entry", access.visible);
+  updateWorkbenchContext(access);
   const locked = Boolean(State.model) && !access.canEdit;
   $("workbenchLockMessage").hidden = !locked;
   $("workbenchEditor").hidden = locked;
@@ -127,22 +128,32 @@ function updateWorkbenchAccess() {
   return access;
 }
 
-function openWorkbench() {
+function updateWorkbenchContext(access = currentAccess()) {
+  let message = "OPEN A GLB OR TRY A DEMO TO START";
+  if (gltf && State.currentFileSourceKind === "demo")
+    message = "DEMO MODEL · PREVIEW ONLY · OPEN YOUR OWN GLB TO SAVE";
+  else if (gltf && !access.canEdit) message = "VIEW-ONLY MODEL";
+  else if (gltf && access.canSave) message = "ORIGINAL FILE STAYS UNCHANGED";
+  $("workbenchContext").textContent = message;
+}
+
+function setWorkbenchOpen(open) {
+  panel.open = open;
+  panel.hidden = !open;
+  entry?.setAttribute("aria-pressed", String(open));
+}
+
+function toggleWorkbench() {
   const access = updateWorkbenchAccess();
   if (!access.visible) return;
-  panel.hidden = false;
-  panel.open = true;
-  if (!State.model) status("OPEN A GLB OR TRY A DEMO TO START");
-  if (aboutMenu) aboutMenu.hidden = true;
-  aboutButton?.setAttribute("aria-expanded", "false");
+  setWorkbenchOpen(panel.hidden);
 }
 
 function closeWorkbench() {
-  panel.open = false;
-  panel.hidden = true;
+  setWorkbenchOpen(false);
 }
 
-entry?.addEventListener("click", openWorkbench);
+entry?.addEventListener("click", toggleWorkbench);
 
 function updateButtons() {
   const access = currentAccess();
@@ -956,16 +967,11 @@ window.addEventListener("dropview:model-loaded", event => {
       baselineGeometries.set(object.uuid, object.geometry);
     }
   });
-  $("workbenchMaterial").textContent = "CLICK A SURFACE TO SELECT ITS MATERIAL";
+  $("workbenchMaterial").textContent = "CLICK A SURFACE";
   showMaps();
   updateModeControls();
   const access = updateWorkbenchAccess();
-  if (access.canEdit)
-    status(
-      access.canSave
-        ? "ORIGINAL FILE STAYS UNCHANGED"
-        : "DEMO MODEL · PREVIEW ONLY · OPEN YOUR OWN GLB TO SAVE"
-    );
+  if (access.canEdit) status("");
 });
 window.addEventListener("dropview:model-cleared", event => {
   ++fileAcceptGeneration;
@@ -992,6 +998,7 @@ window.addEventListener("dropview:model-cleared", event => {
   baselineGeometries.clear();
   $("workbenchFiles").value = "";
   $("workbenchMaterial").textContent = "NO MATERIAL SELECTED";
+  updateWorkbenchContext();
   showMaps();
   updateModeControls();
   $("workbenchLockMessage").hidden = true;

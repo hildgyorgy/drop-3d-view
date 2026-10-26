@@ -232,7 +232,7 @@ canvas {
 .about-experiments {
   display: grid;
   width: 100%;
-  gap: 10px;
+  gap: 5px;
   padding: 10px 0 9px;
   border-bottom: 1px dashed #17171788;
   text-align: left;
@@ -248,6 +248,9 @@ canvas {
   padding-left: 19px;
   text-align: left;
 }
+.brand .about-workbench {
+  min-height: 0;
+}
 .about-workbench::before,
 .about-coming-soon::before {
   content: "";
@@ -259,6 +262,10 @@ canvas {
   border: 1px solid currentColor;
   border-radius: 50%;
   box-sizing: border-box;
+}
+.about-workbench[aria-pressed="true"]::before {
+  border-color: var(--red);
+  background: var(--red);
 }
 .about-menu.has-workbench-entry {
   width: 230px;

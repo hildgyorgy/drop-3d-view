@@ -4,7 +4,7 @@
   z-index: 110;
   top: var(--workbench-top);
   right: var(--edge, 28px);
-  width: min(374px, calc(100vw - 2 * var(--edge, 28px)));
+  width: min(342px, calc(100vw - 2 * var(--edge, 28px)));
   max-height: calc(100dvh - var(--workbench-top) - max(210px, 20dvh));
   overflow: auto;
   box-sizing: border-box;
@@ -14,7 +14,7 @@
   background: rgba(239, 239, 237, 0.94);
   color: #242424;
   font:
-    10px/1.3 ui-monospace,
+    11px/1.3 ui-monospace,
     SFMono-Regular,
     Menlo,
     Consolas,
@@ -29,9 +29,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 22px;
-  font-size: 12px;
+  margin-bottom: 5px;
+  font-size: 13px;
   letter-spacing: 0.16em;
+}
+
+#materialWorkbench .workbench-context {
+  min-height: 13px;
+  margin-bottom: 18px;
+  color: #777;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 #materialWorkbench .workbench-body,
@@ -55,7 +64,7 @@
 #materialWorkbench .workbench-map-heading,
 #materialWorkbench .workbench-type-color-row label > span {
   color: #999;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.14em;
 }
 
@@ -71,7 +80,7 @@
   min-height: 13px;
   margin-top: -3px;
   color: #777;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0.04em;
   overflow-wrap: anywhere;
 }
@@ -88,7 +97,7 @@
   border: 0;
   padding: 0;
   color: #f1250c;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.14em;
 }
 
@@ -118,7 +127,7 @@
 #materialWorkbench .workbench-maps {
   max-width: 100%;
   color: #777;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }
@@ -180,7 +189,7 @@
 
 #materialWorkbench .workbench-editor > label:has(input[type="range"]) {
   display: grid;
-  grid-template-columns: 145px minmax(70px, 1fr) 42px;
+  grid-template-columns: 125px minmax(70px, 1fr) 42px;
   align-items: center;
   gap: 6px;
   min-height: 23px;
@@ -189,7 +198,7 @@
 }
 
 #materialWorkbench .workbench-editor > label:has(input[type="range"]):not(:has(output)) {
-  grid-template-columns: 145px minmax(118px, 1fr);
+  grid-template-columns: 125px minmax(118px, 1fr);
 }
 
 #materialWorkbench input[type="range"] {
@@ -229,7 +238,7 @@
   width: auto;
   border: 0;
   padding: 0;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 #materialWorkbench button:hover {
@@ -262,7 +271,10 @@
     padding: 14px 18px 16px;
   }
   #materialWorkbench .workbench-header {
-    margin-bottom: 12px;
+    margin-bottom: 5px;
+  }
+  #materialWorkbench .workbench-context {
+    margin-bottom: 10px;
   }
   #materialWorkbench .workbench-editor {
     gap: 5px;
@@ -279,16 +291,16 @@
   #materialWorkbench {
     --workbench-top: 155px;
     right: 12px;
-    width: min(350px, calc(100vw - 24px));
+    width: min(330px, calc(100vw - 24px));
     max-height: calc(100dvh - 175px);
     padding: 16px;
   }
   #materialWorkbench .workbench-editor > label:has(input[type="range"]) {
-    grid-template-columns: 112px minmax(64px, 1fr) 38px;
+    grid-template-columns: 110px minmax(64px, 1fr) 38px;
   }
   #materialWorkbench
     .workbench-editor
     > label:has(input[type="range"]):not(:has(output)) {
-    grid-template-columns: 112px minmax(102px, 1fr);
+    grid-template-columns: 110px minmax(102px, 1fr);
   }
 }
