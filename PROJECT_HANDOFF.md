@@ -1,6 +1,6 @@
 # Drop & View – fejlesztői átadó
 
-Állapot: 2026-10-25. Ez a dokumentum az új fejlesztői chat kiindulópontja; a tényleges kód és a tesztek az elsődleges források. A felhasználói működést a [README](README.md) írja le.
+Állapot: 2026-10-26. Aktuális publikus verzió: **1.5**. Ez a dokumentum az új fejlesztői chat kiindulópontja; a tényleges kód és a tesztek az elsődleges források. A felhasználói működést a [README](README.md) írja le.
 
 ## Termék és döntések
 
@@ -11,6 +11,7 @@
 - A `WINDOW LIGHTS` az exporter által megjelölt téglalap alakú ablakfényekre épül; alapból kikapcsolt. A régi, üvegeket emisszívvé tevő `GLASS LIGHT` kísérlet rejtett és kikapcsolt marad.
 - A WebGL path tracer jelenleg referencia. A WebGPU path tracer minőségét, különösen az üvegen átmenő fény és árnyék esetét, továbbra is azonos modellel és nézettel kell összehasonlítani; nincs késznek nyilvánítva.
 - A kamera a PATH TRACER alatt szándékosan zárolt. A nézetet ORIGINAL módban kell beállítani, majd a PATH TRACER-t bekapcsolva hagyni konvergálni; ezt ne oldjuk fel pusztán dokumentációs eltérés miatt.
+- Az 1.5 a stabilizált viewer mérföldkő. A MATERIAL WORKBENCH egyelőre csak debug-eszköz; a publikus Material Workbench kiadása lesz a tervezett 2.0 mérföldkő.
 
 ## Kódtérkép
 

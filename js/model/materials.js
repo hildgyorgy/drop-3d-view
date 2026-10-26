@@ -164,7 +164,7 @@ export const sectionDebugBranchMaterial = createSectionDebugPointMaterial(0xff00
 ====================================================== */
 
 /*
-   Drop & View 1.1
+   Drop & View B/W material notes
 
    FONTOS VÁLTOZÁS:
 

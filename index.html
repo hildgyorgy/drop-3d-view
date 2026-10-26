@@ -73,6 +73,7 @@
                 hidden
               >
                 <div>DROP &amp; VIEW</div>
+                <div id="appVersion" aria-label="Application version"></div>
                 <div>by</div>
                 <div>GYÖRGY HILD</div>
                 <a
@@ -465,11 +466,11 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=query-validation-1",
-          webgl: "renderers/webgl/main.js?v=query-validation-1"
+          webgpu: "renderers/webgpu/main.js?v=1.5",
+          webgl: "renderers/webgl/main.js?v=1.5"
         };
       }
     </script>
-    <script type="module" src="js/core/renderer-bootstrap.js?v=embed-errors-1"></script>
+    <script type="module" src="js/core/renderer-bootstrap.js?v=1.5"></script>
   </body>
 </html>
