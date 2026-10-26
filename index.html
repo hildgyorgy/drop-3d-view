@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=2.0" />
+    <link rel="stylesheet" href="css/style.css?v=2.0-workbench-redesign" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -76,16 +76,7 @@
                   DROP &amp; VIEW
                   <span id="appVersion" aria-label="Application version"></span>
                 </div>
-                <div>by</div>
-                <div>GYÖRGY HILD</div>
-                <button
-                  id="materialWorkbenchEntry"
-                  class="about-workbench"
-                  type="button"
-                  hidden
-                >
-                  MATERIAL WORKBENCH
-                </button>
+                <div>by GYÖRGY HILD</div>
                 <a
                   class="about-support"
                   href="https://hildgyorgy.github.io/app-support/drop-view/"
@@ -93,6 +84,20 @@
                   rel="noopener"
                   >SUPPORT</a
                 >
+                <div class="about-experiments">
+                  <span class="about-section-heading">Experimental features</span>
+                  <button
+                    id="materialWorkbenchEntry"
+                    class="about-workbench"
+                    type="button"
+                    hidden
+                  >
+                    MATERIAL WORKBENCH
+                  </button>
+                  <span class="about-coming-soon" aria-disabled="true"
+                    >MEASUREMENTS (soon)</span
+                  >
+                </div>
                 <div id="rendererPicker" class="renderer-picker" hidden>
                   <span>RENDERER</span>
                   <div role="group" aria-label="Renderer backend">
