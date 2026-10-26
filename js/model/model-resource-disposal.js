@@ -17,6 +17,17 @@ export function disposeTextureResources(textureValues) {
   images.forEach(image => image.close());
 }
 
+// Workbench previews own only the resources they create. Dispose that explicit
+// set without walking cloned materials, which may still reference source-model
+// textures owned by the GLTFLoader result.
+export function disposeOwnedResources({ textures = [], materials = [], geometries = [] } = {}) {
+  disposeTextureResources(textures);
+  const uniqueMaterials = new Set();
+  materials.forEach(material => addMaterial(uniqueMaterials, material));
+  uniqueMaterials.forEach(material => material.dispose());
+  new Set(geometries).forEach(geometry => geometry?.dispose());
+}
+
 // Dispose an object hierarchy plus resources that are no longer attached to
 // it (for example original materials while WIRE is active). Sets prevent
 // shared geometries, materials, textures and ImageBitmaps from being released

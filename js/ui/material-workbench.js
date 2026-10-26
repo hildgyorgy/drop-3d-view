@@ -6,7 +6,10 @@ import { renderer } from "../core/scene.js";
 import { setViewMode } from "../view/view-modes.js";
 import { patchGlbMaterials } from "../model/glb-material-patch.js";
 import { deduplicateMeterUvs, makeMeterUvs } from "../model/meter-uv.js";
-import { disposeTextureResources } from "../model/model-resource-disposal.js";
+import {
+  disposeOwnedResources,
+  disposeTextureResources
+} from "../model/model-resource-disposal.js";
 import {
   detectSupportedImageFileMime,
   detectSupportedImageMime,
@@ -16,6 +19,7 @@ import {
   captureWorkbenchOperation,
   isWorkbenchOperationCurrent
 } from "./workbench-operation.js";
+import { disposeUnusedWorkbenchEdit } from "./workbench-resource-lifecycle.js";
 
 const variantName = "Maxon / Redshift PBR";
 const raycaster = new THREE.Raycaster();
@@ -157,6 +161,18 @@ function restoreMaterial(snapshot) {
   updateButtons();
 }
 
+function createWorkbenchResources() {
+  return { textures: new Set(), materials: new Set(), geometries: new Set() };
+}
+
+function disposeEditResourcesIfUnused(edit) {
+  disposeUnusedWorkbenchEdit(edit, edits.values(), lastAction?.edit);
+}
+
+function disposeSnapshotResourcesIfUnused(snapshot) {
+  disposeEditResourcesIfUnused(snapshot?.edit);
+}
+
 function select(object) {
   if (busy) return;
   const index = materialIndexFor(object);
@@ -233,22 +249,33 @@ async function packedRoughnessImage(images, metalness) {
   const source = images.arm || images.roughness || images.metalness;
   if (!source) return null;
   const bitmap = await imageBitmap(source);
-  const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  context.drawImage(bitmap, 0, 0);
-  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
-  bitmap.close();
+  let canvas;
+  let context;
+  let pixels;
+  try {
+    canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Texture canvas is not available.");
+    context.drawImage(bitmap, 0, 0);
+    pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+  } finally {
+    bitmap.close();
+  }
   let metalPixels = null;
   if (images.metalness && images.metalness !== source) {
     const metalBitmap = await imageBitmap(images.metalness);
-    const other = document.createElement("canvas");
-    other.width = canvas.width; other.height = canvas.height;
-    const otherContext = other.getContext("2d", { willReadFrequently: true });
-    otherContext.drawImage(metalBitmap, 0, 0, canvas.width, canvas.height);
-    metalPixels = otherContext.getImageData(0, 0, canvas.width, canvas.height).data;
-    metalBitmap.close();
+    try {
+      const other = document.createElement("canvas");
+      other.width = canvas.width; other.height = canvas.height;
+      const otherContext = other.getContext("2d", { willReadFrequently: true });
+      if (!otherContext) throw new Error("Texture canvas is not available.");
+      otherContext.drawImage(metalBitmap, 0, 0, canvas.width, canvas.height);
+      metalPixels = otherContext.getImageData(0, 0, canvas.width, canvas.height).data;
+    } finally {
+      metalBitmap.close();
+    }
   }
   for (let i = 0; i < pixels.data.length; i += 4) {
     const rough = images.arm ? pixels.data[i + 1] : images.roughness ? pixels.data[i + 1] : 255;
@@ -260,7 +287,9 @@ async function packedRoughnessImage(images, metalness) {
     pixels.data[i + 3] = 255;
   }
   context.putImageData(pixels, 0, 0);
-  return new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("The combined roughness texture could not be created.");
+  return blob;
 }
 
 function transformFromInputs(inputs) {
@@ -275,12 +304,33 @@ function transformFromInputs(inputs) {
 async function imageForPreview(blob, color = false) {
   if (!blob) return null;
   const image = await imageBitmap(blob);
-  const texture = new THREE.Texture(image);
-  texture.flipY = false;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  texture.needsUpdate = true;
-  return texture;
+  try {
+    const texture = new THREE.Texture(image);
+    texture.flipY = false;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    texture.needsUpdate = true;
+    return texture;
+  } catch (error) {
+    image.close();
+    throw error;
+  }
+}
+
+async function previewImages(images, packed) {
+  const settled = await Promise.allSettled([
+    imageForPreview(images.color, true),
+    imageForPreview(packed),
+    imageForPreview(images.normal)
+  ]);
+  const textures = settled.filter(item => item.status === "fulfilled")
+    .map(item => item.value).filter(Boolean);
+  const failure = settled.find(item => item.status === "rejected");
+  if (failure) {
+    disposeTextureResources(textures);
+    throw failure.reason;
+  }
+  return settled.map(item => item.value);
 }
 
 function setTransform(texture, transform) {
@@ -344,7 +394,7 @@ async function apply() {
   busy = true;
   updateButtons();
   let before = null;
-  let previewTextures = [];
+  const resources = createWorkbenchResources();
   try {
     const inputs = Object.fromEntries([...controls, "workbenchType", "workbenchColor"].map(id => [id, $(id).value]));
     const type = inputs.workbenchType;
@@ -360,15 +410,11 @@ async function apply() {
     const packed = usesMaps ? await packedRoughnessImage(images, metalness) : null;
     if (!isWorkbenchOperationCurrent(operation, gltf, State.model)) return;
     const transform = transformFromInputs(inputs);
-    const [colorMap, roughMap, normalMap] = await Promise.all([
-      imageForPreview(images.color, true),
-      imageForPreview(packed),
-      imageForPreview(images.normal)
-    ]);
-    previewTextures = [colorMap, roughMap, normalMap].filter(Boolean);
+    const [colorMap, roughMap, normalMap] = await previewImages(images, packed);
+    [colorMap, roughMap, normalMap].filter(Boolean)
+      .forEach(texture => resources.textures.add(texture));
     if (!isWorkbenchOperationCurrent(operation, gltf, State.model)) {
-      disposeTextureResources(previewTextures);
-      previewTextures = [];
+      disposeOwnedResources(resources);
       return;
     }
     for (const texture of [colorMap, roughMap, normalMap]) {
@@ -382,6 +428,7 @@ async function apply() {
     for (const { object } of before.objects) {
       if (meterUv) {
         const projected = meterGeometry(object, Number(inputs.workbenchTileMetres));
+        resources.geometries.add(projected.geometry);
         object.geometry = projected.geometry;
         const association = operation.gltf.parser.associations.get(object);
         if (!Number.isInteger(association?.meshes) || !Number.isInteger(association?.primitives))
@@ -437,23 +484,24 @@ async function apply() {
         if (normalMap) material.normalMap = normalMap;
         material.needsUpdate = true;
         applied.set(original, material);
+        resources.materials.add(material);
       }
       object.material = material;
       State.originalMaterials.set(object.uuid, material);
     }
-    edits.set(materialIndex, { inputs, images, packed,
+    const discardedAction = lastAction;
+    edits.set(materialIndex, { inputs, images, packed, resources,
       meterUvs: deduplicateMeterUvs(meterUvs),
       materialIndices: materialTargets(materialIndex).filter(index => !glass ||
         (operation.gltf.parser.json.materials[index]?.extras?.archicad?.clearGlassOverride === true &&
          Number(operation.gltf.parser.json.materials[index]?.extensions?.KHR_materials_transmission?.transmissionFactor) > 0)) });
     setViewMode("original");
     lastAction = before;
+    disposeSnapshotResourcesIfUnused(discardedAction);
     status(`${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} READY · SAVE A NEW GLB`);
-    // The applied materials own these textures from this point onward.
-    previewTextures = [];
   } catch (error) {
     if (before) restoreMaterial(before);
-    disposeTextureResources(previewTextures);
+    disposeOwnedResources(resources);
     console.error("Material preview failed", error);
     status(`COULD NOT APPLY: ${error.message}`);
   } finally { busy = false; updateButtons(); }
@@ -549,8 +597,10 @@ async function download() {
 function undo() {
   if (busy || !lastAction) return;
   const previous = lastAction;
+  const discardedEdit = edits.get(previous.index);
   lastAction = null;
   restoreMaterial(previous);
+  disposeEditResourcesIfUnused(discardedEdit);
   if (selectedIndex === previous.index && previous.objects[0]) select(previous.objects[0].object);
   status("LAST MATERIAL CHANGE UNDONE");
   updateButtons();
@@ -560,6 +610,7 @@ function resetMaterial() {
   if (busy || selectedIndex === null || !edits.has(selectedIndex)) return;
   if (State.pathTracerActive) { status("EXIT PATH TRACER BEFORE RESETTING"); return; }
   const previous = captureMaterial(selectedIndex);
+  const discardedAction = lastAction;
   if (previous.objects.some(({ object }) => !baselineMaterials.has(object.uuid))) {
     status("ORIGINAL MATERIAL IS UNAVAILABLE");
     return;
@@ -572,6 +623,7 @@ function resetMaterial() {
   }
   edits.delete(selectedIndex);
   lastAction = previous;
+  disposeSnapshotResourcesIfUnused(discardedAction);
   packageImages = {};
   $("workbenchFiles").value = "";
   setViewMode("original");

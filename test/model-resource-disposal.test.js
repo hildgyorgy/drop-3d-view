@@ -2,8 +2,28 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   disposeDetachedModel,
-  disposeModelResources
+  disposeModelResources,
+  disposeOwnedResources
 } from "../js/model/model-resource-disposal.js";
+
+test("owned workbench resources are deduplicated without walking source textures", () => {
+  const calls = { texture: 0, bitmap: 0, material: 0, geometry: 0, source: 0 };
+  const bitmap = { close: () => { calls.bitmap++; } };
+  const texture = { isTexture: true, image: bitmap, dispose: () => { calls.texture++; } };
+  const sourceTexture = { isTexture: true, dispose: () => { calls.source++; } };
+  const material = { map: sourceTexture, dispose: () => { calls.material++; } };
+  const geometry = { dispose: () => { calls.geometry++; } };
+
+  disposeOwnedResources({
+    textures: [texture, texture],
+    materials: [material, [material]],
+    geometries: [geometry, geometry]
+  });
+
+  assert.deepEqual(calls, {
+    texture: 1, bitmap: 1, material: 1, geometry: 1, source: 0
+  });
+});
 
 test("a stale loaded model releases each shared GPU resource once", () => {
   const calls = { geometry: 0, material: 0, texture: 0 };
