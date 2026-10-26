@@ -35,6 +35,12 @@ The standalone viewer's red **i** panel opens the optional **MATERIAL WORKBENCH*
 
 The built-in demos are fully editable for experimentation but cannot be saved. A GLB exported with `asset.extras.dropView.materialWorkbench.policy` set to `disabled` remains view-only and asks the user to request an editable version from its owner. Older files and GLBs without that explicit policy remain editable. The Material Workbench and its code are not loaded in embedded viewers.
 
+## Measurements (experimental)
+
+Toggle **MEASUREMENTS** in the red **i** panel, then drag each black endpoint onto a model surface. The red ruler shows the straight-line 3D distance in metres and adapts its subdivisions to the current view. Endpoints remain attached while orbiting or zooming; only dragging a handle temporarily suspends the camera. Empty-space drops retain the last valid point. Hidden groups and section-clipped surfaces cannot receive endpoints.
+
+The first version provides one measurement, without edge/vertex snapping. Accuracy depends on the GLB's scale and endpoint placement. Switching the tool off preserves the current measurement; opening another model or switching renderers clears it. Measurements are a viewer overlay, are not saved into exported GLBs, and are unavailable in embedded viewers.
+
 ### Dormant GLASS LIGHT experiment
 
 The PATH TRACER contains an off-by-default, currently hidden experiment for brightening dark interiors. It makes only the Archicad exporter's explicitly selected Clear Glass materials (`extras.archicad.clearGlassOverride: true`, with physical transmission) emit neutral light; legacy transparent materials and cutouts do not emit. It can improve an interior view when the windows are outside the frame, but visible windows become glowing white panes and convergence can be noisy. The imported GLB and ORIGINAL mode are never changed. To try it again, set `GLASS_LIGHT_EXPERIMENT_ENABLED` to `true` in `js/view/photo1.js`; the GLASS LIGHT button under PATH TRACER will reappear. The experiment remains isolated in `js/view/photo1.js` and `js/model/material-policy.js`, with its dormant button styling in `index.html`, `css/style.css`, `css/adaptive-contrast.css`, and `js/ui/adaptive-contrast.js`.

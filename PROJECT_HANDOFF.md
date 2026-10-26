@@ -24,6 +24,7 @@
 | `renderers/webgl/`, `renderers/webgpu/` | Generált, azonos originről kiszolgált publikus JS-csomagok. Kézzel ne szerkesszük. |
 | `js/core/backend-handoff.js`, `js/core/session-runtime.js` | Motorváltáskor a fájl bájtjainak, nézetnek és workbench-állapotnak a mentése/visszaállítása. A váltás oldal-újratöltés és egyszer használatos IndexedDB-átadás. |
 | `js/view/photo1.js`, `webgpu-lab/full-photo.js` | A két eltérő path tracer adapter. |
+| `js/ui/measurements.js`, `js/ui/measurement-scale.js` | Infópanelről kapcsolható kísérleti 3D mérőszalag: felületre húzható két pont, SVG-vetítés és adaptív méterbeosztás. Csak standalone, nincs él-/csúcs-snap vagy GLB-mentés; új modell/rendererváltás törli. |
 | `embed/drop-view-embed.js`, `js/core/embed-bridge.js` | Más weboldalba ágyazható nézőke; a GLB a fogadó oldal tárhelyén marad. |
 
 ## Anyagok és publikus workbench

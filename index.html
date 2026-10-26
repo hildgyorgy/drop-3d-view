@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=2.0-workbench-redesign-2" />
+    <link rel="stylesheet" href="css/style.css?v=2.0-measurements-1" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -95,9 +95,15 @@
                   >
                     MATERIAL WORKBENCH
                   </button>
-                  <span class="about-coming-soon" aria-disabled="true"
-                    >MEASUREMENTS (soon)</span
+                  <button
+                    id="measurementsEntry"
+                    class="about-workbench"
+                    type="button"
+                    aria-pressed="false"
+                    hidden
                   >
+                    MEASUREMENTS
+                  </button>
                 </div>
                 <div id="rendererPicker" class="renderer-picker" hidden>
                   <span>RENDERER</span>
@@ -482,8 +488,8 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=2.0",
-          webgl: "renderers/webgl/main.js?v=2.0-clearcoat-1"
+          webgpu: "renderers/webgpu/main.js?v=2.0-measurements-1",
+          webgl: "renderers/webgl/main.js?v=2.0-measurements-1"
         };
       }
     </script>

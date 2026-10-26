@@ -75,15 +75,18 @@ function animate(time) {
 
   // OrbitControls damping changes the camera for several frames after the
   // pointer stops. A progressive render needs a perfectly fixed camera.
-  if (!State.pathTracerActive) State.controls.update();
+  if (!State.pathTracerActive && !measurements?.isMeasurementDragging())
+    State.controls.update();
 
   if (!renderPhoto1()) renderer.render(scene, State.camera);
 
   updatePerformanceStats(time, getPhoto1Stats());
   updateAdaptiveContrast(time);
+  measurements?.updateMeasurements();
 }
 
 let materialWorkbench = null;
+let measurements = null;
 
 async function boot() {
   if (backendKind === "webgpu") {
@@ -100,8 +103,10 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
-  if (shouldLoadMaterialWorkbench(readEmbedConfiguration()))
+  if (shouldLoadMaterialWorkbench(readEmbedConfiguration())) {
     materialWorkbench = await import("./ui/material-workbench.js");
+    measurements = await import("./ui/measurements.js");
+  }
   if (backendKind === "webgl")
     await import("./view/webgl-environment.js");
   renderer.setAnimationLoop(animate);
