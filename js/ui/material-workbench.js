@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { State } from "../core/state.js";
 import { renderer } from "../core/scene.js";
 import { setViewMode } from "../view/view-modes.js";
+import { firstVisibleRaycastHit } from "../view/raycast-hit-filter.js";
 import { patchGlbMaterials } from "../model/glb-material-patch.js";
 import { deduplicateMeterUvs, makeMeterUvs } from "../model/meter-uv.js";
 import {
@@ -216,7 +217,14 @@ function onCanvasClick(event) {
   pointer.set((event.clientX - rect.left) / rect.width * 2 - 1,
     -(event.clientY - rect.top) / rect.height * 2 + 1);
   raycaster.setFromCamera(pointer, State.camera);
-  const hit = raycaster.intersectObject(State.model, true).find(item => item.object.isMesh);
+  const hit = firstVisibleRaycastHit(
+    raycaster.intersectObject(State.model, true).filter(item => item.object.isMesh),
+    {
+      model: State.model,
+      sectionEnabled: State.sectionEnabled,
+      sectionPlane: State.sectionPlane
+    }
+  );
   if (hit) select(hit.object);
 }
 

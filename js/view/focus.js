@@ -8,6 +8,7 @@
 import * as THREE from "three";
 import { State } from "../core/state.js";
 import { createCanvasEventBinding } from "../core/canvas-binding.js";
+import { firstVisibleRaycastHit } from "./raycast-hit-filter.js";
 
 /* ======================================================
    DOUBLE CLICK FOCUS
@@ -28,10 +29,14 @@ function onDoubleClick(event) {
 
   raycaster.setFromCamera(pointer, State.camera);
 
-  const hits = raycaster.intersectObject(State.model, true);
+  const hit = firstVisibleRaycastHit(raycaster.intersectObject(State.model, true), {
+    model: State.model,
+    sectionEnabled: State.sectionEnabled,
+    sectionPlane: State.sectionPlane
+  });
 
-  if (hits.length) {
-    animateTarget(hits[0].point);
+  if (hit) {
+    animateTarget(hit.point);
   }
 }
 

@@ -97,7 +97,9 @@ export function patchGlbMaterials(source, edits) {
   json.bufferViews ??= [];
   json.images ??= [];
   json.textures ??= [];
-  const binaryParts = [binary.slice()];
+  // The source BIN chunk is read-only and is copied once into the final GLB.
+  // Keeping its view avoids a second full-size buffer during large-file saves.
+  const binaryParts = [binary];
   const textureCache = new WeakMap();
   const meterMaterials = new Set();
   appendMeterUvs(json, binaryParts, deduplicateMeterUvs(
