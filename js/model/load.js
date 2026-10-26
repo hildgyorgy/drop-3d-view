@@ -45,6 +45,7 @@ import { centreModel, fitCamera, applyExportedInitialView } from "../view/camera
 import { zoomAllImmediately } from "../view/show-all.js";
 import { readDropViewMetadata, readWindowLightEmitters } from "./drop-view-metadata.js";
 import { isGlbFile } from "./file-format.js";
+import { stageModelReplacement } from "./model-replacement.js";
 import { applyMaterialVariant } from "./material-variants.js";
 import { disposeDetachedModel, disposeModelResources } from "./model-resource-disposal.js";
 import { buildEdges } from "../view/edges.js";
@@ -70,6 +71,15 @@ const modelOpenGate = createLatestRequestGate();
 dracoLoader.setDecoderPath(
   "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/libs/draco/"
 );
+
+function reportOpenFailure(startMessage, retainedMessage) {
+  if (State.model) {
+    startScreen.classList.add("hidden");
+    setStatus(retainedMessage);
+  } else {
+    showStartError(startMessage);
+  }
+}
 
 function preserveGLTFGroupLabels(result) {
   const parser = result.parser;
@@ -125,7 +135,10 @@ for (const [button, url] of [
       if (!request.isCurrent()) return;
       console.error(error);
 
-      showStartError("THE DEMO MODEL COULD NOT BE OPENED. PLEASE TRY AGAIN.");
+      reportOpenFailure(
+        "THE DEMO MODEL COULD NOT BE OPENED. PLEASE TRY AGAIN.",
+        "THE DEMO MODEL COULD NOT BE OPENED · CURRENT MODEL KEPT"
+      );
     } finally {
       demoButtons.forEach(item => {
         item.disabled = false;
@@ -170,18 +183,16 @@ window.addEventListener("drop", event => {
 
 export async function openFile(file, { viewSession = null, request = null } = {}) {
   request ??= modelOpenGate.begin();
-  disposeCurrentModel();
   resetStartMessage();
 
-  State.currentFileName = file.name;
-
   if (!isGlbFile(file)) {
-    showStartError("UNSUPPORTED FILE FORMAT. PLEASE USE A GLB FILE.");
+    reportOpenFailure(
+      "UNSUPPORTED FILE FORMAT. PLEASE USE A GLB FILE.",
+      "UNSUPPORTED FILE FORMAT · CURRENT MODEL KEPT"
+    );
 
     return false;
   }
-
-  State.currentFile = file;
 
   setStatus(`Opening ${file.name}…`);
 
@@ -189,28 +200,33 @@ export async function openFile(file, { viewSession = null, request = null } = {}
 
   const objectUrl = URL.createObjectURL(file);
   let result = null;
+  let replacementStarted = false;
 
   try {
-    const loader = new GLTFLoader();
-    loader.setDRACOLoader(dracoLoader);
+    const opened = await stageModelReplacement({
+      stage: async () => {
+        const loader = new GLTFLoader();
+        loader.setDRACOLoader(dracoLoader);
 
-    result = await loader.loadAsync(objectUrl);
-    if (!request.isCurrent()) {
-      disposeDetachedModel(result.scene);
-      return false;
-    }
-    if (new URLSearchParams(location.search).has("rendererDebug")) {
-      await applyMaterialVariant(result, "Maxon / Redshift PBR");
-      if (!request.isCurrent()) {
-        disposeDetachedModel(result.scene);
-        return false;
+        result = await loader.loadAsync(objectUrl);
+        if (new URLSearchParams(location.search).has("rendererDebug"))
+          await applyMaterialVariant(result, "Maxon / Redshift PBR");
+        preserveGLTFGroupLabels(result);
+        const metadata = readDropViewMetadata(result);
+        metadata.windowLightEmitters = readWindowLightEmitters(result);
+        return { result, metadata };
+      },
+      isCurrent: request.isCurrent,
+      disposeStale: candidate => disposeDetachedModel(candidate.result.scene),
+      commit: candidate => {
+        replacementStarted = true;
+        disposeCurrentModel();
+        State.currentFileName = file.name;
+        State.currentFile = file;
+        prepareModel(candidate.result.scene, file, candidate.result, candidate.metadata);
       }
-    }
-    preserveGLTFGroupLabels(result);
-    const metadata = readDropViewMetadata(result);
-    metadata.windowLightEmitters = readWindowLightEmitters(result);
-
-    prepareModel(result.scene, file, result, metadata);
+    });
+    if (!opened) return false;
     window.dispatchEvent(new CustomEvent("dropview:model-loaded", { detail: { gltf: result, file } }));
     if (viewSession) {
       try {
@@ -231,8 +247,11 @@ export async function openFile(file, { viewSession = null, request = null } = {}
 
     if (result?.scene && State.model !== result.scene)
       disposeDetachedModel(result.scene);
-    disposeCurrentModel();
-    showStartError("THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE.");
+    if (replacementStarted) disposeCurrentModel();
+    reportOpenFailure(
+      "THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE.",
+      `COULD NOT OPEN ${file.name} · CURRENT MODEL KEPT`
+    );
     return false;
   } finally {
     URL.revokeObjectURL(objectUrl);
