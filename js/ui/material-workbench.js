@@ -8,6 +8,11 @@ import { patchGlbMaterials } from "../model/glb-material-patch.js";
 import { makeMeterUvs } from "../model/meter-uv.js";
 import { disposeTextureResources } from "../model/model-resource-disposal.js";
 import {
+  detectSupportedImageFileMime,
+  detectSupportedImageMime,
+  readSupportedImage
+} from "../model/image-format.js";
+import {
   captureWorkbenchOperation,
   isWorkbenchOperationCurrent
 } from "./workbench-operation.js";
@@ -24,6 +29,7 @@ let selectedIndex = null;
 let packageImages = {};
 let lastAction = null;
 let busy = false;
+let fileAcceptGeneration = 0;
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
@@ -454,7 +460,7 @@ async function apply() {
 
 async function imageRecord(file) {
   if (!file) return null;
-  return { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type || "image/png" };
+  return readSupportedImage(file);
 }
 
 export async function captureWorkbenchHandoff() {
@@ -483,8 +489,12 @@ export async function restoreWorkbenchHandoff(handoff) {
       const control = $(id);
       if (control) control.value = value;
     }
-    packageImages = Object.fromEntries(entry.images.map(({ kind, name, type, bytes }) =>
-      [kind, new File([bytes], name, { type })]));
+    packageImages = Object.fromEntries(entry.images.map(({ kind, name, bytes }) => {
+      const mimeType = detectSupportedImageMime(bytes);
+      if (!mimeType)
+        throw new Error(`Texture ${name} is not a genuine JPEG or PNG file.`);
+      return [kind, new File([bytes], name, { type: mimeType })];
+    }));
     showMaps();
     showValues();
     updateModeControls();
@@ -569,17 +579,36 @@ function resetMaterial() {
   updateButtons();
 }
 
-function acceptFiles(files) {
-  for (const file of files || []) {
-    const kind = classify(file.name);
-    if (kind) packageImages[kind] = file;
+async function acceptFiles(files) {
+  const generation = ++fileAcceptGeneration;
+  const candidates = [...(files || [])]
+    .map(file => ({ file, kind: classify(file.name) }))
+    .filter(candidate => candidate.kind);
+  if (!candidates.length) {
+    showMaps();
+    status("NO RECOGNIZED MAPS · USE DIFF / ROUGH / NOR_GL / ARM NAMES");
+    return;
+  }
+  status("CHECKING IMAGE FILES…");
+  const checked = await Promise.all(candidates.map(async candidate => ({
+    ...candidate,
+    mimeType: await detectSupportedImageFileMime(candidate.file).catch(() => null)
+  })));
+  if (generation !== fileAcceptGeneration) return;
+  const rejected = [];
+  for (const { file, kind, mimeType } of checked) {
+    if (mimeType) packageImages[kind] = file;
+    else rejected.push(file.name);
   }
   showMaps();
-  status(Object.keys(packageImages).length ? "MAPS READY · SELECT A MATERIAL AND APPLY" :
-    "NO RECOGNIZED MAPS · USE DIFF / ROUGH / NOR_GL / ARM NAMES");
+  if (rejected.length)
+    status(`IGNORED ${rejected.join(", ")} · USE GENUINE JPEG OR PNG FILES`);
+  else
+    status("MAPS READY · SELECT A MATERIAL AND APPLY");
 }
 $("workbenchFiles").addEventListener("change", event => acceptFiles(event.target.files));
 $("workbenchClearMaps").addEventListener("click", () => {
+  ++fileAcceptGeneration;
   packageImages = {};
   $("workbenchFiles").value = "";
   showMaps();
@@ -613,6 +642,7 @@ $("workbenchReset").addEventListener("click", resetMaterial);
 $("workbenchDownload").addEventListener("click", download);
 renderer.domElement.addEventListener("click", onCanvasClick);
 window.addEventListener("dropview:model-loaded", event => {
+  ++fileAcceptGeneration;
   gltf = event.detail.gltf;
   sourceFile = event.detail.file;
   selectedIndex = null;
@@ -636,6 +666,7 @@ window.addEventListener("dropview:model-loaded", event => {
   status("ORIGINAL FILE STAYS UNCHANGED");
 });
 window.addEventListener("dropview:model-cleared", event => {
+  ++fileAcceptGeneration;
   const resources = event.detail;
   if (resources?.materials && resources?.geometries) {
     baselineMaterials.forEach(material => resources.materials.add(material));

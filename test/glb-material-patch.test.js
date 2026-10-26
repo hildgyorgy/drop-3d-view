@@ -3,11 +3,29 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { readGlb, patchGlbMaterials } from "../js/model/glb-material-patch.js";
 
+const pngBytes = value => new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, value
+]);
+
+test("rejects image records whose bytes do not match their MIME type", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  assert.throws(() => patchGlbMaterials(source, [{
+    materialIndex: 0,
+    images: {
+      color: {
+        bytes: new TextEncoder().encode("RIFF0000WEBP"),
+        mimeType: "image/png"
+      }
+    }
+  }]), /bytes and JPEG\/PNG MIME type do not match/);
+});
+
 test("patches a material while keeping model structure and metadata", async () => {
   const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
   const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
   const original = readGlb(source);
-  const image = { bytes: new Uint8Array([1, 2, 3, 4, 5]), mimeType: "image/png" };
+  const image = { bytes: pngBytes(1), mimeType: "image/png" };
   const edit = {
     materialIndex: 0,
     roughness: 0.3,
@@ -36,7 +54,7 @@ test("embeds a complete three-map package in the GLB structure", async () => {
   const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
   const original = readGlb(source);
   const images = Object.fromEntries(["color", "roughness", "normal"].map((kind, i) => [
-    kind, { bytes: new Uint8Array([137, 80, 78, 71, i]), mimeType: "image/png" }
+    kind, { bytes: pngBytes(i), mimeType: "image/png" }
   ]));
   const edited = readGlb(patchGlbMaterials(source, [{
     materialIndex: 0, images, roughness: 0.4, metalness: 0, clearcoat: 0,
@@ -60,7 +78,7 @@ test("polished metal ignores uploaded maps and replaces source texture with colo
   const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
   const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
   const original = readGlb(source);
-  const image = { bytes: new Uint8Array([1, 2, 3]), mimeType: "image/png" };
+  const image = { bytes: pngBytes(2), mimeType: "image/png" };
   const edited = readGlb(patchGlbMaterials(source, [{
     materialIndex: 0, images: { color: image, normal: image },
     ignoreMaps: true, color: [0.25, 0.5, 0.75],
@@ -91,7 +109,7 @@ test("surface color without an uploaded color map becomes a solid color", async 
 test("lacquered texture retains a tinted base map under the clear coat", async () => {
   const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
   const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
-  const image = { bytes: new Uint8Array([1, 2, 3, 4]), mimeType: "image/png" };
+  const image = { bytes: pngBytes(3), mimeType: "image/png" };
   const edited = readGlb(patchGlbMaterials(source, [{
     materialIndex: 0, images: { color: image }, color: [0.4, 0.7, 0.9],
     roughness: 0.35, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08

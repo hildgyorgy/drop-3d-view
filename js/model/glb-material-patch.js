@@ -1,5 +1,7 @@
 // Patch material/image records and optionally append meter-projected TEXCOORD_1.
 // The source geometry and its original TEXCOORD_0 bytes remain untouched.
+import { detectSupportedImageMime } from "./image-format.js";
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const JSON_CHUNK = 0x4e4f534a;
@@ -32,6 +34,8 @@ function textureInfo(json, binaryParts, imageRecord, transform, texCoord, cache)
   let texture = cache.get(imageRecord);
   if (texture === undefined) {
     const { bytes, mimeType } = imageRecord;
+    if (detectSupportedImageMime(bytes) !== mimeType)
+      throw new Error("Texture image bytes and JPEG/PNG MIME type do not match.");
     const byteOffset = binaryParts.reduce((length, part) => length + part.length, 0);
     const bufferView = json.bufferViews.length;
     json.bufferViews.push({ buffer: 0, byteOffset, byteLength: bytes.length });
