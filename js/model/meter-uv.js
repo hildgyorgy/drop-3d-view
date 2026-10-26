@@ -21,3 +21,22 @@ export function makeMeterUvs(positions, normals, tileMetres) {
   }
   return uv;
 }
+
+export function deduplicateMeterUvs(records) {
+  const seen = new Map();
+  const unique = [];
+  for (const record of records || []) {
+    const key = `${record.meshIndex}:${record.primitiveIndex}`;
+    const previous = seen.get(key);
+    if (previous) {
+      const coordinates = record.coordinates;
+      if (previous.length !== coordinates?.length ||
+          previous.some((value, index) => value !== coordinates[index]))
+        throw new Error("One shared mesh has different meter UVs in separate instances.");
+      continue;
+    }
+    seen.set(key, record.coordinates);
+    unique.push(record);
+  }
+  return unique;
+}

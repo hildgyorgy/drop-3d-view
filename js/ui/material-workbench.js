@@ -5,7 +5,7 @@ import { State } from "../core/state.js";
 import { renderer } from "../core/scene.js";
 import { setViewMode } from "../view/view-modes.js";
 import { patchGlbMaterials } from "../model/glb-material-patch.js";
-import { makeMeterUvs } from "../model/meter-uv.js";
+import { deduplicateMeterUvs, makeMeterUvs } from "../model/meter-uv.js";
 import { disposeTextureResources } from "../model/model-resource-disposal.js";
 import {
   detectSupportedImageFileMime,
@@ -441,7 +441,8 @@ async function apply() {
       object.material = material;
       State.originalMaterials.set(object.uuid, material);
     }
-    edits.set(materialIndex, { inputs, images, packed, meterUvs,
+    edits.set(materialIndex, { inputs, images, packed,
+      meterUvs: deduplicateMeterUvs(meterUvs),
       materialIndices: materialTargets(materialIndex).filter(index => !glass ||
         (operation.gltf.parser.json.materials[index]?.extras?.archicad?.clearGlassOverride === true &&
          Number(operation.gltf.parser.json.materials[index]?.extensions?.KHR_materials_transmission?.transmissionFactor) > 0)) });

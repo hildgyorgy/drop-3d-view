@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { makeMeterUvs } from "../js/model/meter-uv.js";
+import { deduplicateMeterUvs, makeMeterUvs } from "../js/model/meter-uv.js";
 import { readGlb, patchGlbMaterials } from "../js/model/glb-material-patch.js";
 
 function floats(glb, accessorIndex) {
@@ -25,6 +25,52 @@ test("meter UVs use model coordinates instead of source UV scale", () => {
   assert.deepEqual([...makeMeterUvs(pos, normals, 2)].map(value => value === 0 ? 0 : value),
     [0, 0, -1, 0, -1, 1]);
   assert.throws(() => makeMeterUvs(pos, normals, 0), /positive tile size/);
+});
+
+test("shared mesh instances keep one identical meter UV record", () => {
+  const coordinates = new Float32Array([0, 0, 1, 0, 1, 1]);
+  const first = { meshIndex: 2, primitiveIndex: 3, coordinates };
+  const duplicate = { ...first, coordinates: coordinates.slice() };
+  assert.deepEqual(deduplicateMeterUvs([first, duplicate]), [first]);
+});
+
+test("shared mesh instances reject different world-space meter UVs", () => {
+  const first = { meshIndex: 2, primitiveIndex: 3,
+    coordinates: new Float32Array([0, 0, 1, 0, 1, 1]) };
+  const moved = { ...first, coordinates: new Float32Array([2, 0, 3, 0, 3, 1]) };
+  assert.throws(() => deduplicateMeterUvs([first, moved]),
+    /shared mesh has different meter UVs/);
+});
+
+test("GLB export deduplicates identical shared-mesh UVs and rejects different ones", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const original = readGlb(source);
+  const meshIndex = 7;
+  const primitiveIndex = 19;
+  const primitive = original.json.meshes[meshIndex].primitives[primitiveIndex];
+  assert.equal(primitive.attributes.TEXCOORD_1, undefined);
+  const coordinates = makeMeterUvs(
+    floats(original, primitive.attributes.POSITION),
+    floats(original, primitive.attributes.NORMAL),
+    2
+  );
+  const record = { meshIndex, primitiveIndex, coordinates };
+  const edit = {
+    materialIndex: primitive.material,
+    images: {}, roughness: 0.7, metalness: 0, clearcoat: 0,
+    meterUvs: [record, { ...record, coordinates: coordinates.slice() }]
+  };
+  const saved = readGlb(patchGlbMaterials(source, [edit]));
+  assert.equal(saved.json.accessors.length, original.json.accessors.length + 1);
+  assert.equal(saved.json.meshes[meshIndex].primitives[primitiveIndex].attributes.TEXCOORD_1,
+    original.json.accessors.length);
+
+  const moved = coordinates.slice();
+  moved[0] += 1;
+  assert.throws(() => patchGlbMaterials(source, [{ ...edit,
+    meterUvs: [record, { ...record, coordinates: moved }]
+  }]), /shared mesh has different meter UVs/);
 });
 
 test("both Rhino materials and an originally textured control save independent meter UVs", async () => {

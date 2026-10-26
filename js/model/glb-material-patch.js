@@ -1,6 +1,7 @@
 // Patch material/image records and optionally append meter-projected TEXCOORD_1.
 // The source geometry and its original TEXCOORD_0 bytes remain untouched.
 import { detectSupportedImageMime } from "./image-format.js";
+import { deduplicateMeterUvs } from "./meter-uv.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -63,7 +64,7 @@ function textureInfo(json, binaryParts, imageRecord, transform, texCoord, cache)
   return info;
 }
 
-function appendMeterUvs(json, binaryParts, records, seen) {
+function appendMeterUvs(json, binaryParts, records) {
   for (const { meshIndex, primitiveIndex, coordinates } of records) {
     const primitive = json.meshes?.[meshIndex]?.primitives?.[primitiveIndex];
     const count = json.accessors?.[primitive?.attributes?.POSITION]?.count;
@@ -72,14 +73,6 @@ function appendMeterUvs(json, binaryParts, records, seen) {
         !(coordinates instanceof Float32Array) || coordinates.length !== count * 2 ||
         coordinates.some(value => !Number.isFinite(value)))
       throw new Error("Meter UVs do not match a triangle mesh primitive.");
-    const key = `${meshIndex}:${primitiveIndex}`;
-    if (seen.has(key)) {
-      const previous = seen.get(key);
-      if (previous.length !== coordinates.length || previous.some((value, i) => value !== coordinates[i]))
-        throw new Error("One shared mesh has different meter UVs in separate instances.");
-      continue;
-    }
-    seen.set(key, coordinates);
     const byteOffset = binaryParts.reduce((length, part) => length + part.length, 0);
     if (byteOffset % 4 !== 0) throw new Error("GLB buffer is not aligned for meter UVs.");
     const bytes = new Uint8Array(coordinates.buffer, coordinates.byteOffset, coordinates.byteLength);
@@ -106,12 +99,13 @@ export function patchGlbMaterials(source, edits) {
   json.textures ??= [];
   const binaryParts = [binary.slice()];
   const textureCache = new WeakMap();
-  const uvPrimitives = new Map();
   const meterMaterials = new Set();
+  appendMeterUvs(json, binaryParts, deduplicateMeterUvs(
+    edits.flatMap(edit => edit.meterUvs || [])
+  ));
   for (const edit of edits) {
     const material = json.materials?.[edit.materialIndex];
     if (!material) throw new Error(`Material ${edit.materialIndex} is missing.`);
-    if (edit.meterUvs?.length) appendMeterUvs(json, binaryParts, edit.meterUvs, uvPrimitives);
     if (edit.texCoord === 1 && Object.values(edit.images || {}).some(Boolean))
       meterMaterials.add(edit.materialIndex);
     if (edit.glassTransmission !== undefined) {
