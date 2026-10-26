@@ -8,6 +8,7 @@
 
 import * as THREE from "three";
 import { photoMeterGeometry } from "./photo-meter-uv.js";
+import { installPhotoClearcoatFix } from "./photo-clearcoat.js";
 import { State } from "../core/state.js";
 import { scene, renderer, sun } from "../core/scene.js";
 import {
@@ -555,6 +556,7 @@ async function activatePhoto1() {
     });
 
     pathTracer = new WebGLPathTracer(renderer);
+    installPhotoClearcoatFix(pathTracer);
     pathTracer.bounces = 6;
     pathTracer.transmissiveBounces = 10;
     pathTracer.multipleImportanceSampling = true;
