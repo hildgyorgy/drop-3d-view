@@ -52,7 +52,13 @@ async function start() {
             return;
           }
           const current = await app?.getBackendHandoff();
-          if (current?.file) await saveBackendHandoff(current.file, current.viewSession, current.workbench);
+          if (current?.file)
+            await saveBackendHandoff(
+              current.file,
+              current.viewSession,
+              current.workbench,
+              current.sourceKind
+            );
           localStorage.setItem(modeKey, nextMode);
           restartRequested = true;
           location.reload();

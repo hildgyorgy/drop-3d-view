@@ -22,7 +22,9 @@
 #materialWorkbench summary::before { content: "▶ "; }
 #materialWorkbench[open] summary::before { content: "▼ "; }
 #materialWorkbench .workbench-body { padding: 0 13px 13px; display: grid; gap: 10px; }
+#materialWorkbench .workbench-editor { display: grid; gap: 10px; }
 #materialWorkbench .workbench-hint { margin: 0; color: #555; letter-spacing: 0; }
+#materialWorkbench .workbench-lock-message { margin: 0; color: #555; letter-spacing: 0; }
 #materialWorkbench .workbench-selected { font-weight: 700; overflow-wrap: anywhere; }
 #materialWorkbench label { display: grid; gap: 3px; }
 #materialWorkbench [hidden] { display: none; }
@@ -41,6 +43,7 @@
 #materialWorkbench .workbench-map-row button { flex: 0 0 auto; }
 #materialWorkbench .workbench-actions { display: flex; gap: 8px; }
 #materialWorkbench .workbench-actions button { min-width: 0; }
+#materialWorkbench .workbench-close { width: 100%; }
 #materialWorkbench button { flex: 1; cursor: pointer; border: 1px solid #333; padding: 7px 5px; background: transparent; color: inherit; font: inherit; }
 #materialWorkbench button:hover { color: #ff3b30; border-color: #ff3b30; }
 #materialWorkbench button:disabled { cursor: default; color: #999; border-color: #aaa; }

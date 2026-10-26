@@ -31,6 +31,8 @@ import { assertValidViewSession } from "./core/view-session.js";
 import { restoreBackendHandoff } from "./core/backend-restore.js";
 import { getSafeViewportSize } from "./view/viewport-size.js";
 import { resizeSectionRenderer } from "./section/section-resize.js";
+import { readEmbedConfiguration } from "./core/embed-bridge.js";
+import { shouldLoadMaterialWorkbench } from "./model/material-workbench-policy.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -98,7 +100,7 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
-  if (new URLSearchParams(location.search).has("rendererDebug"))
+  if (shouldLoadMaterialWorkbench(readEmbedConfiguration()))
     materialWorkbench = await import("./ui/material-workbench.js");
   if (backendKind === "webgl")
     await import("./view/webgl-environment.js");
@@ -126,7 +128,7 @@ async function boot() {
       new File([await response.blob()], "comparison.glb", {
         type: "model/gltf-binary"
       }),
-      { viewSession }
+      { viewSession, sourceKind: "comparison" }
     );
   }
 }
@@ -136,12 +138,13 @@ export { openFile };
 export async function getBackendHandoff() {
   return State.currentFile
     ? { file: State.currentFile, viewSession: captureCurrentViewSession(),
-        workbench: await materialWorkbench?.captureWorkbenchHandoff() }
+        workbench: await materialWorkbench?.captureWorkbenchHandoff(),
+        sourceKind: State.currentFileSourceKind }
     : null;
 }
 
-export async function openBackendHandoff(file, { viewSession, workbench } = {}) {
-  return restoreBackendHandoff(file, { viewSession, workbench }, {
+export async function openBackendHandoff(file, { viewSession, workbench, sourceKind } = {}) {
+  return restoreBackendHandoff(file, { viewSession, workbench, sourceKind }, {
     openFile,
     restoreWorkbench: materialWorkbench
       ? state => materialWorkbench.restoreWorkbenchHandoff(state)

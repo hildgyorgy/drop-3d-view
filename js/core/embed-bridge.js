@@ -75,7 +75,7 @@ export function enableEmbedBridge(app, config = readEmbedConfiguration()) {
       const file = new File([data.blob], name || "model.glb", {
         type: "model/gltf-binary"
       });
-      const opened = await app.openFile(file);
+      const opened = await app.openFile(file, { sourceKind: "embed" });
       send(opened ? "opened" : "error");
     } catch (error) {
       console.error("Embedded model could not be opened", error);

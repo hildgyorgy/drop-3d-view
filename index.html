@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=material-variants-1" />
+    <link rel="stylesheet" href="css/style.css?v=2.0" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -73,10 +73,19 @@
                 hidden
               >
                 <div class="about-title">
-                  DROP &amp; VIEW <span id="appVersion" aria-label="Application version"></span>
+                  DROP &amp; VIEW
+                  <span id="appVersion" aria-label="Application version"></span>
                 </div>
                 <div>by</div>
                 <div>GYÖRGY HILD</div>
+                <button
+                  id="materialWorkbenchEntry"
+                  class="about-workbench"
+                  type="button"
+                  hidden
+                >
+                  MATERIAL WORKBENCH
+                </button>
                 <a
                   class="about-support"
                   href="https://hildgyorgy.github.io/app-support/drop-view/"
@@ -467,11 +476,11 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=1.5",
-          webgl: "renderers/webgl/main.js?v=1.5"
+          webgpu: "renderers/webgpu/main.js?v=2.0",
+          webgl: "renderers/webgl/main.js?v=2.0"
         };
       }
     </script>
-    <script type="module" src="js/core/renderer-bootstrap.js?v=1.5"></script>
+    <script type="module" src="js/core/renderer-bootstrap.js?v=2.0"></script>
   </body>
 </html>

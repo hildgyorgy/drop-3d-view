@@ -89,8 +89,8 @@ test("only the designated parent can hand a GLB to the embedded viewer", async (
   };
   const opened = [];
   const app = {
-    openFile: async file => {
-      opened.push(file);
+    openFile: async (file, options) => {
+      opened.push({ file, options });
       return true;
     }
   };
@@ -119,7 +119,8 @@ test("only the designated parent can hand a GLB to the embedded viewer", async (
 
     await listener({ source: parent, origin: parentOrigin, data: open });
     assert.equal(opened.length, 1);
-    assert.equal(opened[0].name, "house.glb");
+    assert.equal(opened[0].file.name, "house.glb");
+    assert.deepEqual(opened[0].options, { sourceKind: "embed" });
     assert.equal(messages.at(-1)[0].event, "opened");
   } finally {
     globalThis.window = originalWindow;

@@ -29,7 +29,8 @@ test("reads scene initial view and asset credits independently", () => {
   assert.deepEqual(readDropViewMetadata(gltf), {
     initialView,
     sun,
-    designCredits: "Architect\nStudio"
+    designCredits: "Architect\nStudio",
+    materialWorkbenchPolicy: "enabled"
   });
   gltf.scene.userData = {};
   assert.deepEqual(readDropViewMetadata(gltf).initialView, { camera: 9 });
@@ -37,8 +38,25 @@ test("reads scene initial view and asset credits independently", () => {
   assert.deepEqual(readDropViewMetadata({}), {
     initialView: null,
     sun: null,
-    designCredits: ""
+    designCredits: "",
+    materialWorkbenchPolicy: "enabled"
   });
+});
+
+test("reads an explicit file-wide Material Workbench policy", () => {
+  const gltf = {
+    parser: {
+      json: {
+        asset: {
+          extras: {
+            dropView: { materialWorkbench: { policy: "disabled" } }
+          }
+        }
+      }
+    }
+  };
+
+  assert.equal(readDropViewMetadata(gltf).materialWorkbenchPolicy, "disabled");
 });
 
 test("reads sun data from the active glTF scene when userData is empty", () => {

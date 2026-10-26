@@ -1,3 +1,5 @@
+import { readMaterialWorkbenchPolicy } from "./material-workbench-policy.js";
+
 export function readDropViewMetadata(gltf) {
   const json = gltf?.parser?.json;
   const sceneIndex = json?.scene ?? 0;
@@ -10,7 +12,8 @@ export function readDropViewMetadata(gltf) {
   return {
     initialView,
     sun,
-    designCredits: typeof rawCredits === "string" ? rawCredits.trim() : ""
+    designCredits: typeof rawCredits === "string" ? rawCredits.trim() : "",
+    materialWorkbenchPolicy: readMaterialWorkbenchPolicy(gltf)
   };
 }
 

@@ -1,8 +1,17 @@
-# Material Workbench (debug only)
+# Material Workbench
 
-Open the unified viewer with `?rendererDebug=1`, load a GLB and expand
-**MATERIAL WORKBENCH**. Click a visible model surface to select its glTF
-material. Every primitive sharing that material is edited together.
+Open the standalone viewer's red **i** panel and choose **MATERIAL WORKBENCH**.
+Click a visible model surface to select its glTF material. Every primitive
+sharing that material is edited together. Embedded viewers never load the
+Workbench. The built-in demos allow the complete editing preview but keep
+**SAVE NEW GLB** disabled.
+
+Exporter-created files can set
+`asset.extras.dropView.materialWorkbench.policy` to `disabled`. The Workbench
+then shows a view-only message and does not permit editing. An explicit
+`enabled` value, a missing policy or an unknown future value remains editable
+for compatibility with older and third-party GLBs. Only a user-opened file can
+be saved; demos, embeds and comparison fixtures cannot.
 
 Drop JPEG/PNG maps onto the panel or choose several files at once. Filenames
 containing `diff`/`albedo`/`basecolor`, `rough`, `nor_gl`/`normal`, or `arm`/`orm`
@@ -48,7 +57,7 @@ material and its debug Maxon variant (when present); the PBR appearance is
 therefore visible in either viewer after saving. Uploaded map transforms are
 stored with `KHR_texture_transform`, and LACQUERED uses
 `KHR_materials_clearcoat`. GLASS writes `KHR_materials_transmission` only into
-the downloaded copy. Demo GLBs and the public viewer defaults are unchanged.
+the downloaded copy.
 
 This deliberately small first version does not repair source UV coordinates, perform
 displacement/subdivision, edit non-clear transparent materials, or show changes in the active

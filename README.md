@@ -1,6 +1,6 @@
 # Drop & View
 
-**Current version: 1.5**
+**Current version: 2.0**
 
 ![Drop & View – 3D model viewer](demo/drop-and-view.png)
 
@@ -29,11 +29,17 @@ Use a modern browser with JavaScript. The viewer uses WebGL by default; WebGPU i
 - **SECTION:** toggle cutting with the circle, choose an X/Y/Z axis and move the section slider to inspect the interior.
 - **GROUPS:** show or hide the model's exported top-level groups.
 
+## Material Workbench
+
+The standalone viewer's red **i** panel opens the optional **MATERIAL WORKBENCH**. Select a visible surface to preview SURFACE, POLISHED METAL, LACQUERED or exporter-selected clear GLASS changes. JPEG/PNG base-colour, roughness, OpenGL normal and ARM maps are supported. APPLY changes only the live preview; the source file is never overwritten. For a user-opened editable GLB, **SAVE NEW GLB** downloads a modified copy.
+
+The built-in demos are fully editable for experimentation but cannot be saved. A GLB exported with `asset.extras.dropView.materialWorkbench.policy` set to `disabled` remains view-only and asks the user to request an editable version from its owner. Older files and GLBs without that explicit policy remain editable. The Material Workbench and its code are not loaded in embedded viewers.
+
 ### Dormant GLASS LIGHT experiment
 
 The PATH TRACER contains an off-by-default, currently hidden experiment for brightening dark interiors. It makes only the Archicad exporter's explicitly selected Clear Glass materials (`extras.archicad.clearGlassOverride: true`, with physical transmission) emit neutral light; legacy transparent materials and cutouts do not emit. It can improve an interior view when the windows are outside the frame, but visible windows become glowing white panes and convergence can be noisy. The imported GLB and ORIGINAL mode are never changed. To try it again, set `GLASS_LIGHT_EXPERIMENT_ENABLED` to `true` in `js/view/photo1.js`; the GLASS LIGHT button under PATH TRACER will reappear. The experiment remains isolated in `js/view/photo1.js` and `js/model/material-policy.js`, with its dormant button styling in `index.html`, `css/style.css`, `css/adaptive-contrast.css`, and `js/ui/adaptive-contrast.js`.
 
-The three corner menus start closed. Click their labels to open or close them; click the model area or press Escape to close them. The red **i** beside OPEN opens an About panel with the Support link and, when included in the GLB, the model's design credits.
+The three corner menus start closed. Click their labels to open or close them; click the model area or press Escape to close them. The red **i** beside OPEN opens an About panel with Material Workbench, Support and, when included in the GLB, the model's design credits.
 
 ### Adaptive menu contrast
 

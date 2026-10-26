@@ -28,12 +28,12 @@ async function transact(mode, action) {
   }
 }
 
-export async function saveBackendHandoff(file, viewSession, workbench = null) {
+export async function saveBackendHandoff(file, viewSession, workbench = null, sourceKind = "user") {
   // Store bytes, not a cloned File handle. Some browsers can load a handed-off
   // File through a blob URL but later fail when the workbench reads it to save.
   const fileBytes = await file.arrayBuffer();
   return transact("readwrite", store => store.put({ fileBytes, fileName: file.name,
-    viewSession, workbench }, "current"));
+    viewSession, workbench, sourceKind }, "current"));
 }
 
 export async function readBackendHandoff() {

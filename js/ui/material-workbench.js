@@ -1,4 +1,4 @@
-// Debug-only material editor. The opened GLB is never overwritten; download is
+// Public standalone material editor. The opened GLB is never overwritten; download is
 // a copy with material records patched into the original binary container.
 import * as THREE from "three";
 import { State } from "../core/state.js";
@@ -21,6 +21,7 @@ import {
   isWorkbenchOperationCurrent
 } from "./workbench-operation.js";
 import { disposeUnusedWorkbenchEdit } from "./workbench-resource-lifecycle.js";
+import { getMaterialWorkbenchAccess } from "../model/material-workbench-policy.js";
 
 const variantName = "Maxon / Redshift PBR";
 const raycaster = new THREE.Raycaster();
@@ -38,13 +39,16 @@ let fileAcceptGeneration = 0;
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = new URL("../../css/material-workbench.css?v=5", import.meta.url).href;
+stylesheet.href = new URL("../../css/material-workbench.css?v=2.0", import.meta.url).href;
 document.head.append(stylesheet);
 
 const panel = document.createElement("details");
 panel.id = "materialWorkbench";
+panel.hidden = true;
 panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
   <div class="workbench-body">
+    <p id="workbenchLockMessage" class="workbench-lock-message" hidden>THIS MODEL IS VIEW-ONLY · ASK THE MODEL OWNER FOR AN EDITABLE GLB TO USE MATERIAL WORKBENCH</p>
+    <div id="workbenchEditor" class="workbench-editor">
     <p class="workbench-hint">Open a GLB, then click a surface. Edits affect every part sharing its material. SURFACE and LACQUERED use color or uploaded maps; white leaves a color map unchanged. POLISHED METAL uses a solid color. GLASS is available only for exporter-selected clear glass.</p>
     <div id="workbenchMaterial" class="workbench-selected">NO MATERIAL SELECTED</div>
     <label class="workbench-file">DROP MAPS HERE OR CHOOSE · JPG/PNG
@@ -71,17 +75,60 @@ panel.innerHTML = `<summary>MATERIAL WORKBENCH</summary>
     <div class="workbench-actions">
       <button id="workbenchDownload" type="button">SAVE NEW GLB</button></div>
     <div id="workbenchStatus" role="status">ORIGINAL FILE STAYS UNCHANGED</div>
+    </div>
+    <button id="workbenchClose" class="workbench-close" type="button">EXIT WORKBENCH</button>
   </div>`;
 document.body.append(panel);
 const $ = id => panel.querySelector(`#${id}`);
 const status = message => { $("workbenchStatus").textContent = message; };
 const controls = ["workbenchRoughness", "workbenchGlassTransparency", "workbenchTileMetres", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
 const textureControls = ["workbenchTileMetres", "workbenchRotation", "workbenchOffsetX", "workbenchOffsetY"];
+const entry = document.querySelector("#materialWorkbenchEntry");
+const aboutButton = document.querySelector("#aboutButton");
+const aboutMenu = document.querySelector("#aboutMenu");
+
+function currentAccess() {
+  return getMaterialWorkbenchAccess({
+    policy: State.materialWorkbenchPolicy,
+    sourceKind: State.currentFileSourceKind
+  });
+}
+
+function updateWorkbenchAccess() {
+  const access = currentAccess();
+  if (entry) entry.hidden = !access.visible;
+  aboutMenu?.classList.toggle("has-workbench-entry", access.visible);
+  const locked = Boolean(State.model) && !access.canEdit;
+  $("workbenchLockMessage").hidden = !locked;
+  $("workbenchEditor").hidden = locked;
+  updateButtons();
+  return access;
+}
+
+function openWorkbench() {
+  const access = updateWorkbenchAccess();
+  if (!access.visible) return;
+  panel.hidden = false;
+  panel.open = true;
+  if (!State.model) status("OPEN A GLB OR TRY A DEMO TO START");
+  if (aboutMenu) aboutMenu.hidden = true;
+  aboutButton?.setAttribute("aria-expanded", "false");
+}
+
+function closeWorkbench() {
+  panel.open = false;
+  panel.hidden = true;
+}
+
+entry?.addEventListener("click", openWorkbench);
 
 function updateButtons() {
-  $("workbenchUndo").disabled = !lastAction || busy;
-  $("workbenchReset").disabled = selectedIndex === null || !edits.has(selectedIndex) || busy;
-  $("workbenchDownload").disabled = !edits.size || busy;
+  const access = currentAccess();
+  $("workbenchApply").disabled = selectedIndex === null || busy || !access.canEdit;
+  $("workbenchUndo").disabled = !lastAction || busy || !access.canEdit;
+  $("workbenchReset").disabled =
+    selectedIndex === null || !edits.has(selectedIndex) || busy || !access.canEdit;
+  $("workbenchDownload").disabled = !access.canSave || !edits.size || busy;
 }
 
 function updateModeControls() {
@@ -212,7 +259,14 @@ function select(object) {
 }
 
 function onCanvasClick(event) {
-  if (busy || !panel.open || !State.model || !gltf || State.pathTracerActive) return;
+  if (
+    busy ||
+    !panel.open ||
+    !State.model ||
+    !gltf ||
+    State.pathTracerActive ||
+    !currentAccess().canEdit
+  ) return;
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.set((event.clientX - rect.left) / rect.width * 2 - 1,
     -(event.clientY - rect.top) / rect.height * 2 + 1);
@@ -396,6 +450,10 @@ function editableMaterial(original) {
 
 async function apply() {
   if (busy || selectedIndex === null || !gltf || !sourceFile) return;
+  if (!currentAccess().canEdit) {
+    status("THIS MODEL IS VIEW-ONLY");
+    return;
+  }
   if (State.pathTracerActive) { status("EXIT PATH TRACER BEFORE EDITING"); return; }
   const operation = captureWorkbenchOperation(selectedIndex, gltf, State.model);
   const materialIndex = operation.materialIndex;
@@ -506,7 +564,9 @@ async function apply() {
     setViewMode("original");
     lastAction = before;
     disposeSnapshotResourcesIfUnused(discardedAction);
-    status(`${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} READY · SAVE A NEW GLB`);
+    status(currentAccess().canSave
+      ? `${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} READY · SAVE A NEW GLB`
+      : `${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} READY · PREVIEW ONLY`);
   } catch (error) {
     if (before) restoreMaterial(before);
     disposeOwnedResources(resources);
@@ -536,6 +596,8 @@ export async function captureWorkbenchHandoff() {
 }
 
 export async function restoreWorkbenchHandoff(handoff) {
+  if (!currentAccess().canEdit)
+    throw new Error("Material Workbench is disabled for this model.");
   if (handoff?.version !== 1 || !Array.isArray(handoff.edits))
     throw new Error("Unsupported material workbench handoff.");
   for (const entry of handoff.edits) {
@@ -561,11 +623,13 @@ export async function restoreWorkbenchHandoff(handoff) {
   }
   const selected = materialObjects(handoff.selectedIndex)[0];
   if (selected) select(selected);
-  status(`${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} KEPT · SAVE A NEW GLB`);
+  status(currentAccess().canSave
+    ? `${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} KEPT · SAVE A NEW GLB`
+    : `${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} KEPT · PREVIEW ONLY`);
 }
 
 async function download() {
-  if (busy || !sourceFile || !edits.size) return;
+  if (busy || !sourceFile || !edits.size || !currentAccess().canSave) return;
   busy = true;
   status("SAVING NEW GLB…");
   try {
@@ -701,6 +765,7 @@ $("workbenchApply").addEventListener("click", apply);
 $("workbenchUndo").addEventListener("click", undo);
 $("workbenchReset").addEventListener("click", resetMaterial);
 $("workbenchDownload").addEventListener("click", download);
+$("workbenchClose").addEventListener("click", closeWorkbench);
 renderer.domElement.addEventListener("click", onCanvasClick);
 window.addEventListener("dropview:model-loaded", event => {
   ++fileAcceptGeneration;
@@ -723,8 +788,11 @@ window.addEventListener("dropview:model-loaded", event => {
   $("workbenchMaterial").textContent = "CLICK A SURFACE TO SELECT ITS MATERIAL";
   showMaps();
   updateModeControls();
-  updateButtons();
-  status("ORIGINAL FILE STAYS UNCHANGED");
+  const access = updateWorkbenchAccess();
+  if (access.canEdit)
+    status(access.canSave
+      ? "ORIGINAL FILE STAYS UNCHANGED"
+      : "DEMO MODEL · PREVIEW ONLY · OPEN YOUR OWN GLB TO SAVE");
 });
 window.addEventListener("dropview:model-cleared", event => {
   ++fileAcceptGeneration;
@@ -748,7 +816,9 @@ window.addEventListener("dropview:model-cleared", event => {
   $("workbenchMaterial").textContent = "NO MATERIAL SELECTED";
   showMaps();
   updateModeControls();
+  $("workbenchLockMessage").hidden = true;
+  $("workbenchEditor").hidden = false;
   updateButtons();
 });
 updateModeControls();
-updateButtons();
+updateWorkbenchAccess();

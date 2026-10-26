@@ -133,7 +133,7 @@ for (const [button, url] of [
 
       await openFile(
         new File([blob], url.split("/").at(-1), { type: "application/octet-stream" }),
-        { request }
+        { request, sourceKind: "demo" }
       );
     } catch (error) {
       if (!request.isCurrent()) return;
@@ -185,7 +185,10 @@ window.addEventListener("drop", event => {
    OPEN MODEL
 ====================================================== */
 
-export async function openFile(file, { viewSession = null, request = null } = {}) {
+export async function openFile(
+  file,
+  { viewSession = null, request = null, sourceKind = "user" } = {}
+) {
   request ??= modelOpenGate.begin();
   resetStartMessage();
 
@@ -228,11 +231,20 @@ export async function openFile(file, { viewSession = null, request = null } = {}
         disposeCurrentModel();
         State.currentFileName = file.name;
         State.currentFile = file;
+        State.currentFileSourceKind = sourceKind;
+        State.materialWorkbenchPolicy = candidate.metadata.materialWorkbenchPolicy;
         prepareModel(candidate.result.scene, file, candidate.result, candidate.metadata);
       }
     });
     if (!opened) return false;
-    window.dispatchEvent(new CustomEvent("dropview:model-loaded", { detail: { gltf: result, file } }));
+    window.dispatchEvent(new CustomEvent("dropview:model-loaded", {
+      detail: {
+        gltf: result,
+        file,
+        sourceKind,
+        materialWorkbenchPolicy: State.materialWorkbenchPolicy
+      }
+    }));
     if (viewSession) {
       try {
         restoreCurrentViewSession(viewSession);
@@ -373,6 +385,8 @@ export function disposeCurrentModel() {
 
   State.currentFileName = null;
   State.currentFile = null;
+  State.currentFileSourceKind = null;
+  State.materialWorkbenchPolicy = "enabled";
   updatePhoto1Availability();
 
   if (!State.model) {

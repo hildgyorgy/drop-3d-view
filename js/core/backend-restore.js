@@ -2,10 +2,10 @@
 // optional workbench failure to block the camera/view session.
 export async function restoreBackendHandoff(
   file,
-  { viewSession = null, workbench = null } = {},
+  { viewSession = null, workbench = null, sourceKind = "user" } = {},
   { openFile, restoreWorkbench = null, restoreView = null, onError = () => {} }
 ) {
-  if (!await openFile(file)) return false;
+  if (!await openFile(file, { sourceKind })) return false;
 
   if (workbench && restoreWorkbench) {
     try {

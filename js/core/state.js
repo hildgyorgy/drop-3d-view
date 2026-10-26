@@ -32,6 +32,8 @@ export const State = {
   maxModelSize: 10,
   currentFile: null,
   currentFileName: null,
+  currentFileSourceKind: null,
+  materialWorkbenchPolicy: "enabled",
   currentMode: "original",
   exportedSun: null,
   hasImportedSun: false,

@@ -36,3 +36,20 @@ test("a failed model open does not restore state", async () => {
   assert.equal(opened, false);
   assert.deepEqual(restored, []);
 });
+
+test("renderer handoff preserves the model source kind", async () => {
+  let options;
+  const opened = await restoreBackendHandoff(
+    { name: "demo.glb" },
+    { sourceKind: "demo" },
+    {
+      openFile: async (_file, received) => {
+        options = received;
+        return true;
+      }
+    }
+  );
+
+  assert.equal(opened, true);
+  assert.deepEqual(options, { sourceKind: "demo" });
+});
