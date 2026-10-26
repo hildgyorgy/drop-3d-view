@@ -17,6 +17,7 @@ import {
   findInitialCameraNode,
   isFiniteVector3
 } from "../model/drop-view-metadata.js";
+import { assertUsableModelBounds } from "../model/model-bounds.js";
 
 const defaultPerspectiveFov = perspectiveCamera.fov;
 let exportedPerspectiveFovApplied = false;
@@ -30,7 +31,7 @@ cameraFov?.addEventListener("input", () => {
 });
 
 export function centreModel() {
-  let box = new THREE.Box3().setFromObject(State.model);
+  let box = assertUsableModelBounds(new THREE.Box3().setFromObject(State.model));
 
   const centre = box.getCenter(new THREE.Vector3());
 
@@ -44,7 +45,7 @@ export function centreModel() {
 
   State.model.updateMatrixWorld(true);
 
-  box = new THREE.Box3().setFromObject(State.model);
+  box = assertUsableModelBounds(new THREE.Box3().setFromObject(State.model));
 
   State.modelBounds = box;
 

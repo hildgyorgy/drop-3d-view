@@ -45,6 +45,10 @@ import { centreModel, fitCamera, applyExportedInitialView } from "../view/camera
 import { zoomAllImmediately } from "../view/show-all.js";
 import { readDropViewMetadata, readWindowLightEmitters } from "./drop-view-metadata.js";
 import { isGlbFile } from "./file-format.js";
+import {
+  assertUsableModelBounds,
+  InvalidModelBoundsError
+} from "./model-bounds.js";
 import { stageModelReplacement } from "./model-replacement.js";
 import { applyMaterialVariant } from "./material-variants.js";
 import { disposeDetachedModel, disposeModelResources } from "./model-resource-disposal.js";
@@ -212,6 +216,7 @@ export async function openFile(file, { viewSession = null, request = null } = {}
         if (new URLSearchParams(location.search).has("rendererDebug"))
           await applyMaterialVariant(result, "Maxon / Redshift PBR");
         preserveGLTFGroupLabels(result);
+        assertUsableModelBounds(new THREE.Box3().setFromObject(result.scene));
         const metadata = readDropViewMetadata(result);
         metadata.windowLightEmitters = readWindowLightEmitters(result);
         return { result, metadata };
@@ -248,10 +253,17 @@ export async function openFile(file, { viewSession = null, request = null } = {}
     if (result?.scene && State.model !== result.scene)
       disposeDetachedModel(result.scene);
     if (replacementStarted) disposeCurrentModel();
-    reportOpenFailure(
-      "THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE.",
-      `COULD NOT OPEN ${file.name} · CURRENT MODEL KEPT`
-    );
+    if (error instanceof InvalidModelBoundsError) {
+      reportOpenFailure(
+        "THE MODEL HAS NO VALID GEOMETRY. PLEASE TRY ANOTHER FILE.",
+        `COULD NOT OPEN ${file.name} · NO VALID GEOMETRY · CURRENT MODEL KEPT`
+      );
+    } else {
+      reportOpenFailure(
+        "THE MODEL COULD NOT BE OPENED. PLEASE TRY ANOTHER FILE.",
+        `COULD NOT OPEN ${file.name} · CURRENT MODEL KEPT`
+      );
+    }
     return false;
   } finally {
     URL.revokeObjectURL(objectUrl);
