@@ -27,6 +27,7 @@ import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
 import { restoreBackendHandoff } from "./core/backend-restore.js";
+import { getSafeViewportSize } from "./view/viewport-size.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -41,12 +42,13 @@ import "./ui/panel.js?v=about-sheet";
    RESIZE
 ====================================================== */
 
-window.addEventListener("resize", () => {
-  const width = window.innerWidth;
+function resizeViewport() {
+  const { width, height, aspect } = getSafeViewportSize(
+    window.innerWidth,
+    window.innerHeight
+  );
 
-  const height = window.innerHeight;
-
-  perspectiveCamera.aspect = width / height;
+  perspectiveCamera.aspect = aspect;
 
   perspectiveCamera.updateProjectionMatrix();
 
@@ -54,7 +56,13 @@ window.addEventListener("resize", () => {
 
   renderer.setSize(width, height);
   resizePhoto1();
-});
+}
+
+window.addEventListener("resize", resizeViewport);
+const viewportObserver = globalThis.ResizeObserver
+  ? new globalThis.ResizeObserver(resizeViewport)
+  : null;
+viewportObserver?.observe(document.documentElement);
 
 function animate(time) {
   updateNavigation(time);

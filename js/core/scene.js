@@ -10,6 +10,7 @@
 */
 
 import * as THREE from "three";
+import { getSafeViewportSize } from "../view/viewport-size.js";
 
 export const backendKind = "webgl";
 
@@ -30,7 +31,9 @@ export const renderer = new THREE.WebGLRenderer({
   stencil: true
 });
 
-renderer.setSize(window.innerWidth, window.innerHeight);
+const initialViewport = getSafeViewportSize(window.innerWidth, window.innerHeight);
+
+renderer.setSize(initialViewport.width, initialViewport.height);
 
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -50,7 +53,7 @@ document.body.appendChild(renderer.domElement);
 
 export const perspectiveCamera = new THREE.PerspectiveCamera(
   42,
-  window.innerWidth / window.innerHeight,
+  initialViewport.aspect,
   0.01,
   100000
 );

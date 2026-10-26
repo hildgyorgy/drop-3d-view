@@ -18,6 +18,7 @@ import {
   isFiniteVector3
 } from "../model/drop-view-metadata.js";
 import { assertUsableModelBounds } from "../model/model-bounds.js";
+import { getSafeViewportSize } from "./viewport-size.js";
 
 const defaultPerspectiveFov = perspectiveCamera.fov;
 let exportedPerspectiveFovApplied = false;
@@ -96,7 +97,7 @@ export function fitCamera() {
 ====================================================== */
 
 export function updateOrthoFrustum() {
-  const aspect = window.innerWidth / window.innerHeight;
+  const { aspect } = getSafeViewportSize(window.innerWidth, window.innerHeight);
 
   const half = initialOrthoHalfHeight ?? State.maxModelSize * 0.72;
 
@@ -309,7 +310,7 @@ export function applyExportedInitialView(gltf, initialView, modelTranslation) {
   if (perspective) {
     camera.fov = source.fov;
     exportedPerspectiveFovApplied = true;
-    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = getSafeViewportSize(window.innerWidth, window.innerHeight).aspect;
     if (cameraFov) {
       cameraFov.min = String(Math.min(35, Math.floor(source.fov)));
       cameraFov.max = String(Math.max(60, Math.ceil(source.fov)));

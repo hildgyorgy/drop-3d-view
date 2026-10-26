@@ -4,6 +4,7 @@ import { WebGPURenderer } from "three/webgpu";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { DEFAULT_WEBGPU_TUNING } from "./full-tuning.js";
 import { environmentSunDirectionFromPixel } from "../js/model/sun-metadata.js";
+import { getSafeViewportSize } from "../js/view/viewport-size.js";
 
 export const backendKind = "webgpu";
 
@@ -14,7 +15,8 @@ export const neutralBackground = new THREE.Color(0xefefed).multiplyScalar(DEFAUL
 scene.background = neutralBackground.clone();
 
 export const renderer = new WebGPURenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const initialViewport = getSafeViewportSize(window.innerWidth, window.innerHeight);
+renderer.setSize(initialViewport.width, initialViewport.height);
 renderer.setPixelRatio(2);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -25,7 +27,7 @@ document.body.appendChild(renderer.domElement);
 
 export const perspectiveCamera = new THREE.PerspectiveCamera(
   42,
-  window.innerWidth / window.innerHeight,
+  initialViewport.aspect,
   0.01,
   100000
 );
