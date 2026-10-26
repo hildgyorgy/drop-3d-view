@@ -10,6 +10,7 @@
 - A normál WebGL és WebGPU nézet finom, `0.2` erősségű HDRI környezeti fényt és tükröződést használ, látható HDRI-háttér nélkül. A nap marad a fő fény; a HDRI fényes pontja az exportált/vezérelt napirányhoz igazodik. A két path tracer saját HDRI-beállítással működik.
 - A `WINDOW LIGHTS` az exporter által megjelölt téglalap alakú ablakfényekre épül; alapból kikapcsolt. A régi, üvegeket emisszívvé tevő `GLASS LIGHT` kísérlet rejtett és kikapcsolt marad.
 - A WebGL path tracer jelenleg referencia. A WebGPU path tracer minőségét, különösen az üvegen átmenő fény és árnyék esetét, továbbra is azonos modellel és nézettel kell összehasonlítani; nincs késznek nyilvánítva.
+- A kamera a PATH TRACER alatt szándékosan zárolt. A nézetet ORIGINAL módban kell beállítani, majd a PATH TRACER-t bekapcsolva hagyni konvergálni; ezt ne oldjuk fel pusztán dokumentációs eltérés miatt.
 
 ## Kódtérkép
 
