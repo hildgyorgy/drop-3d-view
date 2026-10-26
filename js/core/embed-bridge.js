@@ -23,18 +23,22 @@ export function readEmbedConfiguration(url = location.href) {
   }
 }
 
-export function enableEmbedBridge(app, config = readEmbedConfiguration()) {
-  if (!config) return;
+export function sendEmbedEvent(config, event, details = {}) {
+  if (!config) return false;
+  window.parent.postMessage(
+    { type: MESSAGE_TYPE, channel: config.channel, event, ...details },
+    config.parentOrigin
+  );
+  return true;
+}
 
-  const send = (event, details = {}) => {
-    window.parent.postMessage(
-      { type: MESSAGE_TYPE, channel: config.channel, event, ...details },
-      config.parentOrigin
-    );
-  };
+export function enableEmbedBridge(app, config = readEmbedConfiguration()) {
+  if (!config) return () => {};
+
+  const send = (event, details = {}) => sendEmbedEvent(config, event, details);
 
   let opening = false;
-  window.addEventListener("message", async message => {
+  const onMessage = async message => {
     if (message.source !== window.parent || message.origin !== config.parentOrigin)
       return;
     const data = message.data;
@@ -55,7 +59,14 @@ export function enableEmbedBridge(app, config = readEmbedConfiguration()) {
       data.event !== "open"
     )
       return;
-    if (opening || !(data.blob instanceof Blob)) return;
+    if (opening) {
+      send("busy");
+      return;
+    }
+    if (!(data.blob instanceof Blob)) {
+      send("error", { reason: "invalid-model" });
+      return;
+    }
 
     opening = true;
     try {
@@ -72,7 +83,9 @@ export function enableEmbedBridge(app, config = readEmbedConfiguration()) {
     } finally {
       opening = false;
     }
-  });
+  };
+  window.addEventListener("message", onMessage);
 
   send("ready");
+  return () => window.removeEventListener("message", onMessage);
 }

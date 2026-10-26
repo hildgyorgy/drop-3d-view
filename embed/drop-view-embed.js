@@ -113,6 +113,9 @@
     let nativeFullscreen = false;
     let previousOverflow = "";
     let fetching = false;
+    let cleaned = false;
+    let removalObserver = null;
+    const fetchController = new AbortController();
     const send = event => frame.contentWindow?.postMessage(
       { type: "drop-view-embed", channel, event }, viewerOrigin
     );
@@ -134,16 +137,20 @@
       if (fetching) return;
       fetching = true;
       try {
-        const response = await fetch(model.href, { credentials: "same-origin" });
+        const response = await fetch(model.href, {
+          credentials: "same-origin",
+          signal: fetchController.signal
+        });
         if (!response.ok) throw new Error(`Model request failed (${response.status})`);
         modelBlob = await response.blob();
         sendModel();
       } catch (error) {
+        if (error.name === "AbortError") return;
         console.error("Drop & View embed could not fetch the model", error);
         status.textContent = "A 3D modell jelenleg nem érhető el.";
       }
     };
-    window.addEventListener("message", message => {
+    const onMessage = message => {
       if (message.source !== frame.contentWindow || message.origin !== viewerOrigin)
         return;
       const data = message.data;
@@ -156,8 +163,10 @@
         status.hidden = true;
       } else if (data.event === "error") {
         status.textContent = "A 3D modell nem nyitható meg.";
+      } else if (data.event === "startup-error") {
+        status.textContent = "A 3D megjelenítő jelenleg nem indítható el.";
       }
-    });
+    };
 
     const collapse = () => {
       if (!container.classList.contains("expanded")) return;
@@ -169,6 +178,26 @@
       nativeFullscreen = false;
       expandButton.focus();
     };
+    const onFullscreenChange = () => {
+      if (nativeFullscreen && document.fullscreenElement !== container) collapse();
+    };
+    const onKeydown = event => {
+      if (event.key === "Escape" && container.classList.contains("expanded")) collapse();
+    };
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      window.removeEventListener("message", onMessage);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener("keydown", onKeydown);
+      removalObserver?.disconnect();
+      fetchController.abort();
+      if (container.classList.contains("expanded"))
+        document.body.style.overflow = previousOverflow;
+      if (document.fullscreenElement === container)
+        document.exitFullscreen().catch(() => {});
+    };
+    window.addEventListener("message", onMessage);
     expandButton.addEventListener("click", () => {
       previousOverflow = document.body.style.overflow;
       container.classList.add("expanded");
@@ -182,12 +211,14 @@
       }).catch(() => {});
     });
     closeButton.addEventListener("click", collapse);
-    document.addEventListener("fullscreenchange", () => {
-      if (nativeFullscreen && document.fullscreenElement !== container) collapse();
-    });
-    document.addEventListener("keydown", event => {
-      if (event.key === "Escape" && container.classList.contains("expanded")) collapse();
-    });
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("keydown", onKeydown);
+    if (globalThis.MutationObserver) {
+      removalObserver = new globalThis.MutationObserver(() => {
+        if (!container.isConnected) cleanup();
+      });
+      removalObserver.observe(document.documentElement, { childList: true, subtree: true });
+    }
 
     // The iframe is lazy-loaded, then requests the GLB from the host page.
     return;
@@ -295,6 +326,8 @@
         status.hidden = true;
       } else if (data.event === "error") {
         status.textContent = "A 3D modell nem nyitható meg.";
+      } else if (data.event === "startup-error") {
+        status.textContent = "A 3D megjelenítő jelenleg nem indítható el.";
       }
     };
 

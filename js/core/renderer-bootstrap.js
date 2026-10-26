@@ -1,7 +1,11 @@
 /* One document/UI, with renderer-specific module graphs selected at startup. */
 import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js";
 import { saveBackendHandoff, takeBackendHandoff } from "./backend-handoff.js";
-import { enableEmbedBridge } from "./embed-bridge.js";
+import {
+  enableEmbedBridge,
+  readEmbedConfiguration,
+  sendEmbedEvent
+} from "./embed-bridge.js";
 
 const localComparison = location.hostname === "127.0.0.1" && location.port === "8001";
 const packagedRenderers = window.__DROP_VIEW_RENDERER_PACKAGES__ || null;
@@ -10,6 +14,7 @@ const showPicker = comparison && new URLSearchParams(location.search).has("rende
 const modeKey = "drop-view-renderer-mode";
 let mode = activeRendererMode(showPicker, showPicker ? localStorage.getItem(modeKey) : null);
 const backend = chooseRendererBackend(mode, Boolean(navigator.gpu));
+const embedConfig = readEmbedConfiguration();
 
 async function start() {
   const picker = document.querySelector("#rendererPicker");
@@ -70,6 +75,7 @@ async function start() {
     if (!backend) {
       document.querySelector("#startMessageText").textContent =
         "WEBGPU IS NOT AVAILABLE IN THIS BROWSER. CHOOSE AUTO OR WEBGL.";
+      sendEmbedEvent(embedConfig, "startup-error");
       return;
     }
 
@@ -84,7 +90,7 @@ async function start() {
         : await import("../main.js?v=renderer-ab");
     }
     await app.bootPromise;
-    enableEmbedBridge(app);
+    enableEmbedBridge(app, embedConfig);
 
     const handoff = showPicker ? await takeBackendHandoff() : null;
     if (handoff?.fileBytes || handoff?.file) {
@@ -102,4 +108,5 @@ start().catch(error => {
   const message = document.querySelector("#startMessageText");
   if (message) message.textContent = `RENDERER COULD NOT START: ${error.message}`;
   document.querySelector("#startMessage")?.classList.add("error");
+  sendEmbedEvent(embedConfig, "startup-error");
 });

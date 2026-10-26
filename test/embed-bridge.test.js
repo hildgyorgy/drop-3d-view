@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { enableEmbedBridge, readEmbedConfiguration } from "../js/core/embed-bridge.js";
+import {
+  enableEmbedBridge,
+  readEmbedConfiguration,
+  sendEmbedEvent
+} from "../js/core/embed-bridge.js";
 
 const parentOrigin = "https://www.negyedikcsoport.hu";
 const url = `https://viewer.example/?embed=1&channel=pilot&parentOrigin=${encodeURIComponent(parentOrigin)}`;
@@ -117,6 +121,46 @@ test("only the designated parent can hand a GLB to the embedded viewer", async (
     assert.equal(opened.length, 1);
     assert.equal(opened[0].name, "house.glb");
     assert.equal(messages.at(-1)[0].event, "opened");
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+test("embed bridge reports startup, busy and invalid-model states and can detach", async () => {
+  const originalWindow = globalThis.window;
+  const messages = [];
+  let listener;
+  let removed;
+  let finishOpen;
+  const parent = { postMessage: (...args) => messages.push(args) };
+  globalThis.window = {
+    parent,
+    addEventListener: (name, callback) => { if (name === "message") listener = callback; },
+    removeEventListener: (name, callback) => { if (name === "message") removed = callback; }
+  };
+  try {
+    const config = { channel: "pilot", parentOrigin };
+    assert.equal(sendEmbedEvent(config, "startup-error"), true);
+    const detach = enableEmbedBridge({
+      openFile: () => new Promise(resolve => { finishOpen = resolve; })
+    }, config);
+    const base = {
+      source: parent,
+      origin: parentOrigin,
+      data: { type: "drop-view-embed", channel: "pilot", event: "open" }
+    };
+    await listener(base);
+    assert.equal(messages.at(-1)[0].reason, "invalid-model");
+
+    const opening = listener({ ...base, data: { ...base.data, blob: new Blob(["one"]) } });
+    await listener({ ...base, data: { ...base.data, blob: new Blob(["two"]) } });
+    assert.equal(messages.at(-1)[0].event, "busy");
+    finishOpen(true);
+    await opening;
+    assert.equal(messages.at(-1)[0].event, "opened");
+
+    detach();
+    assert.equal(removed, listener);
   } finally {
     globalThis.window = originalWindow;
   }
