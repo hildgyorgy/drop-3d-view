@@ -11,6 +11,7 @@ import {
   sectionDebugDegree1Material,
   sectionDebugBranchMaterial
 } from "../model/materials.js";
+import { resizeSectionRenderer } from "./section-resize.js";
 
 export function disposeSectionGroup(group) {
   if (!group) return;
@@ -48,7 +49,7 @@ export function createSectionGroup({
   if (!fillEnabled && rawSegmentPositions.length > 0) {
     const edgeGeometry = new LineSegmentsGeometry();
     edgeGeometry.setPositions(rawSegmentPositions);
-    sectionEdgeMaterial.resolution.set(window.innerWidth, window.innerHeight);
+    resizeSectionRenderer(window.innerWidth, window.innerHeight);
 
     const edgeLines = new LineSegments2(edgeGeometry, sectionEdgeMaterial);
     edgeLines.renderOrder = 10505;

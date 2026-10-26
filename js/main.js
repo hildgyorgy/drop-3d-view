@@ -28,6 +28,7 @@ import { openFile } from "./model/load.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
 import { restoreBackendHandoff } from "./core/backend-restore.js";
 import { getSafeViewportSize } from "./view/viewport-size.js";
+import { resizeSectionRenderer } from "./section/section-resize.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -55,6 +56,7 @@ function resizeViewport() {
   updateOrthoFrustum();
 
   renderer.setSize(width, height);
+  resizeSectionRenderer(width, height);
   resizePhoto1();
 }
 
