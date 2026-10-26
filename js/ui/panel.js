@@ -16,7 +16,7 @@ const aboutButton = document.querySelector("#aboutButton");
 const aboutMenu = document.querySelector("#aboutMenu");
 const appVersion = document.querySelector("#appVersion");
 
-if (appVersion) appVersion.textContent = `VERSION ${APP_VERSION}`;
+if (appVersion) appVersion.textContent = `v${APP_VERSION}`;
 
 const menus = [
   { button: aboutButton, panel: aboutMenu, dock: aboutButton.closest(".about-dock") },

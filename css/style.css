@@ -206,7 +206,7 @@ canvas {
   justify-content: center;
   gap: 7px;
   width: 126px;
-  height: 142px;
+  height: 126px;
   padding: 8px;
   border: 1px dashed #17171788;
   border-radius: 10px;
@@ -224,6 +224,9 @@ canvas {
 .about-menu a {
   color: var(--red);
   text-decoration: none;
+}
+.about-title #appVersion {
+  color: var(--red);
 }
 .about-support {
   display: block;
