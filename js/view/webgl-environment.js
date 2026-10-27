@@ -8,9 +8,24 @@ import { getSunDirectionFromControls } from "./ground-sun.js";
 import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
 
 const ENVIRONMENT_INTENSITY = 0.2;
+const toggle = document.querySelector("#previewHdriToggle");
+const control = document.querySelector("#previewHdriControl");
+const traceButton = document.querySelector("#photo1Button");
 const sourceSun = new THREE.Vector3();
 let environment = null;
 let loading = null;
+
+// Temporary iOS comparison: start without loading or installing the preview
+// HDRI. Enabling this switch uses the existing, unchanged HDRI processing.
+control.hidden = false;
+
+function applyEnvironment() {
+  // PHOTO owns a separate environment; never replace it from this switch.
+  if (State.pathTracerActive) return;
+  scene.environment = toggle.checked ? environment : null;
+  scene.environmentIntensity = ENVIRONMENT_INTENSITY;
+  if (scene.environment) alignWithSun();
+}
 
 function alignWithSun() {
   if (!environment || sourceSun.lengthSq() < 1e-8) return;
@@ -41,9 +56,7 @@ async function loadEnvironment() {
       }
       texture.mapping = THREE.EquirectangularReflectionMapping;
       environment = texture;
-      scene.environment = texture;
-      scene.environmentIntensity = ENVIRONMENT_INTENSITY;
-      alignWithSun();
+      applyEnvironment();
     })
     .catch(error => console.warn("WebGL HDRI could not be loaded; using the original lighting", error))
     .finally(() => { loading = null; });
@@ -51,8 +64,21 @@ async function loadEnvironment() {
 }
 
 window.addEventListener("dropview:model-loaded", () => {
-  if (environment) alignWithSun();
+  if (!toggle.checked) return;
+  if (environment) applyEnvironment();
   else if (State.model) void loadEnvironment();
 });
+toggle.addEventListener("change", () => {
+  applyEnvironment();
+  if (toggle.checked && State.model) void loadEnvironment();
+});
+const updateAvailability = () => {
+  toggle.disabled = State.pathTracerActive;
+  applyEnvironment();
+};
+new MutationObserver(updateAvailability).observe(traceButton, {
+  attributes: true, attributeFilter: ["aria-pressed"]
+});
+updateAvailability();
 for (const selector of ["#sunAngle", "#sunHeight"])
   document.querySelector(selector)?.addEventListener("input", alignWithSun);
