@@ -2,7 +2,7 @@
 // stays a solid color, and the path tracer temporarily installs its own HDRI.
 import * as THREE from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
-import { scene } from "../core/scene.js";
+import { scene, renderer } from "../core/scene.js";
 import { State } from "../core/state.js";
 import { getSunDirectionFromControls } from "./ground-sun.js";
 import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
@@ -15,9 +15,10 @@ const sourceSun = new THREE.Vector3();
 let environment = null;
 let loading = null;
 
-// Temporary iOS comparison: start without loading or installing the preview
-// HDRI. Enabling this switch uses the half-float-safe HDRI processing below.
-control.hidden = false;
+// Production always uses the calibrated HDRI. Keep the comparison switch only
+// in debug mode, starting enabled and without storing a browser preference.
+control.hidden = !new URLSearchParams(location.search).has("rendererDebug");
+toggle.checked = true;
 
 function applyEnvironment() {
   // PHOTO owns a separate environment; never replace it from this switch.
@@ -60,7 +61,15 @@ async function loadEnvironment() {
         texture.needsUpdate = true;
       }
       texture.mapping = THREE.EquirectangularReflectionMapping;
-      environment = texture;
+      const generator = new THREE.PMREMGenerator(renderer);
+      try {
+        // Finish the GPU conversion before revealing the model. Assigning the
+        // prefiltered texture also avoids another conversion on the first frame.
+        environment = generator.fromEquirectangular(texture).texture;
+      } finally {
+        generator.dispose();
+        texture.dispose();
+      }
       applyEnvironment();
     })
     .catch(error => console.warn("WebGL HDRI could not be loaded; using the original lighting", error))
@@ -68,14 +77,18 @@ async function loadEnvironment() {
   return loading;
 }
 
+export function preparePreviewEnvironment() {
+  return toggle.checked ? loadEnvironment() : Promise.resolve();
+}
+
 window.addEventListener("dropview:model-loaded", () => {
-  if (!toggle.checked) return;
-  if (environment) applyEnvironment();
-  else if (State.model) void loadEnvironment();
+  // Model preparation has already awaited loading. Only align with its final
+  // sun here; a failed download must not trigger a late lighting change.
+  if (toggle.checked && environment) applyEnvironment();
 });
 toggle.addEventListener("change", () => {
   applyEnvironment();
-  if (toggle.checked && State.model) void loadEnvironment();
+  if (toggle.checked) void loadEnvironment();
 });
 const updateAvailability = () => {
   toggle.disabled = State.pathTracerActive;

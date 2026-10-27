@@ -17,7 +17,7 @@
 */
 
 import { State } from "./core/state.js";
-import { backendKind, scene, renderer, perspectiveCamera } from "./core/scene.js";
+import { backendKind, scene, renderer, perspectiveCamera, preparePreviewEnvironment } from "./core/scene.js";
 import { updateOrthoFrustum } from "./view/camera.js";
 import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=glass-light-test";
@@ -103,12 +103,14 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
+  // Start HDRI work while the UI and, later, the GLB load in parallel.
+  void preparePreviewEnvironment().catch(error =>
+    console.warn("Preview lighting unavailable; using direct lights", error)
+  );
   if (shouldLoadMaterialWorkbench(readEmbedConfiguration())) {
     materialWorkbench = await import("./ui/material-workbench.js");
     measurements = await import("./ui/measurements.js");
   }
-  if (backendKind === "webgl")
-    await import("./view/webgl-environment.js");
   renderer.setAnimationLoop(animate);
 
   // Optional local comparison fixture; regular users still choose OPEN/DEMO.

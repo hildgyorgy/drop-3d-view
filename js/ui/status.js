@@ -23,6 +23,12 @@ export function showStartError(text) {
   startScreen.classList.remove("hidden");
 }
 
+export function showStartLoading() {
+  startMessageText.textContent = "OPENING MODEL…";
+  startMessage.classList.remove("error");
+  startScreen.classList.remove("hidden");
+}
+
 export function setStatus(text) {
   if (!statusElement) return;
 

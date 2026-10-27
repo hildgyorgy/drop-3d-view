@@ -13,7 +13,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
 import { State } from "../core/state.js";
-import { scene } from "../core/scene.js";
+import { scene, preparePreviewEnvironment } from "../core/scene.js";
 import { demoModelUrl } from "../core/demo-source.js";
 import { createLatestRequestGate } from "../core/latest-request.js";
 import { restoreCurrentViewSession } from "../core/session-runtime.js";
@@ -59,7 +59,7 @@ import { inspectModel } from "../ui/inspector.js";
 import { showDesignCredits } from "../ui/design-credits.js";
 import { buildGroupFilter, clearGroupFilter } from "../ui/group-filter.js";
 import { setViewMode } from "../view/view-modes.js";
-import { setStatus, resetStartMessage, showStartError } from "../ui/status.js";
+import { setStatus, resetStartMessage, showStartError, showStartLoading } from "../ui/status.js";
 import { disposeSectionCap } from "../section/section-cap.js";
 import { updateSectionPlane } from "../section/section-plane.js";
 import { deactivatePhoto1, updatePhoto1Availability } from "../view/photo1.js";
@@ -122,6 +122,7 @@ for (const [button, url] of [
     });
 
     resetStartMessage();
+    if (!State.model) showStartLoading();
 
     try {
       const response = await fetch(url);
@@ -203,7 +204,7 @@ export async function openFile(
 
   setStatus(`Opening ${file.name}…`);
 
-  startScreen.classList.add("hidden");
+  if (!State.model) showStartLoading();
 
   const objectUrl = URL.createObjectURL(file);
   let result = null;
@@ -222,6 +223,11 @@ export async function openFile(
         assertUsableModelBounds(new THREE.Box3().setFromObject(result.scene));
         const metadata = readDropViewMetadata(result);
         metadata.windowLightEmitters = readWindowLightEmitters(result);
+        // Stage the GLB without displaying it until its initial lighting is
+        // ready. A failed HDRI must never prevent a valid model from opening.
+        await preparePreviewEnvironment().catch(error =>
+          console.warn("Preview lighting unavailable; using direct lights", error)
+        );
         return { result, metadata };
       },
       isCurrent: request.isCurrent,
@@ -234,6 +240,7 @@ export async function openFile(
         State.currentFileSourceKind = sourceKind;
         State.materialWorkbenchPolicy = candidate.metadata.materialWorkbenchPolicy;
         prepareModel(candidate.result.scene, file, candidate.result, candidate.metadata);
+        startScreen.classList.add("hidden");
       }
     });
     if (!opened) return false;
