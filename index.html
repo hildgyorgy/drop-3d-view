@@ -314,6 +314,11 @@
             ><input id="shadowToggle" type="checkbox" checked />
             <span class="adaptive-text">SHADOW</span></label
           >
+          <label id="previewHdriControl" class="check-control" for="previewHdriToggle" hidden
+            title="Debug comparison: HDRI lighting and reflections in the WebGL preview"
+            ><input id="previewHdriToggle" type="checkbox" />
+            <span class="adaptive-text">HDRI LIGHT</span></label
+          >
         </div>
         <button
           id="panelButton"
@@ -488,8 +493,8 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=2.0-measurements-1",
-          webgl: "renderers/webgl/main.js?v=2.0-measurements-1"
+          webgpu: "renderers/webgpu/main.js?v=2.0-bw-shadows-1",
+          webgl: "renderers/webgl/main.js?v=2.0-bw-shadows-1"
         };
       }
     </script>

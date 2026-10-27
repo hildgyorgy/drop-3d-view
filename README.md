@@ -103,6 +103,8 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 ## Local preview
 
+The normal preview uses subtle HDRI lighting and reflections behind a solid background. HDRI loading starts alongside app startup; a model is first shown after its environment is ready, with WebGL's reflection filtering prepared in advance to avoid a later lighting change. If the HDRI fails to load, direct lighting remains available. Like WebGPU and the path tracer, WebGL clamps HDRI values to the finite half-float range before upload, preventing the iOS black-model issue. With `?rendererDebug=1`, WebGL retains **CONTROLS → HDRI LIGHT** for comparison; it starts enabled and does not affect the path tracer's own lighting.
+
 For the author, authorised contributors, or anyone with separate permission to run a local copy, serve the repository over HTTP:
 
 ```sh

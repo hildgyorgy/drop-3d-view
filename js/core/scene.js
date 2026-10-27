@@ -14,6 +14,13 @@ import { getSafeViewportSize } from "../view/viewport-size.js";
 
 export const backendKind = "webgl";
 
+// Keep the environment loader lazy so the renderer exists before PMREM work.
+// Model loading awaits the same promise that startup begins in the background.
+export async function preparePreviewEnvironment() {
+  const environment = await import("../view/webgl-environment.js");
+  return environment.preparePreviewEnvironment();
+}
+
 /* ======================================================
    SCENE
 ====================================================== */

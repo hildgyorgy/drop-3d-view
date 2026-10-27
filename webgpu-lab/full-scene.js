@@ -61,7 +61,7 @@ export function syncWebGpuEnvironmentToSun(direction) {
 }
 
 const environmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
-new HDRLoader().setDataType(THREE.FloatType).loadAsync(environmentUrl)
+const previewEnvironmentReady = new HDRLoader().setDataType(THREE.FloatType).loadAsync(environmentUrl)
   .then(texture => {
       const { data, width, height } = texture.image ?? {};
       if (data instanceof Float32Array && width && height) {
@@ -93,3 +93,7 @@ new HDRLoader().setDataType(THREE.FloatType).loadAsync(environmentUrl)
       }
     })
   .catch(error => console.warn("WebGPU preview HDRI unavailable", error));
+
+export function preparePreviewEnvironment() {
+  return previewEnvironmentReady;
+}
