@@ -198,6 +198,14 @@ renaissanceMaterial.onBeforeCompile = shader => {
     "#include <map_fragment>\n diffuseColor.rgb = vec3(1.0);"
   );
 
+  // Lambert also receives scene HDRI irradiance in the pinned Three.js version.
+  // B/W encodes direct light and its shadow only: indirect fill would lift
+  // shadowed surfaces above the binary threshold and turn them white.
+  shader.fragmentShader = shader.fragmentShader.replace(
+    "#include <envmap_fragment>",
+    "outgoingLight = reflectedLight.directDiffuse;"
+  );
+
   shader.fragmentShader = shader.fragmentShader.replace(
     "#include <dithering_fragment>",
 
@@ -253,7 +261,7 @@ renaissanceMaterial.onBeforeCompile = shader => {
   );
 };
 
-renaissanceMaterial.customProgramCacheKey = () => "drop-view-renaissance-1.2";
+renaissanceMaterial.customProgramCacheKey = () => "drop-view-renaissance-1.3";
 
 /* Only alpha-cutout surfaces need their own B/W material. They reuse the
    exported textures for holes, but all visible pixels stay black or white. */
@@ -273,7 +281,7 @@ function getRenaissanceCutoutMaterial(original) {
     side: THREE.DoubleSide
   });
   material.onBeforeCompile = renaissanceMaterial.onBeforeCompile;
-  material.customProgramCacheKey = () => "drop-view-renaissance-cutout-1.2";
+  material.customProgramCacheKey = () => "drop-view-renaissance-cutout-1.3";
 
   renaissanceCutoutVariants.set(original, material);
   renaissanceCutoutMaterialSet.add(material);
