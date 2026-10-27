@@ -1,6 +1,13 @@
 # Drop & View – fejlesztői átadó
 
-Állapot: 2026-10-26. Aktuális publikus verzió: **2.0**. Ez a dokumentum az új fejlesztői chat kiindulópontja; a tényleges kód és a tesztek az elsődleges források. A felhasználói működést a [README](README.md) írja le.
+Állapot: 2026-10-27. Aktuális publikus verzió: **2.0** (`package.json`: `2.0.0`). Ez a dokumentum az új fejlesztői chat kiindulópontja; a tényleges kód és a tesztek az elsődleges források. A felhasználói működést a [README](README.md) írja le.
+
+## Gépváltási pillanatkép
+
+- Az átadó frissítése előtt a `main` working tree tiszta volt, a helyi ág a helyben ismert `origin/main` állapotával egyezett. Utolsó commit: **`1a549e0` – `mérőke 1`**; előtte **`c9abfc5` – `webgl path tracer`**. Távoli frissítést ebben a körben nem végeztünk; a másik gépen először szinkronizáljuk a repót. E dokumentum frissítését még commitolni és pusholni kell, hogy ott is elérhető legyen.
+- Legutóbbi ellenőrzés: **102/102 automatikus teszt sikeres**, mindkét publikus renderer buildje sikeres, `git diff --check` tiszta. A build ismert figyelmeztetései: `three-mesh-bvh` névütközés és nagy chunkok; nem buildhibák.
+- A felhasználó kipróbálta és pozitívan fogadta a mérőszalag első változatát. Nincs kijelölt következő implementációs feladat; a további finomításokról vele egyeztessünk.
+- A fejlesztéshez használt helyi HTTP-szervert leállítottuk. A másik gépen Node.js, pnpm és a függőségek helyi telepítése szükséges; a korábbi gép runtime- és Desktop-útvonalaira ne építsünk.
 
 ## Termék és döntések
 
@@ -29,9 +36,29 @@
 
 ## Anyagok és publikus workbench
 
-Az önálló viewer infópaneljéből nyitható **MATERIAL WORKBENCH** egy GLB kiválasztott glTF-anyagának minden előfordulását együtt szerkeszti. SURFACE, POLISHED METAL, LACQUERED és csak exporterrel kijelölt clear glass esetén GLASS mód van. JPEG/PNG szín-, roughness-, OpenGL normal- és ARM-térképeket fogad; a feltöltött textúrák mérete méterben állítható. APPLY előnézet, UNDO az utolsó műveletet vonja vissza, RESET MATERIAL csak a kiválasztott anyagot állítja helyre, SAVE NEW GLB új fájlt tölt le. Az eredeti GLB soha nem módosul. A demókban csak előnézet van, embedben a Workbench nem töltődik be. Az exporter `asset.extras.dropView.materialWorkbench.policy = "disabled"` jelzése letiltja a szerkesztést; hiányzó vagy ismeretlen policy a régi és külső GLB-k kompatibilitása miatt engedélyezett.
+Az önálló viewer infópaneljéből kapcsolható **MATERIAL WORKBENCH** egy GLB kiválasztott glTF-anyagának minden előfordulását együtt szerkeszti. SURFACE, POLISHED METAL, LACQUERED és csak exporterrel kijelölt clear glass esetén GLASS mód van. JPEG/PNG szín-, roughness-, OpenGL normal- és ARM-térképeket fogad; a feltöltött textúrák mérete méterben állítható. APPLY előnézet, UNDO az utolsó műveletet vonja vissza, RESET csak a kiválasztott anyagot állítja helyre, SAVE AS új GLB-fájlt tölt le. Az eredeti GLB soha nem módosul. A demókban csak előnézet van, embedben a Workbench nem töltődik be. Az exporter `asset.extras.dropView.materialWorkbench.policy = "disabled"` jelzése letiltja a szerkesztést; hiányzó vagy ismeretlen policy a régi és külső GLB-k kompatibilitása miatt engedélyezett. Tiltott fájlnál a menüpont látható marad, de a szerkesztő helyett az editable verzió tulajdonostól való kérését jelzi.
+
+Az infópanel a mockup szerinti SUPPORT, Experimental features és Design credits blokkokat használja. A Workbench és a Measurements sora valódi kétállapotú kapcsoló: aktív állapotban piros pötty, ismét kattintva kikapcsol. A kapcsolás nem zárja be az infópanelt; az `i` vagy mellékattintás bezárja. A Workbench keskeny, kompakt panel, fejlécében EXIT; demónál közvetlenül a cím alatt állandó preview-only felirat. A kezdeti kijelölési szöveg `CLICK A SURFACE`.
 
 Az új textúrákhoz a workbench `TEXCOORD_1` UV-kat ment, az eredeti `TEXCOORD_0` megmarad. Íves felületeken a dobozos leképezés varratot adhat; a már foglalt `TEXCOORD_1` esetén a művelet elutasított. Több node által használt közös mesh azonos világkoordinátás UV-projekcióját a mentés deduplikálja; eltérő projekciót az APPLY célzott hibával elutasít, mert a glTF-mesh csak egy közös UV-készletet tárolhat. A WebGL path tracernek külön, ideiglenes UV-átkötése van. Részletek: [MATERIAL-WORKBENCH](webgpu-lab/MATERIAL-WORKBENCH.md) és [MATERIAL-VARIANTS](webgpu-lab/MATERIAL-VARIANTS.md). A korábbi 1K PBR-demókísérlet receptje archív: [PBR-EXPERIMENT](webgpu-lab/PBR-EXPERIMENT.md).
+
+## Mérőszalag – az első változat határai
+
+- Az infópanel **MEASUREMENTS** kapcsolója egyetlen, két fekete fogópöttyből álló mérőszalagot mutat. A végpontokat a látható modellfelületekre húzva a két világkoordináta közötti egyenes 3D-távolságot írja ki méterben, két tizedessel. A pontosság a GLB léptékétől és a kézi pontelhelyezéstől függ; jelenleg nincs él-/csúcs-snap.
+- A piros SVG-vonalzó valódi térbeli osztásokat vetít a képre, adaptív sűrűséggel. A pontok orbit/zoom/projekcióváltás közben a modellen maradnak. A fogópötty húzása idejére a kameravezérlés és a damping-frissítés szünetel; az eredeti vezérlési állapot visszaállításánál a PATH TRACER és FLY zárolását tiszteletben tartja.
+- Üres tér fölött az utolsó érvényes pont marad meg. A raycast a rejtett csoportokat és a metszettel levágott részeket kizárja. Ha a már lerakott pont csoportját elrejtjük vagy metszettel levágjuk, a mérőszalag elrejtőzik és visszaállítási útmutatást mutat.
+- Ki-/bekapcsolás megőrzi a pontokat. Új modell, oldalfrissítés vagy rendererváltás törli őket. A mérés nem része a GLB-mentésnek vagy a renderer-handoffnak. Embedben a modul nem töltődik be, a kapcsoló rejtett.
+- Élőben mindkét demón ellenőriztük a pontok húzását és a kijelzést; az első demón a kameraforgatás és a ki-/bekapcsolás is ellenőrzött. Az érintéses használathoz pointer capture és nagyobb láthatatlan fogóterület készült, de külön mobil/eszközteszt még indokolt.
+
+## Safari LACQUERED regresszió – ellenőrzési támpont
+
+A hiba a felhasználó szerint mindkét demón kizárólag LACQUERED anyagnál, WebGL PATH TRACER-ben jelentkezett. Natív Safariban a DEMO 1 betonanyagát LACQUERED-re állítva a fehér keret és járda fekete lett; a javított shaderrel világos maradt. Másik tesztböngészőben az eredeti shader sem reprodukálta a feketedést. A javítás nem az UV-átkötést módosítja és nem kapcsolja ki a clearcoatot, hanem a clearcoat GGX/Smith kiértékelését stabilabb koszinuszos alakra cseréli.
+
+A `87f6416` commit 2026-10-25-én a path tracert a `894bf9b8…` fejlesztői commitról a kiadott `0.0.27` verzióra váltotta. Ez lehetséges regressziós határ, de a régi és új függőség azonos Safari-próbája nem történt meg, ezért ne állítsuk bizonyított eredetnek. A `photo-clearcoat.test.js` a csomagolt függőség shaderéhez való illeszkedést és a többi BSDF-ág megőrzését ellenőrzi; a Safari GPU-s megjelenését automatikusan nem teszteli.
+
+## Kapcsolódó, külön repó
+
+Az app-support oldal a **külön `app-support` repó** `drop-view/index.html` fájlja; a fő viewer repó commitja ezt nem viszi át. Utolsó ellenőrzéskor ez a repó is tiszta volt (`66bebf8`). A 2.0/Workbench tájékoztató korábban frissült; a mérőszalag támogatási oldalon történő bemutatása ebben a körben nem készült el. A felhasználói mockupok és az exporter két policy-fixture-je a korábbi gép Desktopján voltak, nem verziózott tesztassetek.
 
 ## Fejlesztés és ellenőrzés
 
