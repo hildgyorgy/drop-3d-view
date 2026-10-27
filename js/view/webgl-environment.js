@@ -16,7 +16,7 @@ let environment = null;
 let loading = null;
 
 // Temporary iOS comparison: start without loading or installing the preview
-// HDRI. Enabling this switch uses the existing, unchanged HDRI processing.
+// HDRI. Enabling this switch uses the half-float-safe HDRI processing below.
 control.hidden = false;
 
 function applyEnvironment() {
@@ -53,6 +53,11 @@ async function loadEnvironment() {
         sourceSun.fromArray(environmentSunDirectionFromPixel(
           brightest % width, Math.floor(brightest / width), width, height
         )).normalize();
+        // Match WebGPU and PHOTO: the preview's PMREM stores half floats.
+        // Clip rare solar peaks before upload so they cannot become infinity.
+        for (let i = 0; i < data.length; i++)
+          data[i] = Math.min(65504, Math.max(-65504, data[i]));
+        texture.needsUpdate = true;
       }
       texture.mapping = THREE.EquirectangularReflectionMapping;
       environment = texture;

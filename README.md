@@ -103,7 +103,7 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 ## Local preview
 
-Temporary iOS diagnostic: WebGL preview HDRI lighting starts off. **CONTROLS → HDRI LIGHT** enables the existing HDRI fill and reflections for comparison. This switch does not change the solid background or the path tracer's own lighting, and resets to off on page reload.
+Temporary iOS diagnostic: WebGL preview HDRI lighting starts off. **CONTROLS → HDRI LIGHT** enables the HDRI fill and reflections for comparison. Like WebGPU and the path tracer, the WebGL preview now clamps HDRI values to the finite half-float range before upload. This switch does not change the solid background or the path tracer's own lighting, and resets to off on page reload.
 
 For the author, authorised contributors, or anyone with separate permission to run a local copy, serve the repository over HTTP:
 
