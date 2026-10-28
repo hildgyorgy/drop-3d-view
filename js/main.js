@@ -171,7 +171,7 @@ function bindRenderSnapshotControls() {
       link.download = file.name.replace(/\.glb$/i, "") + ".dvrender";
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      reportExport(`Render snapshot saved: ${link.download}`);
+      reportExport(`Saved: ${link.download}`);
     } catch (error) {
       console.error("Render snapshot export failed", error);
       reportExport(`RENDER SNAPSHOT EXPORT FAILED: ${error.message}`);

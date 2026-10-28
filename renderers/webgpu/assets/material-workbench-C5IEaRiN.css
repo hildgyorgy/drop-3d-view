@@ -1,11 +1,11 @@
 #materialWorkbench {
-  --workbench-top: clamp(190px, 24.5dvh, 265px);
+  --workbench-top: var(--tool-panel-top, clamp(190px, 24.5dvh, 265px));
   position: fixed;
   z-index: 110;
   top: var(--workbench-top);
   right: var(--edge, 28px);
-  width: min(342px, calc(100vw - 2 * var(--edge, 28px)));
-  max-height: calc(100dvh - var(--workbench-top) - max(210px, 20dvh));
+  width: min(var(--tool-panel-width, 342px), calc(100vw - 2 * var(--edge, 28px)));
+  max-height: var(--tool-panel-height, calc(100dvh - var(--workbench-top) - max(210px, 20dvh)));
   overflow: auto;
   box-sizing: border-box;
   padding: 20px 24px 24px;

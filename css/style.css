@@ -4,6 +4,9 @@
   --red: #f1250c;
   --edge: clamp(20px, 2.1vw, 44px);
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --tool-panel-width: 342px;
+  --tool-panel-top: clamp(190px, 24.5dvh, 265px);
+  --tool-panel-height: calc(100dvh - var(--tool-panel-top) - max(210px, 20dvh));
 }
 * {
   box-sizing: border-box;
@@ -1086,29 +1089,35 @@ body.dragging .drop-title {
 /* Render station is a top-layer dialog; its renderer never occupies the UI. */
 .render-station {
   box-sizing: border-box;
-  width: min(520px, calc(100vw - 32px));
+  width: min(var(--tool-panel-width), calc(100vw - 2 * var(--edge)));
+  height: var(--tool-panel-height);
   max-height: calc(100dvh - 40px);
   overflow: auto;
-  padding: 28px;
+  padding: 20px 24px 24px;
   border: 1px solid #ccc;
   border-radius: 18px;
   background: #f5f5f3;
   color: #222;
-  font: 13px/1.6 monospace;
+  font: 11px/1.4 var(--mono);
   box-shadow: 0 16px 70px #0003;
 }
 .render-station::backdrop { background: #0005; }
 .render-station header { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
 .render-station h2 { margin: 0; font: inherit; letter-spacing: .12em; }
-.render-station h2 span { display: block; font-size: 10px; color: #777; }
-.render-station h3 { margin: 16px 0 8px; font: inherit; letter-spacing: .08em; }
-.render-station-export { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px dashed #aaa; }
-.render-station .render-job-controls input { box-sizing: border-box; max-width: 160px; font: inherit; }
+.render-station h2 { font-size: 13px; }
+.render-station h3 { margin: 10px 0 6px; font: inherit; letter-spacing: .08em; }
+.render-station p { margin: 5px 0; }
+.render-station p:empty { display: none; }
+.render-station-export { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #aaa; }
+.render-station .render-job-controls { grid-template-columns: 84px 1fr; align-items: center; font-size: 10px; letter-spacing: .04em; }
+.render-station .render-job-controls > label { grid-column: 1 / -1; }
+.render-station .render-job-controls input { box-sizing: border-box; min-width: 0; font: 12px var(--mono); }
+.render-station .render-job-controls span { white-space: nowrap; }
 .render-station button, .render-station a {
   display: inline-block;
   border: 1px solid #bbb;
   border-radius: 7px;
-  padding: 10px 14px;
+  padding: 6px 10px;
   background: transparent;
   color: inherit;
   font: 11px monospace;
@@ -1118,13 +1127,22 @@ body.dragging .drop-title {
 }
 .render-station [hidden] { display: none !important; }
 .render-station button:disabled { opacity: .45; cursor: default; }
-.render-station [data-close] { border: 0; font-size: 18px; padding: 5px 8px; }
+.render-station [data-close] { border: 1px solid var(--red); border-radius: 10px; font-size: 16px; padding: 3px 8px; }
 .render-station-file { overflow-wrap: anywhere; font-weight: bold; }
 .render-station-details, .render-station-note { color: #666; font-size: 11px; }
 .render-station-warning { color: #a34308; font-size: 12px; }
 .render-station progress { width: 100%; accent-color: #ed432d; }
-.render-station-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.render-station-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.render-station-actions:has(> [hidden]):not(:has(> :not([hidden]))) { display: none; }
 .render-station [data-download] { border-color: #ed432d; color: #c32c1a; }
+@media (max-height: 780px) and (min-width: 601px) {
+  :root { --tool-panel-top: 175px; --tool-panel-height: calc(100dvh - 350px); }
+  .render-station { padding: 14px 18px 16px; }
+}
+@media (max-width: 600px) {
+  :root { --tool-panel-width: 330px; --tool-panel-top: 155px; --tool-panel-height: calc(100dvh - 175px); }
+  .render-station { width: min(var(--tool-panel-width), calc(100vw - 24px)); padding: 16px; }
+}
 .render-worker-frame {
   position: fixed;
   left: -10000px;

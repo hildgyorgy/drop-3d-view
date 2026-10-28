@@ -46,7 +46,7 @@ export function bindRenderStation({ openPackage }) {
     imageUrl = null;
     download.removeAttribute("href");
     dialog.querySelector("[data-filename]").textContent = file.name;
-    status.textContent = "Package selected. Open it in the viewer or render it in the background.";
+    status.textContent = "";
     details.textContent = "";
     showCompatibility();
     progress.hidden = true;
@@ -102,7 +102,7 @@ export function bindRenderStation({ openPackage }) {
     frame.setAttribute("aria-hidden", "true");
     frame.tabIndex = -1;
     const url = new URL(location.pathname, location.origin);
-    url.search = "?rendererDebug=1&renderWorker=1&build=render-station-5";
+    url.search = "?rendererDebug=1&renderWorker=1&build=render-station-6";
     frame.src = url.href;
     document.body.append(frame);
     updateActions();
@@ -123,7 +123,7 @@ export function bindRenderStation({ openPackage }) {
       const result = await openPackage(selectedFile);
       showCompatibility(result.warnings);
       details.textContent = `${result.width} × ${result.height} px · ${result.targetSamples} target samples`;
-      status.textContent = "Package opened in the viewer. Adjust the scene or start PATH TRACER when ready.";
+      status.textContent = "Opened in viewer.";
       dialog.close();
     } catch (error) {
       status.textContent = `Could not open package: ${error.message}`;
@@ -150,7 +150,7 @@ export function bindRenderStation({ openPackage }) {
   });
   cancel.addEventListener("click", () => {
     releaseWorker();
-    status.textContent = "Render cancelled. Open this package or start another render.";
+    status.textContent = "Render cancelled.";
     progress.hidden = true;
   });
   window.addEventListener("message", event => {
@@ -179,7 +179,7 @@ export function bindRenderStation({ openPackage }) {
       download.href = imageUrl;
       download.download = message.name;
       download.hidden = false;
-      status.textContent = `Render complete · ${progress.max} samples. Your PNG is ready.`;
+      status.textContent = `PNG ready · ${progress.max} samples`;
       progress.value = progress.max;
       releaseWorker();
     } else if (message.type === "error") {
