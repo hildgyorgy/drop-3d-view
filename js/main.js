@@ -23,7 +23,7 @@ import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=glass-light-test";
 import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
 import { bindFocusCanvas } from "./view/focus.js";
-import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
+import { getPhoto1Stats, renderPhoto1, resizePhoto1, deactivatePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
 import { resolveComparisonModelUrl } from "./model/file-format.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
@@ -38,6 +38,9 @@ import { setStatus } from "./ui/status.js";
 import { applyImportedRenderFrame, clearImportedRenderFrame,
   resizeImportedRenderFrame } from "./view/render-frame.js";
 import { makeRenderJob, setRenderJob } from "./core/render-job.js";
+import { renderWorkerMode } from "./core/render-worker-mode.js";
+import { bindRenderStation } from "./ui/render-station.js";
+import { startRenderWorker } from "./view/render-worker.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -99,11 +102,10 @@ function bindRenderSnapshotControls() {
   if (backendKind !== "webgl" ||
       new URLSearchParams(location.search).get("rendererDebug") !== "1") return;
   const exportButton = document.querySelector("#renderSnapshotExport");
-  const importButton = document.querySelector("#renderSnapshotImport");
-  const input = document.querySelector("#renderSnapshotFile");
   const jobControls = document.querySelector("#renderJobControls");
   const targetSamples = document.querySelector("#renderTargetSamples");
-  exportButton.hidden = importButton.hidden = false;
+  exportButton.hidden = false;
+  bindRenderStation();
   jobControls.hidden = false;
   const update = () => { exportButton.disabled = !State.currentFile; };
   window.addEventListener("dropview:model-loaded", update);
@@ -142,34 +144,18 @@ function bindRenderSnapshotControls() {
       update();
     }
   });
-  importButton.addEventListener("click", () => {
-    input.value = "";
-    input.click();
-  });
-  input.addEventListener("change", async () => {
-    const packageFile = input.files?.[0];
-    if (!packageFile) return;
-    importButton.disabled = true;
-    setStatus("Opening render snapshot…");
-    try {
-      const snapshot = await decodeRenderSnapshot(packageFile);
-      if (!await openFile(snapshot.file, { sourceKind: "user" }))
-        throw new Error("Could not open the packaged GLB");
-      if (snapshot.workbench)
-        await materialWorkbench.restoreWorkbenchHandoff(snapshot.workbench);
-      restoreCurrentViewSession(snapshot.viewSession);
-      applyImportedRenderFrame(snapshot.renderSize);
-      setRenderJob(snapshot.renderJob);
-      if (snapshot.renderJob)
-        targetSamples.value = String(snapshot.renderJob.samples);
-      setStatus(`Render snapshot restored: ${snapshot.file.name}`);
-    } catch (error) {
-      console.error("Render snapshot import failed", error);
-      setStatus(`RENDER SNAPSHOT IMPORT FAILED: ${error.message}`);
-    } finally {
-      importButton.disabled = false;
-    }
-  });
+}
+
+async function restoreRenderSnapshot(packageFile, { worker = false } = {}) {
+  const snapshot = await decodeRenderSnapshot(packageFile);
+  if (!await openFile(snapshot.file, { sourceKind: "user" }))
+    throw new Error("Could not open the packaged GLB");
+  if (snapshot.workbench)
+    await materialWorkbench.restoreWorkbenchHandoff(snapshot.workbench);
+  restoreCurrentViewSession(snapshot.viewSession);
+  applyImportedRenderFrame(snapshot.renderSize ?? (worker ? { width: 1920, height: 1080 } : null));
+  setRenderJob(snapshot.renderJob ?? (worker ? makeRenderJob(1000) : null));
+  return { width: renderer.domElement.width, height: renderer.domElement.height };
 }
 
 async function boot() {
@@ -199,7 +185,28 @@ async function boot() {
   if (shouldLoadMaterialWorkbench(readEmbedConfiguration())) {
     materialWorkbench = await import("./ui/material-workbench.js");
     measurements = await import("./ui/measurements.js");
-    bindRenderSnapshotControls();
+    if (!renderWorkerMode) bindRenderSnapshotControls();
+  }
+  if (renderWorkerMode) {
+    // A timer keeps the offscreen document independent of display refresh.
+    let timer;
+    let stopped = false;
+    const tick = () => {
+      animate(performance.now());
+      timer = setTimeout(tick, 16);
+    };
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      clearTimeout(timer);
+      deactivatePhoto1({ restoreStatus: false });
+      renderer.dispose();
+      renderer.forceContextLoss();
+    };
+    window.addEventListener("pagehide", stop, { once: true });
+    tick();
+    startRenderWorker(restoreRenderSnapshot, stop);
+    return;
   }
   renderer.setAnimationLoop(animate);
 

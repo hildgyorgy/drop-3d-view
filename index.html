@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=save-image-3" />
+    <link rel="stylesheet" href="css/style.css?v=render-station-2" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -107,15 +107,14 @@
                   <button id="renderSnapshotExport" class="about-workbench" type="button" hidden>
                     EXPORT RENDER SNAPSHOT
                   </button>
-                  <button id="renderSnapshotImport" class="about-workbench" type="button" hidden>
-                    IMPORT RENDER SNAPSHOT
+                  <button id="renderStationEntry" class="about-workbench" type="button" hidden>
+                    RENDER STATION
                   </button>
                   <label id="renderJobControls" class="render-job-controls" hidden>
                     TARGET SAMPLES
                     <input id="renderTargetSamples" type="number" min="1" max="100000" step="1" value="1000" required>
                     <span>BOUNCES 6 · GLASS 10</span>
                   </label>
-                  <input id="renderSnapshotFile" type="file" accept=".dvrender" hidden>
                 </div>
                 <div id="rendererPicker" class="renderer-picker" hidden>
                   <span>RENDERER</span>
@@ -509,11 +508,30 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=save-image-3",
-          webgl: "renderers/webgl/main.js?v=save-image-3"
+          webgpu: "renderers/webgpu/main.js?v=render-station-2",
+          webgl: "renderers/webgl/main.js?v=render-station-2"
         };
       }
     </script>
-    <script type="module" src="js/core/renderer-bootstrap.js?v=2.0"></script>
+    <dialog id="renderStation" class="render-station" aria-labelledby="renderStationTitle">
+      <header>
+        <h2 id="renderStationTitle">RENDER STATION <span>EXPERIMENTAL</span></h2>
+        <button type="button" data-close aria-label="Close render station">✕</button>
+      </header>
+      <p>Drop a .dvrender package here. Rendering starts automatically using its saved frame and settings.</p>
+      <button type="button" data-choose>CHOOSE RENDER PACKAGE</button>
+      <input type="file" accept=".dvrender" hidden>
+      <p data-filename class="render-station-file"></p>
+      <p role="status" aria-live="polite">Ready for a render package.</p>
+      <p data-details class="render-station-details"></p>
+      <progress hidden aria-label="Render progress"></progress>
+      <div class="render-station-actions">
+        <button type="button" data-pause hidden>PAUSE</button>
+        <button type="button" data-cancel hidden>CANCEL</button>
+        <a data-download hidden>DOWNLOAD PNG</a>
+      </div>
+      <p class="render-station-note">Keep this browser tab open while rendering. Closing this panel keeps the render running. Older packages use 1920 × 1080 and 1000 samples when those settings are missing.</p>
+    </dialog>
+    <script type="module" src="js/core/renderer-bootstrap.js?v=render-station-2"></script>
   </body>
 </html>

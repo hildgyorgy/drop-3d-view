@@ -1082,3 +1082,50 @@ body.dragging .drop-title {
     bottom: max(65px, calc(env(safe-area-inset-bottom) + 40px));
   }
 }
+/* Render station is a top-layer dialog; its renderer never occupies the UI. */
+.render-station {
+  box-sizing: border-box;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid #ccc;
+  border-radius: 18px;
+  background: #f5f5f3;
+  color: #222;
+  font: 13px/1.6 monospace;
+  box-shadow: 0 16px 70px #0003;
+}
+.render-station::backdrop { background: #0005; }
+.render-station header { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+.render-station h2 { margin: 0; font: inherit; letter-spacing: .12em; }
+.render-station h2 span { display: block; font-size: 10px; color: #777; }
+.render-station button, .render-station a {
+  display: inline-block;
+  border: 1px solid #bbb;
+  border-radius: 7px;
+  padding: 10px 14px;
+  background: transparent;
+  color: inherit;
+  font: 11px monospace;
+  letter-spacing: .06em;
+  text-decoration: none;
+  cursor: pointer;
+}
+.render-station [hidden] { display: none !important; }
+.render-station button:disabled { opacity: .45; cursor: default; }
+.render-station [data-close] { border: 0; font-size: 18px; padding: 5px 8px; }
+.render-station-file { overflow-wrap: anywhere; font-weight: bold; }
+.render-station-details, .render-station-note { color: #666; font-size: 11px; }
+.render-station progress { width: 100%; accent-color: #ed432d; }
+.render-station-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.render-station [data-download] { border-color: #ed432d; color: #c32c1a; }
+.render-worker-frame {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  border: 0;
+  pointer-events: none;
+}
