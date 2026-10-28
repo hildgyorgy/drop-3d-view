@@ -30,6 +30,7 @@ export function startRenderWorker(restoreSnapshot, stop) {
     try {
       send({ type: "loading" });
       const size = await restoreSnapshot(message.file, { worker: true });
+      send({ type: "compatibility", warnings: size.warnings ?? [] });
       const job = getRenderJob();
       timer = setInterval(async () => {
         if (reporting || finished) return;

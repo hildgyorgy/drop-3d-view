@@ -398,7 +398,7 @@ canvas {
   display: grid;
   gap: 4px;
   padding: 3px 0;
-  font: 10px var(--mono);
+  font: 12px var(--mono);
   letter-spacing: 0.1em;
 }
 .render-job-controls input {
@@ -410,6 +410,7 @@ canvas {
   color: var(--text);
 }
 .render-job-controls span { color: #666; }
+.render-snapshot-hint { color: var(--red); font-size: 12px; white-space: normal; }
 .glass-light-button {
   position: absolute;
   top: calc(100% + 1px);
@@ -1100,6 +1101,9 @@ body.dragging .drop-title {
 .render-station header { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
 .render-station h2 { margin: 0; font: inherit; letter-spacing: .12em; }
 .render-station h2 span { display: block; font-size: 10px; color: #777; }
+.render-station h3 { margin: 16px 0 8px; font: inherit; letter-spacing: .08em; }
+.render-station-export { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px dashed #aaa; }
+.render-station .render-job-controls input { box-sizing: border-box; max-width: 160px; font: inherit; }
 .render-station button, .render-station a {
   display: inline-block;
   border: 1px solid #bbb;
@@ -1117,6 +1121,7 @@ body.dragging .drop-title {
 .render-station [data-close] { border: 0; font-size: 18px; padding: 5px 8px; }
 .render-station-file { overflow-wrap: anywhere; font-weight: bold; }
 .render-station-details, .render-station-note { color: #666; font-size: 11px; }
+.render-station-warning { color: #a34308; font-size: 12px; }
 .render-station progress { width: 100%; accent-color: #ed432d; }
 .render-station-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
 .render-station [data-download] { border-color: #ed432d; color: #c32c1a; }

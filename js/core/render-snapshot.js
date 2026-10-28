@@ -2,6 +2,34 @@
 import { assertValidViewSession } from "./view-session.js";
 import { assertRenderSize } from "./render-size.js";
 import { assertRenderJob } from "./render-job.js";
+import { RENDER_PRODUCER, assertRenderProducer } from "./render-compatibility.js";
+
+export const MAX_RENDER_RESOURCES = 1024;
+export const MAX_RENDER_MATERIAL_EDITS = 1024;
+
+function assertResourceCount(count) {
+  if (count < 1 || count > MAX_RENDER_RESOURCES)
+    throw new Error(`Render packages support at most ${MAX_RENDER_RESOURCES} resources (including the GLB)`);
+}
+
+function assertMaterialEdits(workbench) {
+  if (workbench.version !== 1 || !Array.isArray(workbench.edits))
+    throw new Error("Invalid material edits");
+  if (workbench.edits.length > MAX_RENDER_MATERIAL_EDITS)
+    throw new Error(`Render packages support at most ${MAX_RENDER_MATERIAL_EDITS} material edits`);
+  for (const edit of workbench.edits) {
+    if (!edit || !Number.isSafeInteger(edit.index) || edit.index < 0 ||
+        !edit.inputs || typeof edit.inputs !== "object" || Array.isArray(edit.inputs) ||
+        !Array.isArray(edit.images))
+      throw new Error("Invalid material edit");
+  }
+}
+
+export function assertRenderSnapshotView(viewSession) {
+  assertValidViewSession(viewSession);
+  if (viewSession.section.enabled)
+    throw new Error("Turn off SECTION before exporting a render package.");
+}
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
@@ -20,10 +48,12 @@ function bytesOf(value) {
 }
 
 export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
-  workbench = null, renderSize = null, renderJob = null }) {
+  workbench = null, renderSize = null, renderJob = null,
+  producer = RENDER_PRODUCER }) {
   if (!validName(fileName) || !/\.glb$/i.test(fileName))
     throw new Error("Snapshot needs a named GLB file");
-  assertValidViewSession(viewSession);
+  assertRenderSnapshotView(viewSession);
+  assertRenderProducer(producer);
   if (renderSize !== null) assertRenderSize(renderSize);
   if (renderJob !== null) assertRenderJob(renderJob);
   const model = bytesOf(fileBytes);
@@ -32,8 +62,7 @@ export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
   const resources = [model];
   let savedWorkbench = null;
   if (workbench) {
-    if (workbench.version !== 1 || !Array.isArray(workbench.edits))
-      throw new Error("Unsupported material edits");
+    assertMaterialEdits(workbench);
     savedWorkbench = {
       version: 1,
       selectedIndex: workbench.selectedIndex,
@@ -44,6 +73,7 @@ export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
           if (!validName(image.name) || typeof image.kind !== "string")
             throw new Error("Invalid material image");
           const bytes = bytesOf(image.bytes);
+          assertResourceCount(resources.length + 1);
           const resource = resources.push(bytes) - 1;
           return { kind: image.kind, name: image.name, type: image.type, resource };
         })
@@ -52,7 +82,7 @@ export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
   }
   const manifest = encoder.encode(JSON.stringify({
     version: 1, fileName, viewSession, workbench: savedWorkbench,
-    renderSize, renderJob,
+    renderSize, renderJob, producer,
     lengths: resources.map(resource => resource.byteLength)
   }));
   if (manifest.byteLength > maxManifestBytes) throw new Error("Snapshot metadata is too large");
@@ -84,10 +114,11 @@ export async function decodeRenderSnapshot(file) {
   if (manifest.version !== 1 || !validName(manifest.fileName) ||
       !/\.glb$/i.test(manifest.fileName) ||
       !Array.isArray(manifest.lengths) || !manifest.lengths.length ||
-      manifest.lengths.length > 256 ||
       manifest.lengths.some(length => !Number.isSafeInteger(length) || length < 0))
     throw new Error("Unsupported or invalid render snapshot");
+  assertResourceCount(manifest.lengths.length);
   assertValidViewSession(manifest.viewSession);
+  assertRenderProducer(manifest.producer ?? null);
   if (manifest.renderSize !== undefined && manifest.renderSize !== null)
     assertRenderSize(manifest.renderSize);
   if (manifest.renderJob !== undefined && manifest.renderJob !== null)
@@ -105,13 +136,9 @@ export async function decodeRenderSnapshot(file) {
   let workbench = null;
   if (manifest.workbench) {
     const saved = manifest.workbench;
-    if (saved.version !== 1 || !Array.isArray(saved.edits) || saved.edits.length > 255)
-      throw new Error("Invalid material edits");
+    assertMaterialEdits(saved);
     workbench = { version: 1, selectedIndex: saved.selectedIndex,
       edits: saved.edits.map(edit => {
-        if (!Number.isSafeInteger(edit.index) || edit.index < 0 ||
-            !edit.inputs || typeof edit.inputs !== "object" || !Array.isArray(edit.images))
-          throw new Error("Invalid material edit");
         return { index: edit.index, inputs: edit.inputs,
           images: edit.images.map(image => {
             if (!validName(image.name) || typeof image.kind !== "string" ||
@@ -126,5 +153,5 @@ export async function decodeRenderSnapshot(file) {
   return { file: new File([resources[0]], manifest.fileName,
     { type: "model/gltf-binary" }), viewSession: manifest.viewSession,
     workbench, renderSize: manifest.renderSize ?? null,
-    renderJob: manifest.renderJob ?? null };
+    renderJob: manifest.renderJob ?? null, producer: manifest.producer ?? null };
 }

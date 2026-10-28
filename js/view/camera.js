@@ -100,8 +100,9 @@ export function fitCamera() {
 ====================================================== */
 
 export function updateOrthoFrustum(overrideAspect = null) {
-  const { aspect: viewportAspect } = getSafeViewportSize(window.innerWidth, window.innerHeight);
-  const aspect = overrideAspect ?? viewportAspect;
+  // Perspective and orthographic views share the actual render frame, which
+  // may keep a package's aspect ratio independently of the browser window.
+  const aspect = overrideAspect ?? perspectiveCamera.aspect;
 
   const half = initialOrthoHalfHeight ?? State.maxModelSize * 0.72;
 

@@ -33,7 +33,8 @@ import { getSafeViewportSize } from "./view/viewport-size.js";
 import { resizeSectionRenderer } from "./section/section-resize.js";
 import { readEmbedConfiguration } from "./core/embed-bridge.js";
 import { shouldLoadMaterialWorkbench } from "./model/material-workbench-policy.js";
-import { encodeRenderSnapshot, decodeRenderSnapshot } from "./core/render-snapshot.js";
+import { encodeRenderSnapshot, decodeRenderSnapshot, assertRenderSnapshotView } from "./core/render-snapshot.js";
+import { renderCompatibilityWarnings } from "./core/render-compatibility.js";
 import { setStatus } from "./ui/status.js";
 import { applyImportedRenderFrame, clearImportedRenderFrame,
   resizeImportedRenderFrame } from "./view/render-frame.js";
@@ -102,22 +103,56 @@ function bindRenderSnapshotControls() {
   if (backendKind !== "webgl" ||
       new URLSearchParams(location.search).get("rendererDebug") !== "1") return;
   const exportButton = document.querySelector("#renderSnapshotExport");
+  const exportHint = document.querySelector("#renderSnapshotHint");
+  const exportStatus = document.querySelector("#renderSnapshotStatus");
+  const reportExport = message => {
+    exportStatus.textContent = message;
+    setStatus(message);
+  };
   const jobControls = document.querySelector("#renderJobControls");
   const targetSamples = document.querySelector("#renderTargetSamples");
   exportButton.hidden = false;
-  bindRenderStation();
   jobControls.hidden = false;
-  const update = () => { exportButton.disabled = !State.currentFile; };
+  let exporting = false;
+  const update = () => {
+    exportButton.disabled = exporting || !State.currentFile || State.sectionEnabled;
+    exportHint.hidden = !State.sectionEnabled;
+    exportButton.title = State.sectionEnabled
+      ? "Turn off SECTION before exporting a render package."
+      : "Export the scene and settings for a new render starting at 0 samples";
+  };
+  new MutationObserver(update).observe(document.querySelector("#sectionButton"), {
+    attributes: true, attributeFilter: ["aria-pressed"]
+  });
   window.addEventListener("dropview:model-loaded", update);
   update();
+  bindRenderStation({ openPackage: async file => {
+    exporting = true;
+    update();
+    try {
+      const result = await restoreRenderSnapshot(file);
+      targetSamples.value = String(result.targetSamples);
+      reportExport(`Package opened · ${result.width} × ${result.height} px. ${result.warnings.join(" ")}`);
+      return result;
+    } finally {
+      exporting = false;
+      update();
+    }
+  } });
   exportButton.addEventListener("click", async () => {
     const file = State.currentFile;
     if (!file) return;
+    if (State.sectionEnabled) {
+      setStatus("Turn off SECTION before exporting a render package.");
+      return;
+    }
     if (!targetSamples.reportValidity()) return;
-    exportButton.disabled = true;
-    setStatus("Preparing render snapshot…");
+    exporting = true;
+    update();
+    reportExport("Preparing render snapshot…");
     try {
       const viewSession = captureCurrentViewSession();
+      assertRenderSnapshotView(viewSession);
       const renderSize = {
         width: renderer.domElement.width,
         height: renderer.domElement.height
@@ -136,11 +171,12 @@ function bindRenderSnapshotControls() {
       link.download = file.name.replace(/\.glb$/i, "") + ".dvrender";
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      setStatus(`Render snapshot saved: ${link.download}`);
+      reportExport(`Render snapshot saved: ${link.download}`);
     } catch (error) {
       console.error("Render snapshot export failed", error);
-      setStatus(`RENDER SNAPSHOT EXPORT FAILED: ${error.message}`);
+      reportExport(`RENDER SNAPSHOT EXPORT FAILED: ${error.message}`);
     } finally {
+      exporting = false;
       update();
     }
   });
@@ -154,8 +190,11 @@ async function restoreRenderSnapshot(packageFile, { worker = false } = {}) {
     await materialWorkbench.restoreWorkbenchHandoff(snapshot.workbench);
   restoreCurrentViewSession(snapshot.viewSession);
   applyImportedRenderFrame(snapshot.renderSize ?? (worker ? { width: 1920, height: 1080 } : null));
-  setRenderJob(snapshot.renderJob ?? (worker ? makeRenderJob(1000) : null));
-  return { width: renderer.domElement.width, height: renderer.domElement.height };
+  const job = snapshot.renderJob ?? makeRenderJob(500);
+  setRenderJob(job);
+  return { width: renderer.domElement.width, height: renderer.domElement.height,
+    targetSamples: job.samples,
+    warnings: renderCompatibilityWarnings(snapshot.producer) };
 }
 
 async function boot() {

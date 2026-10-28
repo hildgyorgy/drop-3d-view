@@ -51,6 +51,9 @@ export function applyImportedRenderFrame(size) {
   if (size.width > limit || size.height > limit)
     throw new Error(`This GPU supports at most ${limit} pixels per side`);
   importedSize = { width: size.width, height: size.height };
+  // The positioned canvas must precede the adaptive UI, whose z-index stays
+  // auto so its labels can blend against the model underneath.
+  document.querySelector("#viewerUI")?.before(renderer.domElement);
   originalPixelRatio = renderer.getPixelRatio();
   renderer.setPixelRatio(1);
   renderer.setSize(size.width, size.height, false);
