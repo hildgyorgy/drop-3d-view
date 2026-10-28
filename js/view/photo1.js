@@ -34,6 +34,7 @@ import { getSunDirectionFromControls } from "./ground-sun.js";
 import { setStatus } from "../ui/status.js";
 import { PHOTO_BOUNCES, PHOTO_TRANSMISSIVE_BOUNCES,
   getRenderJob, setRenderJob } from "../core/render-job.js";
+import { renderWorkerMode } from "../core/render-worker-mode.js";
 
 const photoEnvironmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
 // Dormant interior-lighting experiment. True restores the GLASS LIGHT button;
@@ -96,8 +97,9 @@ function updatePhotoSaveButtonState() {
   photoSaveButton.disabled = imageSaving || !pathTracer || preparing || pathTracer.samples < 1;
 }
 
-async function saveCurrentPhoto() {
-  if (!active || !pathTracer || preparing || pathTracer.samples < 1) return;
+export async function capturePhotoImage() {
+  if (!active || !pathTracer || preparing || pathTracer.samples < 1)
+    throw new Error("No path-traced image is ready");
   const tracer = pathTracer;
   const sampleCount = Math.floor(tracer.samples);
   const width = renderer.domElement.width;
@@ -123,22 +125,29 @@ async function saveCurrentPhoto() {
     const blob = await new Promise((resolve, reject) =>
       renderer.domElement.toBlob(value => value ? resolve(value) :
         reject(new Error("The browser could not encode the PNG")), "image/png"));
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${base}_${width}x${height}_${sampleCount}s.png`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    setStatus(`IMAGE SAVED · ${width} × ${height} · ${sampleCount} samples`);
-  } catch (error) {
-    console.error("Path-traced image could not be saved", error);
-    setStatus(`IMAGE SAVE FAILED: ${error.message}`);
+    return { blob, name: `${base}_${width}x${height}_${sampleCount}s.png` };
   } finally {
     if (pathTracer === tracer) Object.assign(tracer, previous);
     imageSaving = false;
     updatePhotoSaveButtonState();
+  }
+}
+
+async function saveCurrentPhoto() {
+  try {
+    const { blob, name } = await capturePhotoImage();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    setStatus(`IMAGE SAVED · ${name}`);
+  } catch (error) {
+    console.error("Path-traced image could not be saved", error);
+    setStatus(`IMAGE SAVE FAILED: ${error.message}`);
   }
 }
 
@@ -629,7 +638,8 @@ async function activatePhoto1() {
     pathTracer.tiles.set(2, 2);
 
     // Let the loading message reach the screen before the synchronous BVH build.
-    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => renderWorkerMode
+      ? setTimeout(resolve, 0) : requestAnimationFrame(resolve));
     if (!active || currentActivation !== activation) return;
     prepareScene();
     updatePhotoSaveButtonState();
@@ -656,6 +666,16 @@ photo1Button?.addEventListener("click", () => {
 });
 
 photoSaveButton?.addEventListener("click", saveCurrentPhoto);
+
+export async function startPhotoRender() {
+  await activatePhoto1();
+  if (!active || !pathTracer || preparing)
+    throw new Error("Path tracing could not start. Check WebGL 2 support and turn off SECTION before exporting.");
+}
+
+export function pausePhotoRender(value) {
+  setPhotoPaused(value);
+}
 
 glassLightButton?.addEventListener("click", () => {
   if (!GLASS_LIGHT_EXPERIMENT_ENABLED || !active || !pathTracer || preparing) return;

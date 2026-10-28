@@ -226,6 +226,20 @@ export function updatePhoto1Availability() {
     ? "Turn off SECTION before using PATH TRACER"
     : "Progressive WebGPU path tracing";
 }
+// Render Station always opens a separate WebGL document. Keep its shared
+// module interface explicit without enabling this trial in the WebGPU viewer.
+export async function startPhotoRender() {
+  throw new Error("Render Station requires WebGL");
+}
+export async function capturePhotoImage() {
+  throw new Error("Render Station requires WebGL");
+}
+export function pausePhotoRender(value) {
+  if (!State.pathTracerActive || !tracer) return;
+  paused = value;
+  tracer.pause = value;
+  setButton();
+}
 export function resizePhoto1() { tracer?.updateCamera(); }
 export function getPhoto1Stats() {
   return State.pathTracerActive ? { preparing, compiling: false, paused, samples } : null;
