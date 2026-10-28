@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=2.0-measurements-1" />
+    <link rel="stylesheet" href="css/style.css?v=render-png-1" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -170,6 +170,10 @@
             >
               PATH TRACER
             </button>
+            <button class="photo-export-button" id="photoExportButton" type="button"
+              title="Render and save a PNG at a chosen resolution" hidden>
+              RENDER PNG
+            </button>
             <!-- Hidden by GLASS_LIGHT_EXPERIMENT_ENABLED in js/view/photo1.js. -->
             <button
               class="glass-light-button"
@@ -207,6 +211,19 @@
             </button>
           </div>
         </nav>
+        <dialog id="photoExportDialog" class="photo-export-dialog" aria-label="Render PNG settings">
+          <form id="photoExportForm">
+            <strong>RENDER PNG</strong>
+            <label>WIDTH <input id="renderWidth" type="number" min="64" max="8192" step="1" value="1920" required></label>
+            <label>HEIGHT <input id="renderHeight" type="number" min="64" max="8192" step="1" value="1080" required></label>
+            <label>SAMPLES <input id="renderSamples" type="number" min="1" max="100000" step="1" value="100" required></label>
+            <output id="photoExportError" role="alert" hidden></output>
+            <div class="photo-export-actions">
+              <button type="button" id="photoExportCancel">CANCEL</button>
+              <button type="button" id="photoExportStart">START RENDER</button>
+            </div>
+          </form>
+        </dialog>
         <div class="view-dock">
           <nav class="view-toolbar" aria-label="Camera projection">
             <button
