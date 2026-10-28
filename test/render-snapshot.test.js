@@ -21,12 +21,15 @@ test("render snapshot keeps original GLB, material image bytes and view", async 
   }] };
   const blob = encodeRenderSnapshot({
     fileName: "house.glb", fileBytes: glb.buffer, viewSession, workbench,
-    renderSize: { width: 4064, height: 2488 }
+    renderSize: { width: 4064, height: 2488 },
+    renderJob: { samples: 1000, bounces: 6, transmissiveBounces: 10 }
   });
   const decoded = await decodeRenderSnapshot(new File([blob], "house.dvrender"));
   assert.deepEqual(new Uint8Array(await decoded.file.arrayBuffer()), glb);
   assert.deepEqual(decoded.viewSession, viewSession);
   assert.deepEqual(decoded.renderSize, { width: 4064, height: 2488 });
+  assert.deepEqual(decoded.renderJob,
+    { samples: 1000, bounces: 6, transmissiveBounces: 10 });
   assert.deepEqual(new Uint8Array(decoded.workbench.edits[0].images[0].bytes),
     new Uint8Array([1, 2, 3]));
 });
@@ -37,6 +40,14 @@ test("older snapshots without a render size remain readable", async () => {
   });
   const decoded = await decodeRenderSnapshot(new File([blob], "old.dvrender"));
   assert.equal(decoded.renderSize, null);
+  assert.equal(decoded.renderJob, null);
+});
+
+test("invalid path tracing target is rejected", () => {
+  assert.throws(() => encodeRenderSnapshot({
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession,
+    renderJob: { samples: 0, bounces: 6, transmissiveBounces: 10 }
+  }), /Invalid path tracing job settings/);
 });
 
 test("invalid render pixel size is rejected", () => {

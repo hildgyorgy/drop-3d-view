@@ -32,6 +32,8 @@ import {
 import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
 import { getSunDirectionFromControls } from "./ground-sun.js";
 import { setStatus } from "../ui/status.js";
+import { PHOTO_BOUNCES, PHOTO_TRANSMISSIVE_BOUNCES,
+  getRenderJob, setRenderJob } from "../core/render-job.js";
 
 const photoEnvironmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
 // Dormant interior-lighting experiment. True restores the GLASS LIGHT button;
@@ -612,8 +614,8 @@ async function activatePhoto1() {
 
     pathTracer = new WebGLPathTracer(renderer);
     installPhotoClearcoatFix(pathTracer);
-    pathTracer.bounces = 6;
-    pathTracer.transmissiveBounces = 10;
+    pathTracer.bounces = getRenderJob()?.bounces ?? PHOTO_BOUNCES;
+    pathTracer.transmissiveBounces = getRenderJob()?.transmissiveBounces ?? PHOTO_TRANSMISSIVE_BOUNCES;
     pathTracer.multipleImportanceSampling = true;
     pathTracer.filterGlossyFactor = 0.35;
     pathTracer.stableNoise = true;
@@ -645,7 +647,11 @@ async function activatePhoto1() {
 
 photo1Button?.addEventListener("click", () => {
   if (!active) activatePhoto1();
-  else if (pathTracer && !preparing) setPhotoPaused(!paused);
+  else if (pathTracer && !preparing) {
+    if (paused && getRenderJob() && pathTracer.samples >= getRenderJob().samples)
+      setRenderJob(null); // RESUME may deliberately continue beyond the job target.
+    setPhotoPaused(!paused);
+  }
 });
 
 photoSaveButton?.addEventListener("click", saveCurrentPhoto);
@@ -763,6 +769,11 @@ export function renderPhoto1() {
   if (paused) return true;
 
   pathTracer.renderSample();
+  const job = getRenderJob();
+  if (job && pathTracer.samples >= job.samples) {
+    setPhotoPaused(true);
+    setStatus(`RENDER TARGET REACHED · ${Math.floor(pathTracer.samples)} samples`);
+  }
   if (pathTracer.samples >= 1 && photoSaveButton?.disabled)
     updatePhotoSaveButtonState();
   return true;
