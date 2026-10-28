@@ -103,7 +103,7 @@ Open the WebGL viewer with `?rendererDebug=1`, then use the info menu's **EXPORT
 
 This is the manual scene-reproduction trial. It does not yet send a job over the network or start path tracing automatically. Compare the restored scene and WebGL PATH TRACER visually on both computers before adding the render queue. The receiving computer must have the same viewer code and HDRI asset for a meaningful comparison.
 
-In the standalone WebGL viewer, **SAVE IMAGE** appears under **PATH TRACER** after the first sample. It saves the current accumulated path-traced canvas as a PNG without the page controls, whether tracing is running or paused. The source image uses the canvas's actual pixel dimensions; the button does not start a new render or change the camera. The receiving machine's imported canvas size is also used when saving there.
+In the standalone WebGL viewer with `?rendererDebug=1`, **SAVE IMAGE** appears under **PATH TRACER** after the first sample. It saves the current accumulated path-traced canvas as a PNG without the page controls, whether tracing is running or paused. The source image uses the canvas's actual pixel dimensions; the button does not start a new render or change the camera. The receiving machine's imported canvas size is also used when saving there.
 
 - Real-world sun and shadow studies using the project's geographic location, orientation, date and time.
 - More granular visibility controls beyond the current exported top-level groups.

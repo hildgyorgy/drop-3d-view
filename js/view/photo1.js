@@ -43,6 +43,7 @@ const photoEnvironmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI
 const GLASS_LIGHT_EXPERIMENT_ENABLED = false;
 const glassLightButton = document.querySelector("#glassLightButton");
 const photoSaveButton = document.querySelector("#photoSaveButton");
+const renderDebugEnabled = new URLSearchParams(location.search).get("rendererDebug") === "1";
 
 let active = false;
 let preparing = false;
@@ -91,7 +92,7 @@ function updateGlassLightButtonState() {
 
 function updatePhotoSaveButtonState() {
   if (!photoSaveButton) return;
-  photoSaveButton.hidden = !active;
+  photoSaveButton.hidden = !renderDebugEnabled || !active;
   photoSaveButton.disabled = imageSaving || !pathTracer || preparing || pathTracer.samples < 1;
 }
 
