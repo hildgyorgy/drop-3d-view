@@ -10,7 +10,7 @@ import * as THREE from "three";
 import { photoMeterGeometry } from "./photo-meter-uv.js";
 import { installPhotoClearcoatFix } from "./photo-clearcoat.js";
 import { State } from "../core/state.js";
-import { scene, renderer, sun, perspectiveCamera } from "../core/scene.js";
+import { scene, renderer, sun } from "../core/scene.js";
 import {
   photo1Button,
   perspectiveButton,
@@ -31,7 +31,6 @@ import {
 } from "../model/material-policy.js";
 import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
 import { getSunDirectionFromControls } from "./ground-sun.js";
-import { updateOrthoFrustum } from "./camera.js";
 import { setStatus } from "../ui/status.js";
 
 const photoEnvironmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
@@ -48,8 +47,6 @@ let paused = false;
 let glassLightEnabled = false;
 let activation = 0;
 let pathTracer = null;
-let outputJob = null;
-let previousPixelRatio = null;
 let photoEnvironment = null;
 let photoGroundMaterial = null;
 let convertedMaterials = [];
@@ -97,102 +94,6 @@ function setPhotoPaused(nextPaused) {
     setStatus(`PATH TRACER · paused at ${Math.floor(pathTracer?.samples ?? 0)} samples`);
   } else {
     setStatus("PATH TRACER · refining image…");
-  }
-}
-
-function announceOutputChange() {
-  window.dispatchEvent(new Event("dropview:photo-output"));
-}
-
-function fitOutputPreview() {
-  if (!outputJob) return;
-  const canvas = renderer.domElement;
-  const scale = Math.min(window.innerWidth / outputJob.width,
-    window.innerHeight / outputJob.height);
-  const displayWidth = outputJob.width * scale;
-  const displayHeight = outputJob.height * scale;
-  canvas.style.position = "absolute";
-  canvas.style.left = `${(window.innerWidth - displayWidth) / 2}px`;
-  canvas.style.top = `${(window.innerHeight - displayHeight) / 2}px`;
-  canvas.style.width = `${displayWidth}px`;
-  canvas.style.height = `${displayHeight}px`;
-}
-
-function restoreOutputViewport() {
-  if (previousPixelRatio === null) return;
-  const canvas = renderer.domElement;
-  canvas.style.position = "";
-  canvas.style.left = "";
-  canvas.style.top = "";
-  renderer.setPixelRatio(previousPixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  previousPixelRatio = null;
-  perspectiveCamera.aspect = window.innerWidth / window.innerHeight;
-  perspectiveCamera.updateProjectionMatrix();
-  updateOrthoFrustum();
-}
-
-export function resizePhotoOutput() {
-  if (!outputJob) return false;
-  fitOutputPreview();
-  return true;
-}
-
-export function getPhotoOutputState() {
-  return outputJob ? { ...outputJob, ready: paused &&
-    Boolean(pathTracer) && pathTracer.samples >= outputJob.samples } : null;
-}
-
-export function startPhotoOutput({ width, height, samples }) {
-  if (!State.model || State.sectionEnabled)
-    throw new Error("Open a model and turn off SECTION first");
-  if (![width, height, samples].every(Number.isSafeInteger) ||
-      width < 64 || height < 64 || samples < 1 || samples > 100000)
-    throw new Error("Invalid render dimensions or sample count");
-  const limit = Math.min(8192, renderer.capabilities.maxTextureSize,
-    renderer.getContext().getParameter(renderer.getContext().MAX_RENDERBUFFER_SIZE));
-  if (width > limit || height > limit)
-    throw new Error(`This device supports up to ${limit} pixels per side`);
-  if (active) deactivatePhoto1();
-  outputJob = { width, height, samples };
-  previousPixelRatio = renderer.getPixelRatio();
-  renderer.setPixelRatio(1);
-  renderer.setSize(width, height, false);
-  perspectiveCamera.aspect = width / height;
-  perspectiveCamera.updateProjectionMatrix();
-  updateOrthoFrustum(width / height);
-  fitOutputPreview();
-  announceOutputChange();
-  void activatePhoto1();
-}
-
-export async function savePhotoOutput() {
-  if (!getPhotoOutputState()?.ready)
-    throw new Error("Wait until the selected sample count is reached");
-  const job = outputJob;
-  const completedTracer = pathTracer;
-  // Paint the converged target and capture it in the same task. Do not add a
-  // sample or depend on the browser preserving an old drawing buffer.
-  completedTracer.pausePathTracing = true;
-  try {
-    completedTracer.renderSample();
-    const blob = await new Promise((resolve, reject) =>
-      renderer.domElement.toBlob(value => value ? resolve(value) :
-        reject(new Error("The browser could not encode the PNG")), "image/png"));
-    if (outputJob !== job || pathTracer !== completedTracer)
-      throw new Error("The render changed while saving");
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    const base = (State.currentFileName || "drop-view").replace(/\.glb$/i, "")
-      .replace(/[^a-z0-9_-]+/gi, "-");
-    link.download = `${base}_${job.width}x${job.height}_${job.samples}s.png`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    deactivatePhoto1({ restoreStatus: false });
-    setStatus(`PNG saved: ${link.download}`);
-  } finally {
-    if (pathTracer === completedTracer) completedTracer.pausePathTracing = false;
   }
 }
 
@@ -661,12 +562,12 @@ async function activatePhoto1() {
     pathTracer.multipleImportanceSampling = true;
     pathTracer.filterGlossyFactor = 0.35;
     pathTracer.stableNoise = true;
-    pathTracer.dynamicLowRes = !outputJob;
+    pathTracer.dynamicLowRes = true;
     pathTracer.lowResScale = 0.25;
     pathTracer.renderScale = 1;
-    pathTracer.renderDelay = outputJob ? 0 : 90;
-    pathTracer.minSamples = outputJob ? 1 : 2;
-    pathTracer.fadeDuration = outputJob ? 0 : 240;
+    pathTracer.renderDelay = 90;
+    pathTracer.minSamples = 2;
+    pathTracer.fadeDuration = 240;
     pathTracer.tiles.set(2, 2);
 
     // Let the loading message reach the screen before the synchronous BVH build.
@@ -738,9 +639,6 @@ export function deactivatePhoto1({ restoreStatus = true } = {}) {
   updatePhotoButtonState();
   updateGlassLightButtonState();
   disposePhotoResources();
-  outputJob = null;
-  restoreOutputViewport();
-  announceOutputChange();
   setCameraInteractionLocked(false);
   updateControlAvailability();
   updatePhoto1Availability();
@@ -767,7 +665,6 @@ export function updatePhoto1Availability() {
   else if (State.sectionEnabled)
     photo1Button.title = "Turn off SECTION before using PATH TRACER";
   else photo1Button.title = "Progressive path tracing";
-  announceOutputChange();
 }
 
 export function resizePhoto1() {
@@ -807,11 +704,6 @@ export function renderPhoto1() {
   if (paused) return true;
 
   pathTracer.renderSample();
-  if (outputJob && pathTracer.samples >= outputJob.samples) {
-    setPhotoPaused(true);
-    setStatus(`RENDER COMPLETE · ${outputJob.width} × ${outputJob.height} · ${outputJob.samples} samples`);
-    announceOutputChange();
-  }
   return true;
 }
 

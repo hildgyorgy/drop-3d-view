@@ -26,9 +26,6 @@ import { deactivatePhoto1, updatePhoto1Availability } from "../view/photo1.js";
 
 const flySpeed = document.querySelector("#flySpeed");
 const blackBackButton = document.querySelector("#blackBackButton");
-const renderWidth = document.querySelector("#renderWidth");
-const renderHeight = document.querySelector("#renderHeight");
-const renderSamples = document.querySelector("#renderSamples");
 
 function setInput(control, value, eventType = "input") {
   if (!control || value === undefined || value === null) return;
@@ -49,10 +46,7 @@ function captureSettings() {
     blackBack: blackBackButton?.getAttribute("aria-pressed") === "true",
     sectionSlider: sectionSlider.value,
     sectionFlip: sectionFlip.getAttribute("aria-pressed") === "true",
-    sectionColor: document.querySelector("[data-section-color].active")?.dataset.sectionColor,
-    renderWidth: renderWidth?.value,
-    renderHeight: renderHeight?.value,
-    renderSamples: renderSamples?.value
+    sectionColor: document.querySelector("[data-section-color].active")?.dataset.sectionColor
   };
 }
 
@@ -70,9 +64,6 @@ function restoreSettings(settings = {}) {
   setInput(sunHeight, settings.sunHeight);
   setInput(transparency, settings.transparency);
   setInput(flySpeed, settings.flySpeed);
-  setInput(renderWidth, settings.renderWidth);
-  setInput(renderHeight, settings.renderHeight);
-  setInput(renderSamples, settings.renderSamples);
   if (typeof settings.shadow === "boolean") {
     shadowToggle.checked = settings.shadow;
     shadowToggle.dispatchEvent(new Event("change"));

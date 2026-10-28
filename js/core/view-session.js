@@ -44,8 +44,7 @@ const presets = new Set(["front", "left", "right", "back", "top"]);
 const displayModes = new Set(["original", "white", "hidden", "wireframe", "renaissance"]);
 const numericSettings = new Set([
   "sunAngle", "sunHeight", "cameraFov", "transparency", "flySpeed",
-  "windowLightsIntensity", "sectionSlider", "renderWidth", "renderHeight",
-  "renderSamples"
+  "windowLightsIntensity", "sectionSlider"
 ]);
 const booleanSettings = new Set([
   "windowLights", "shadow", "blackBack", "sectionFlip"

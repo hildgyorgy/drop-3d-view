@@ -1,10 +1,5 @@
 // Adapter for the full viewer's PATH TRACER control on the WebGPU branch.
 import * as THREE from "three";
-// The fixed-size PNG workflow currently uses the validated WebGL path tracer.
-export function resizePhotoOutput() { return false; }
-export function getPhotoOutputState() { return null; }
-export function startPhotoOutput() { throw new Error("Choose the WebGL renderer for PNG output"); }
-export function savePhotoOutput() { throw new Error("Choose the WebGL renderer for PNG output"); }
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { WebGPUPathTracer } from "three-gpu-pathtracer/src/webgpu/WebGPUPathTracer.js";
 import { State } from "../js/core/state.js";

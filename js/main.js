@@ -23,8 +23,7 @@ import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=glass-light-test";
 import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
 import { bindFocusCanvas } from "./view/focus.js";
-import { getPhoto1Stats, renderPhoto1, resizePhoto1, resizePhotoOutput,
-  getPhotoOutputState, startPhotoOutput, savePhotoOutput } from "./view/photo1.js";
+import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
 import { resolveComparisonModelUrl } from "./model/file-format.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
@@ -55,8 +54,6 @@ function resizeViewport() {
     window.innerWidth,
     window.innerHeight
   );
-
-  if (resizePhotoOutput()) return;
 
   perspectiveCamera.aspect = aspect;
 
@@ -92,50 +89,6 @@ function animate(time) {
 
 let materialWorkbench = null;
 let measurements = null;
-
-function bindPhotoExportControls() {
-  if (backendKind !== "webgl" || readEmbedConfiguration()) return;
-  const button = document.querySelector("#photoExportButton");
-  const dialog = document.querySelector("#photoExportDialog");
-  const form = document.querySelector("#photoExportForm");
-  button.hidden = false;
-  const update = () => {
-    const output = getPhotoOutputState();
-    button.disabled = !State.model || State.sectionEnabled;
-    button.textContent = output?.ready ? "SAVE PNG" : "RENDER PNG";
-  };
-  window.addEventListener("dropview:model-loaded", update);
-  window.addEventListener("dropview:photo-output", update);
-  update();
-  button.addEventListener("click", async () => {
-    if (getPhotoOutputState()?.ready) {
-      try { await savePhotoOutput(); }
-      catch (error) { console.error("PNG export failed", error);
-        setStatus(`PNG EXPORT FAILED: ${error.message}`); }
-    } else dialog.showModal();
-  });
-  document.querySelector("#photoExportCancel").addEventListener("click", () => dialog.close());
-  const startRender = () => {
-    if (!form.reportValidity()) return;
-    const width = Number(document.querySelector("#renderWidth").value);
-    const height = Number(document.querySelector("#renderHeight").value);
-    const samples = Number(document.querySelector("#renderSamples").value);
-    try {
-      document.querySelector("#photoExportError").hidden = true;
-      startPhotoOutput({ width, height, samples });
-      dialog.close();
-      setStatus(`RENDERING PNG · ${width} × ${height} · ${samples} samples`);
-    } catch (error) {
-      console.error("PNG render could not start", error);
-      const message = document.querySelector("#photoExportError");
-      message.textContent = error.message;
-      message.hidden = false;
-      setStatus(`RENDER COULD NOT START: ${error.message}`);
-    }
-  };
-  document.querySelector("#photoExportStart").addEventListener("click", startRender);
-  form.addEventListener("submit", event => { event.preventDefault(); startRender(); });
-}
 
 function bindRenderSnapshotControls() {
   if (backendKind !== "webgl" ||
@@ -215,7 +168,6 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
-  bindPhotoExportControls();
   // Start HDRI work while the UI and, later, the GLB load in parallel.
   void preparePreviewEnvironment().catch(error =>
     console.warn("Preview lighting unavailable; using direct lights", error)

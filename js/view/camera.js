@@ -99,9 +99,8 @@ export function fitCamera() {
    ORTHOGRAPHIC FRUSTUM
 ====================================================== */
 
-export function updateOrthoFrustum(overrideAspect = null) {
-  const { aspect: viewportAspect } = getSafeViewportSize(window.innerWidth, window.innerHeight);
-  const aspect = overrideAspect ?? viewportAspect;
+export function updateOrthoFrustum() {
+  const { aspect } = getSafeViewportSize(window.innerWidth, window.innerHeight);
 
   const half = initialOrthoHalfHeight ?? State.maxModelSize * 0.72;
 

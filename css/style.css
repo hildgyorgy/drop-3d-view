@@ -84,7 +84,6 @@ canvas {
 .brand,
 .tool-button,
 .photo-button,
-.photo-export-button,
 .glass-light-button,
 .black-back-button,
 .menu-toggle,
@@ -388,35 +387,6 @@ canvas {
   border-radius: 50%;
   background: var(--red);
 }
-.photo-export-button {
-  margin-top: 3px;
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  color: var(--red);
-}
-.photo-export-dialog {
-  pointer-events: auto;
-  border: 1px solid var(--text);
-  background: var(--bg);
-  color: var(--text);
-  padding: 22px;
-  width: min(320px, calc(100vw - 32px));
-  font: 12px var(--mono);
-  letter-spacing: 0.12em;
-}
-.photo-export-dialog::backdrop { background: #0008; }
-.photo-export-dialog form, .photo-export-dialog label { display: grid; gap: 10px; }
-.photo-export-dialog form { gap: 16px; }
-.photo-export-dialog input {
-  width: 100%;
-  padding: 7px;
-  border: 1px solid var(--text);
-  border-radius: 0;
-  background: white;
-  color: var(--text);
-}
-.photo-export-actions { display: flex; justify-content: space-between; gap: 12px; }
-.photo-export-actions button:last-child { color: var(--red); }
 .glass-light-button {
   position: absolute;
   top: calc(100% + 1px);

@@ -55,21 +55,6 @@ test("view snapshot is independent of later camera, group and setting changes", 
   assert.doesNotThrow(() => JSON.stringify(snapshot));
 });
 
-test("fixed PNG output settings travel with a view session", () => {
-  const snapshot = {
-    version: 1,
-    camera: { projection: "perspective", preset: null, position: [0, 0, 1],
-      quaternion: [0, 0, 0, 1], up: [0, 1, 0], target: [0, 0, 0],
-      zoom: 1, fov: 42 },
-    displayMode: "original", navigationMode: "orbit", groups: [], selectedIds: [],
-    section: { enabled: false, axis: "y", normal: [0, -1, 0], constant: 0 },
-    settings: { renderWidth: "3840", renderHeight: "2160", renderSamples: "500" }
-  };
-  assert.equal(assertValidViewSession(snapshot), snapshot);
-  snapshot.settings.renderWidth = "not a size";
-  assert.throws(() => assertValidViewSession(snapshot), /renderWidth/);
-});
-
 test("camera pose restores after the destination projection is selected", () => {
   const camera = {
     position: vector([0, 0, 0]),

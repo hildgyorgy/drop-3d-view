@@ -101,13 +101,10 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 Open the WebGL viewer with `?rendererDebug=1`, then use the info menu's **EXPORT RENDER SNAPSHOT** after loading a GLB and applying any Material Workbench edits. The downloaded `.dvrender` file contains the original GLB bytes, uploaded material images and edit controls, and the current camera, lighting controls and group visibility. On another computer running the same Drop & View build and debug URL, choose **IMPORT RENDER SNAPSHOT** to restore them. These controls are hidden in the normal public view. The original GLB is not modified. Keep the `.dvrender` file private if the model is confidential.
 
-This is the manual scene-reproduction trial. It does not yet send a job over the network. Compare the restored scene and WebGL PATH TRACER visually on both computers before adding the render queue. The receiving computer must have the same viewer code and HDRI asset for a meaningful comparison.
-
-### Fixed-size PNG output
-
-In the standalone WebGL viewer, **RENDER PNG** under **PATH TRACER** opens width, height and sample-count controls. The default is 1920 × 1080 at 100 samples. The path tracer then renders at exactly those pixel dimensions, independent of the browser window, display scale or Jump Desktop virtual display. The preview is fitted inside the window. At the requested sample count it pauses and the button changes to **SAVE PNG**. Click that button to download the finished image and return to the interactive viewer. The output settings travel in a render snapshot. Higher resolutions use more GPU memory and may not fit every device; the app checks the device's texture-size limit before starting.
+This is the manual scene-reproduction trial. It does not yet send a job over the network, start path tracing automatically, define an output resolution or sample target, or save a finished image. Compare the restored scene and WebGL PATH TRACER visually on both computers before adding the render queue. The receiving computer must have the same viewer code and HDRI asset for a meaningful comparison.
 
 - Real-world sun and shadow studies using the project's geographic location, orientation, date and time.
+- Proper image export directly from the viewer instead of relying on screenshots.
 - More granular visibility controls beyond the current exported top-level groups.
 
 ## Local preview
