@@ -35,6 +35,9 @@ import { readEmbedConfiguration } from "./core/embed-bridge.js";
 import { shouldLoadMaterialWorkbench } from "./model/material-workbench-policy.js";
 import { encodeRenderSnapshot, decodeRenderSnapshot } from "./core/render-snapshot.js";
 import { setStatus } from "./ui/status.js";
+import { applyImportedRenderFrame, clearImportedRenderFrame,
+  resizeImportedRenderFrame } from "./view/render-frame.js";
+import { makeRenderJob, setRenderJob } from "./core/render-job.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -54,6 +57,8 @@ function resizeViewport() {
     window.innerWidth,
     window.innerHeight
   );
+
+  if (backendKind === "webgl" && resizeImportedRenderFrame()) return;
 
   perspectiveCamera.aspect = aspect;
 
@@ -96,22 +101,32 @@ function bindRenderSnapshotControls() {
   const exportButton = document.querySelector("#renderSnapshotExport");
   const importButton = document.querySelector("#renderSnapshotImport");
   const input = document.querySelector("#renderSnapshotFile");
+  const jobControls = document.querySelector("#renderJobControls");
+  const targetSamples = document.querySelector("#renderTargetSamples");
   exportButton.hidden = importButton.hidden = false;
+  jobControls.hidden = false;
   const update = () => { exportButton.disabled = !State.currentFile; };
   window.addEventListener("dropview:model-loaded", update);
   update();
   exportButton.addEventListener("click", async () => {
     const file = State.currentFile;
     if (!file) return;
+    if (!targetSamples.reportValidity()) return;
     exportButton.disabled = true;
     setStatus("Preparing render snapshot…");
     try {
       const viewSession = captureCurrentViewSession();
+      const renderSize = {
+        width: renderer.domElement.width,
+        height: renderer.domElement.height
+      };
+      const renderJob = makeRenderJob(Number(targetSamples.value));
       const workbench = await materialWorkbench.captureWorkbenchHandoff();
       const fileBytes = await file.arrayBuffer();
       if (State.currentFile !== file) throw new Error("Model changed during export");
       const snapshot = encodeRenderSnapshot({
-        fileName: file.name, fileBytes, viewSession, workbench
+        fileName: file.name, fileBytes, viewSession, workbench, renderSize,
+        renderJob
       });
       const url = URL.createObjectURL(snapshot);
       const link = document.createElement("a");
@@ -143,6 +158,10 @@ function bindRenderSnapshotControls() {
       if (snapshot.workbench)
         await materialWorkbench.restoreWorkbenchHandoff(snapshot.workbench);
       restoreCurrentViewSession(snapshot.viewSession);
+      applyImportedRenderFrame(snapshot.renderSize);
+      setRenderJob(snapshot.renderJob);
+      if (snapshot.renderJob)
+        targetSamples.value = String(snapshot.renderJob.samples);
       setStatus(`Render snapshot restored: ${snapshot.file.name}`);
     } catch (error) {
       console.error("Render snapshot import failed", error);
@@ -168,6 +187,11 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
+  if (backendKind === "webgl")
+    window.addEventListener("dropview:model-loaded", () => {
+      clearImportedRenderFrame();
+      setRenderJob(null);
+    });
   // Start HDRI work while the UI and, later, the GLB load in parallel.
   void preparePreviewEnvironment().catch(error =>
     console.warn("Preview lighting unavailable; using direct lights", error)

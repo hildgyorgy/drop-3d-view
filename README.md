@@ -99,12 +99,13 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 ### Experimental render snapshot transfer
 
-Open the WebGL viewer with `?rendererDebug=1`, then use the info menu's **EXPORT RENDER SNAPSHOT** after loading a GLB and applying any Material Workbench edits. The downloaded `.dvrender` file contains the original GLB bytes, uploaded material images and edit controls, and the current camera, lighting controls and group visibility. On another computer running the same Drop & View build and debug URL, choose **IMPORT RENDER SNAPSHOT** to restore them. These controls are hidden in the normal public view. The original GLB is not modified. Keep the `.dvrender` file private if the model is confidential.
+Open the WebGL viewer with `?rendererDebug=1`, then use the info menu's **EXPORT RENDER SNAPSHOT** after loading a GLB and applying any Material Workbench edits. Set **TARGET SAMPLES** there before export. The downloaded `.dvrender` file contains the original GLB bytes, uploaded material images and edit controls, the current camera, lighting controls and group visibility, the source canvas's physical pixel width and height, the target sample count, and the WebGL path tracer's bounce settings (6 regular, 10 transmissive). On another computer running the same Drop & View build and debug URL, choose **IMPORT RENDER SNAPSHOT** to restore them. The receiving canvas is fitted within its window while retaining the source image's pixel size and camera aspect. Its path tracer stops at the target sample count; **RESUME** can continue beyond that target. Older snapshots without a recorded size or render target still open using the receiving window and an unlimited path tracer. These controls are hidden in the normal public view. The original GLB is not modified. Keep the `.dvrender` file private if the model is confidential.
 
-This is the manual scene-reproduction trial. It does not yet send a job over the network, start path tracing automatically, define an output resolution or sample target, or save a finished image. Compare the restored scene and WebGL PATH TRACER visually on both computers before adding the render queue. The receiving computer must have the same viewer code and HDRI asset for a meaningful comparison.
+This is the manual scene-reproduction trial. It does not yet send a job over the network or start path tracing automatically. Compare the restored scene and WebGL PATH TRACER visually on both computers before adding the render queue. The receiving computer must have the same viewer code and HDRI asset for a meaningful comparison.
+
+In the standalone WebGL viewer with `?rendererDebug=1`, **SAVE IMAGE** appears under **PATH TRACER** after the first sample. It saves the current accumulated path-traced canvas as a PNG without the page controls, whether tracing is running or paused. The source image uses the canvas's actual pixel dimensions; the button does not start a new render or change the camera. The receiving machine's imported canvas size is also used when saving there.
 
 - Real-world sun and shadow studies using the project's geographic location, orientation, date and time.
-- Proper image export directly from the viewer instead of relying on screenshots.
 - More granular visibility controls beyond the current exported top-level groups.
 
 ## Local preview

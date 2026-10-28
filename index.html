@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=2.0-measurements-1" />
+    <link rel="stylesheet" href="css/style.css?v=save-image-3" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -110,6 +110,11 @@
                   <button id="renderSnapshotImport" class="about-workbench" type="button" hidden>
                     IMPORT RENDER SNAPSHOT
                   </button>
+                  <label id="renderJobControls" class="render-job-controls" hidden>
+                    TARGET SAMPLES
+                    <input id="renderTargetSamples" type="number" min="1" max="100000" step="1" value="1000" required>
+                    <span>BOUNCES 6 · GLASS 10</span>
+                  </label>
                   <input id="renderSnapshotFile" type="file" accept=".dvrender" hidden>
                 </div>
                 <div id="rendererPicker" class="renderer-picker" hidden>
@@ -169,6 +174,10 @@
               disabled
             >
               PATH TRACER
+            </button>
+            <button class="photo-save-button" id="photoSaveButton" type="button"
+              title="Save the current path-traced image without the controls" hidden>
+              SAVE IMAGE
             </button>
             <!-- Hidden by GLASS_LIGHT_EXPERIMENT_ENABLED in js/view/photo1.js. -->
             <button
@@ -500,8 +509,8 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=2.0-bw-shadows-1",
-          webgl: "renderers/webgl/main.js?v=2.0-bw-shadows-1"
+          webgpu: "renderers/webgpu/main.js?v=save-image-3",
+          webgl: "renderers/webgl/main.js?v=save-image-3"
         };
       }
     </script>

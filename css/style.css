@@ -84,6 +84,7 @@ canvas {
 .brand,
 .tool-button,
 .photo-button,
+.photo-save-button,
 .glass-light-button,
 .black-back-button,
 .menu-toggle,
@@ -387,6 +388,28 @@ canvas {
   border-radius: 50%;
   background: var(--red);
 }
+.photo-save-button {
+  margin-top: 2px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--red);
+}
+.render-job-controls {
+  display: grid;
+  gap: 4px;
+  padding: 3px 0;
+  font: 10px var(--mono);
+  letter-spacing: 0.1em;
+}
+.render-job-controls input {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid var(--text);
+  border-radius: 0;
+  background: white;
+  color: var(--text);
+}
+.render-job-controls span { color: #666; }
 .glass-light-button {
   position: absolute;
   top: calc(100% + 1px);
