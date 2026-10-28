@@ -40,6 +40,7 @@ const photoEnvironmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI
 // Visible windows turn into glowing white panes, so this is not a general mode.
 const GLASS_LIGHT_EXPERIMENT_ENABLED = false;
 const glassLightButton = document.querySelector("#glassLightButton");
+const photoSaveButton = document.querySelector("#photoSaveButton");
 
 let active = false;
 let preparing = false;
@@ -47,6 +48,7 @@ let paused = false;
 let glassLightEnabled = false;
 let activation = 0;
 let pathTracer = null;
+let imageSaving = false;
 let photoEnvironment = null;
 let photoGroundMaterial = null;
 let convertedMaterials = [];
@@ -83,6 +85,58 @@ function updateGlassLightButtonState() {
   glassLightButton.disabled = !GLASS_LIGHT_EXPERIMENT_ENABLED || !pathTracer || preparing;
   glassLightButton.classList.toggle("active", glassLightEnabled);
   glassLightButton.setAttribute("aria-pressed", String(glassLightEnabled));
+}
+
+function updatePhotoSaveButtonState() {
+  if (!photoSaveButton) return;
+  photoSaveButton.hidden = !active;
+  photoSaveButton.disabled = imageSaving || !pathTracer || preparing || pathTracer.samples < 1;
+}
+
+async function saveCurrentPhoto() {
+  if (!active || !pathTracer || preparing || pathTracer.samples < 1) return;
+  const tracer = pathTracer;
+  const sampleCount = Math.floor(tracer.samples);
+  const width = renderer.domElement.width;
+  const height = renderer.domElement.height;
+  const base = (State.currentFileName || "drop-view").replace(/\.glb$/i, "")
+    .replace(/[^a-z0-9_-]+/gi, "-");
+  const previous = {
+    pausePathTracing: tracer.pausePathTracing,
+    dynamicLowRes: tracer.dynamicLowRes,
+    minSamples: tracer.minSamples,
+    fadeDuration: tracer.fadeDuration
+  };
+  imageSaving = true;
+  updatePhotoSaveButtonState();
+  try {
+    // Repaint the accumulated full-resolution target without adding a sample.
+    // This also works after PAUSE when the browser has cleared its canvas buffer.
+    tracer.pausePathTracing = true;
+    tracer.dynamicLowRes = false;
+    tracer.minSamples = 1;
+    tracer.fadeDuration = 0;
+    tracer.renderSample();
+    const blob = await new Promise((resolve, reject) =>
+      renderer.domElement.toBlob(value => value ? resolve(value) :
+        reject(new Error("The browser could not encode the PNG")), "image/png"));
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${base}_${width}x${height}_${sampleCount}s.png`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    setStatus(`IMAGE SAVED · ${width} × ${height} · ${sampleCount} samples`);
+  } catch (error) {
+    console.error("Path-traced image could not be saved", error);
+    setStatus(`IMAGE SAVE FAILED: ${error.message}`);
+  } finally {
+    if (pathTracer === tracer) Object.assign(tracer, previous);
+    imageSaving = false;
+    updatePhotoSaveButtonState();
+  }
 }
 
 function setPhotoPaused(nextPaused) {
@@ -521,6 +575,7 @@ async function activatePhoto1() {
   photo1Button.setAttribute("aria-busy", "true");
   updatePhotoButtonState();
   updateGlassLightButtonState();
+  updatePhotoSaveButtonState();
   updateControlAvailability();
   setStatus("PATH TRACER · loading renderer…");
 
@@ -574,6 +629,7 @@ async function activatePhoto1() {
     await new Promise(resolve => requestAnimationFrame(resolve));
     if (!active || currentActivation !== activation) return;
     prepareScene();
+    updatePhotoSaveButtonState();
   } catch (error) {
     console.error("PATH TRACER could not start", error);
     deactivatePhoto1({ restoreStatus: false });
@@ -591,6 +647,8 @@ photo1Button?.addEventListener("click", () => {
   if (!active) activatePhoto1();
   else if (pathTracer && !preparing) setPhotoPaused(!paused);
 });
+
+photoSaveButton?.addEventListener("click", saveCurrentPhoto);
 
 glassLightButton?.addEventListener("click", () => {
   if (!GLASS_LIGHT_EXPERIMENT_ENABLED || !active || !pathTracer || preparing) return;
@@ -638,6 +696,7 @@ export function deactivatePhoto1({ restoreStatus = true } = {}) {
   photo1Button?.removeAttribute("aria-busy");
   updatePhotoButtonState();
   updateGlassLightButtonState();
+  updatePhotoSaveButtonState();
   disposePhotoResources();
   setCameraInteractionLocked(false);
   updateControlAvailability();
@@ -704,9 +763,12 @@ export function renderPhoto1() {
   if (paused) return true;
 
   pathTracer.renderSample();
+  if (pathTracer.samples >= 1 && photoSaveButton?.disabled)
+    updatePhotoSaveButtonState();
   return true;
 }
 
 updatePhoto1Availability();
 updatePhotoButtonState();
 updateGlassLightButtonState();
+updatePhotoSaveButtonState();

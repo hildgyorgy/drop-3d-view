@@ -1,5 +1,6 @@
 /* Portable, versioned scene package. All lengths are checked before slicing. */
 import { assertValidViewSession } from "./view-session.js";
+import { assertRenderSize } from "./render-size.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
@@ -17,10 +18,12 @@ function bytesOf(value) {
   return new Uint8Array(value);
 }
 
-export function encodeRenderSnapshot({ fileName, fileBytes, viewSession, workbench = null }) {
+export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
+  workbench = null, renderSize = null }) {
   if (!validName(fileName) || !/\.glb$/i.test(fileName))
     throw new Error("Snapshot needs a named GLB file");
   assertValidViewSession(viewSession);
+  if (renderSize !== null) assertRenderSize(renderSize);
   const model = bytesOf(fileBytes);
   if (model.byteLength < 12 || decoder.decode(model.subarray(0, 4)) !== "glTF")
     throw new Error("Snapshot model is not a GLB");
@@ -46,7 +49,7 @@ export function encodeRenderSnapshot({ fileName, fileBytes, viewSession, workben
     };
   }
   const manifest = encoder.encode(JSON.stringify({
-    version: 1, fileName, viewSession, workbench: savedWorkbench,
+    version: 1, fileName, viewSession, workbench: savedWorkbench, renderSize,
     lengths: resources.map(resource => resource.byteLength)
   }));
   if (manifest.byteLength > maxManifestBytes) throw new Error("Snapshot metadata is too large");
@@ -82,6 +85,8 @@ export async function decodeRenderSnapshot(file) {
       manifest.lengths.some(length => !Number.isSafeInteger(length) || length < 0))
     throw new Error("Unsupported or invalid render snapshot");
   assertValidViewSession(manifest.viewSession);
+  if (manifest.renderSize !== undefined && manifest.renderSize !== null)
+    assertRenderSize(manifest.renderSize);
   let offset = 12 + manifestLength;
   const resources = manifest.lengths.map(length => {
     if (offset + length > data.length) throw new Error("Truncated render snapshot");
@@ -114,5 +119,6 @@ export async function decodeRenderSnapshot(file) {
       }) };
   }
   return { file: new File([resources[0]], manifest.fileName,
-    { type: "model/gltf-binary" }), viewSession: manifest.viewSession, workbench };
+    { type: "model/gltf-binary" }), viewSession: manifest.viewSession,
+    workbench, renderSize: manifest.renderSize ?? null };
 }

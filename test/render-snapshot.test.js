@@ -20,13 +20,30 @@ test("render snapshot keeps original GLB, material image bytes and view", async 
       bytes: new Uint8Array([1, 2, 3]).buffer }]
   }] };
   const blob = encodeRenderSnapshot({
-    fileName: "house.glb", fileBytes: glb.buffer, viewSession, workbench
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession, workbench,
+    renderSize: { width: 4064, height: 2488 }
   });
   const decoded = await decodeRenderSnapshot(new File([blob], "house.dvrender"));
   assert.deepEqual(new Uint8Array(await decoded.file.arrayBuffer()), glb);
   assert.deepEqual(decoded.viewSession, viewSession);
+  assert.deepEqual(decoded.renderSize, { width: 4064, height: 2488 });
   assert.deepEqual(new Uint8Array(decoded.workbench.edits[0].images[0].bytes),
     new Uint8Array([1, 2, 3]));
+});
+
+test("older snapshots without a render size remain readable", async () => {
+  const blob = encodeRenderSnapshot({
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession
+  });
+  const decoded = await decodeRenderSnapshot(new File([blob], "old.dvrender"));
+  assert.equal(decoded.renderSize, null);
+});
+
+test("invalid render pixel size is rejected", () => {
+  assert.throws(() => encodeRenderSnapshot({
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession,
+    renderSize: { width: 0, height: 1080 }
+  }), /Invalid render pixel size/);
 });
 
 test("render snapshot rejects truncated resources", async () => {

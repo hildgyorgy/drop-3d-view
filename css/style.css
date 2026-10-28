@@ -84,6 +84,7 @@ canvas {
 .brand,
 .tool-button,
 .photo-button,
+.photo-save-button,
 .glass-light-button,
 .black-back-button,
 .menu-toggle,
@@ -386,6 +387,12 @@ canvas {
   transform: translateY(-50%);
   border-radius: 50%;
   background: var(--red);
+}
+.photo-save-button {
+  margin-top: 2px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--red);
 }
 .glass-light-button {
   position: absolute;

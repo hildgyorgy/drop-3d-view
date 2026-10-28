@@ -35,6 +35,8 @@ import { readEmbedConfiguration } from "./core/embed-bridge.js";
 import { shouldLoadMaterialWorkbench } from "./model/material-workbench-policy.js";
 import { encodeRenderSnapshot, decodeRenderSnapshot } from "./core/render-snapshot.js";
 import { setStatus } from "./ui/status.js";
+import { applyImportedRenderFrame, clearImportedRenderFrame,
+  resizeImportedRenderFrame } from "./view/render-frame.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -54,6 +56,8 @@ function resizeViewport() {
     window.innerWidth,
     window.innerHeight
   );
+
+  if (backendKind === "webgl" && resizeImportedRenderFrame()) return;
 
   perspectiveCamera.aspect = aspect;
 
@@ -107,11 +111,15 @@ function bindRenderSnapshotControls() {
     setStatus("Preparing render snapshot…");
     try {
       const viewSession = captureCurrentViewSession();
+      const renderSize = {
+        width: renderer.domElement.width,
+        height: renderer.domElement.height
+      };
       const workbench = await materialWorkbench.captureWorkbenchHandoff();
       const fileBytes = await file.arrayBuffer();
       if (State.currentFile !== file) throw new Error("Model changed during export");
       const snapshot = encodeRenderSnapshot({
-        fileName: file.name, fileBytes, viewSession, workbench
+        fileName: file.name, fileBytes, viewSession, workbench, renderSize
       });
       const url = URL.createObjectURL(snapshot);
       const link = document.createElement("a");
@@ -143,6 +151,7 @@ function bindRenderSnapshotControls() {
       if (snapshot.workbench)
         await materialWorkbench.restoreWorkbenchHandoff(snapshot.workbench);
       restoreCurrentViewSession(snapshot.viewSession);
+      applyImportedRenderFrame(snapshot.renderSize);
       setStatus(`Render snapshot restored: ${snapshot.file.name}`);
     } catch (error) {
       console.error("Render snapshot import failed", error);
@@ -168,6 +177,8 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
+  if (backendKind === "webgl")
+    window.addEventListener("dropview:model-loaded", clearImportedRenderFrame);
   // Start HDRI work while the UI and, later, the GLB load in parallel.
   void preparePreviewEnvironment().catch(error =>
     console.warn("Preview lighting unavailable; using direct lights", error)
