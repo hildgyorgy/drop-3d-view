@@ -33,6 +33,8 @@ import { getSafeViewportSize } from "./view/viewport-size.js";
 import { resizeSectionRenderer } from "./section/section-resize.js";
 import { readEmbedConfiguration } from "./core/embed-bridge.js";
 import { shouldLoadMaterialWorkbench } from "./model/material-workbench-policy.js";
+import { encodeRenderSnapshot, decodeRenderSnapshot } from "./core/render-snapshot.js";
+import { setStatus } from "./ui/status.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -88,6 +90,69 @@ function animate(time) {
 let materialWorkbench = null;
 let measurements = null;
 
+function bindRenderSnapshotControls() {
+  if (backendKind !== "webgl" ||
+      new URLSearchParams(location.search).get("rendererDebug") !== "1") return;
+  const exportButton = document.querySelector("#renderSnapshotExport");
+  const importButton = document.querySelector("#renderSnapshotImport");
+  const input = document.querySelector("#renderSnapshotFile");
+  exportButton.hidden = importButton.hidden = false;
+  const update = () => { exportButton.disabled = !State.currentFile; };
+  window.addEventListener("dropview:model-loaded", update);
+  update();
+  exportButton.addEventListener("click", async () => {
+    const file = State.currentFile;
+    if (!file) return;
+    exportButton.disabled = true;
+    setStatus("Preparing render snapshot…");
+    try {
+      const viewSession = captureCurrentViewSession();
+      const workbench = await materialWorkbench.captureWorkbenchHandoff();
+      const fileBytes = await file.arrayBuffer();
+      if (State.currentFile !== file) throw new Error("Model changed during export");
+      const snapshot = encodeRenderSnapshot({
+        fileName: file.name, fileBytes, viewSession, workbench
+      });
+      const url = URL.createObjectURL(snapshot);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name.replace(/\.glb$/i, "") + ".dvrender";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setStatus(`Render snapshot saved: ${link.download}`);
+    } catch (error) {
+      console.error("Render snapshot export failed", error);
+      setStatus(`RENDER SNAPSHOT EXPORT FAILED: ${error.message}`);
+    } finally {
+      update();
+    }
+  });
+  importButton.addEventListener("click", () => {
+    input.value = "";
+    input.click();
+  });
+  input.addEventListener("change", async () => {
+    const packageFile = input.files?.[0];
+    if (!packageFile) return;
+    importButton.disabled = true;
+    setStatus("Opening render snapshot…");
+    try {
+      const snapshot = await decodeRenderSnapshot(packageFile);
+      if (!await openFile(snapshot.file, { sourceKind: "user" }))
+        throw new Error("Could not open the packaged GLB");
+      if (snapshot.workbench)
+        await materialWorkbench.restoreWorkbenchHandoff(snapshot.workbench);
+      restoreCurrentViewSession(snapshot.viewSession);
+      setStatus(`Render snapshot restored: ${snapshot.file.name}`);
+    } catch (error) {
+      console.error("Render snapshot import failed", error);
+      setStatus(`RENDER SNAPSHOT IMPORT FAILED: ${error.message}`);
+    } finally {
+      importButton.disabled = false;
+    }
+  });
+}
+
 async function boot() {
   if (backendKind === "webgpu") {
     if (!navigator.gpu) throw new Error("This browser does not support WebGPU.");
@@ -110,6 +175,7 @@ async function boot() {
   if (shouldLoadMaterialWorkbench(readEmbedConfiguration())) {
     materialWorkbench = await import("./ui/material-workbench.js");
     measurements = await import("./ui/measurements.js");
+    bindRenderSnapshotControls();
   }
   renderer.setAnimationLoop(animate);
 

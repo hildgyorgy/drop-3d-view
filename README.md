@@ -97,6 +97,12 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 ## Possible next steps
 
+### Experimental render snapshot transfer
+
+Open the WebGL viewer with `?rendererDebug=1`, then use the info menu's **EXPORT RENDER SNAPSHOT** after loading a GLB and applying any Material Workbench edits. The downloaded `.dvrender` file contains the original GLB bytes, uploaded material images and edit controls, and the current camera, lighting controls and group visibility. On another computer running the same Drop & View build and debug URL, choose **IMPORT RENDER SNAPSHOT** to restore them. These controls are hidden in the normal public view. The original GLB is not modified. Keep the `.dvrender` file private if the model is confidential.
+
+This is the manual scene-reproduction trial. It does not yet send a job over the network, start path tracing automatically, define an output resolution or sample target, or save a finished image. Compare the restored scene and WebGL PATH TRACER visually on both computers before adding the render queue. The receiving computer must have the same viewer code and HDRI asset for a meaningful comparison.
+
 - Real-world sun and shadow studies using the project's geographic location, orientation, date and time.
 - Proper image export directly from the viewer instead of relying on screenshots.
 - More granular visibility controls beyond the current exported top-level groups.
