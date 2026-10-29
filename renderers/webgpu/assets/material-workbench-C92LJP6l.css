@@ -5,6 +5,7 @@
   top: var(--workbench-top);
   right: var(--edge, 28px);
   width: min(var(--tool-panel-width, 342px), calc(100vw - 2 * var(--edge, 28px)));
+  height: var(--tool-panel-size, min(530px, var(--tool-panel-height)));
   max-height: var(--tool-panel-height, calc(100dvh - var(--workbench-top) - max(210px, 20dvh)));
   overflow: auto;
   box-sizing: border-box;

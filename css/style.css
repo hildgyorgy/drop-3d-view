@@ -7,6 +7,7 @@
   --tool-panel-width: 342px;
   --tool-panel-top: clamp(190px, 24.5dvh, 265px);
   --tool-panel-height: calc(100dvh - var(--tool-panel-top) - max(210px, 20dvh));
+  --tool-panel-size: min(530px, var(--tool-panel-height));
 }
 * {
   box-sizing: border-box;
@@ -1086,22 +1087,29 @@ body.dragging .drop-title {
     bottom: max(65px, calc(env(safe-area-inset-bottom) + 40px));
   }
 }
-/* Render station is a top-layer dialog; its renderer never occupies the UI. */
+/* Nonmodal companion panel, using the same dimensions and finish as Workbench. */
 .render-station {
+  position: fixed;
+  z-index: 110;
+  inset: 50% auto auto 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
   box-sizing: border-box;
   width: min(var(--tool-panel-width), calc(100vw - 2 * var(--edge)));
-  height: var(--tool-panel-height);
+  height: var(--tool-panel-size);
   max-height: calc(100dvh - 40px);
   overflow: auto;
   padding: 20px 24px 24px;
-  border: 1px solid #ccc;
+  border: 1px dashed #17171788;
   border-radius: 18px;
-  background: #f5f5f3;
-  color: #222;
-  font: 11px/1.4 var(--mono);
-  box-shadow: 0 16px 70px #0003;
+  background: rgba(239, 239, 237, 0.94);
+  color: #242424;
+  font: 11px/1.3 var(--mono);
+  letter-spacing: .12em;
+  box-shadow: 0 2px 10px #0001;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
-.render-station::backdrop { background: #0005; }
 .render-station header { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
 .render-station h2 { margin: 0; font: inherit; letter-spacing: .12em; }
 .render-station h2 { font-size: 13px; }
@@ -1128,6 +1136,7 @@ body.dragging .drop-title {
 .render-station [hidden] { display: none !important; }
 .render-station button:disabled { opacity: .45; cursor: default; }
 .render-station [data-close] { border: 1px solid var(--red); border-radius: 10px; font-size: 16px; padding: 3px 8px; }
+.render-station [data-close]:focus-visible { outline: none; background: #f1250c12; }
 .render-station-file { overflow-wrap: anywhere; font-weight: bold; }
 .render-station-details, .render-station-note { color: #666; font-size: 11px; }
 .render-station-warning { color: #a34308; font-size: 12px; }

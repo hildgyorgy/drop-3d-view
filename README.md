@@ -99,6 +99,8 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 ### Experimental render snapshot transfer
 
+The Render Station is a nonmodal panel with the same dimensions and dashed, translucent styling as the Material Workbench. It does not dim or block the viewer. Close it with the × button, or Escape while focus is inside it; a background render continues running.
+
 Open the WebGL viewer with `?rendererDebug=1`, then open **RENDER STATION** from the info menu after loading a GLB and applying any Material Workbench edits. In **CREATE A RENDER PACKAGE**, set **TARGET SAMPLES** and use **EXPORT**. This sample count is saved for the receiving computer; it does not change the visible viewer's path tracer. The `.dvrender` package includes the original GLB, material edits and images, camera, lighting, group visibility, canvas pixel dimensions, target samples, and fixed bounce settings (6 regular, 10 transmissive). The original GLB is not modified.
 
 On the receiving computer, open the info menu's **RENDER STATION**. Drop or choose one `.dvrender` package, then explicitly choose **OPEN IN VIEWER** or **RENDER**. Selecting a file alone does not start rendering or replace the current model.

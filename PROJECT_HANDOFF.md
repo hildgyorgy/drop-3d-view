@@ -1,6 +1,6 @@
 # Drop & View – fejlesztői átadó
 
-Állapot: 2026-10-28. Aktuális publikus verzió: **2.0** (`package.json`: `2.0.0`). Ez a dokumentum az új fejlesztői chat kiindulópontja; a tényleges kód és a tesztek az elsődleges források. A felhasználói működést a [README](README.md) írja le.
+Állapot: 2026-10-29. Aktuális publikus verzió: **2.0** (`package.json`: `2.0.0`). Ez a dokumentum az új fejlesztői chat kiindulópontja; a tényleges kód és a tesztek az elsődleges források. A felhasználói működést a [README](README.md) írja le.
 
 ## Gépváltási pillanatkép
 
@@ -14,6 +14,8 @@
 - A fejlesztéshez használt helyi HTTP-szervert leállítottuk. A másik gépen Node.js, pnpm és a függőségek helyi telepítése szükséges; a korábbi gép runtime- és Desktop-útvonalaira ne építsünk.
 
 ## Termék és döntések
+
+- A két panel tényleges magassága is közös: `--tool-panel-size = min(530px, a reszponzív magasságkeret)`, nem csak a max-height azonos. A Workbench és a Render Station egyaránt ezt használja. A Station nem modális (`dialog.show()`), nincs háttérsötétítés vagy a viewert blokkoló réteg. Szaggatott kerete, áttetsző háttere, elmosása és finom árnyéka egyezik a Workbenchével. A középen megjelenő panel bezárógombján egyetlen piros keret van; a fókuszt halvány háttér jelzi. A nyitott Station mellett a WHITE/ORIGINAL váltás böngészőben ellenőrzött, a panelek mért mérete 342 × 370 px; mindkét renderer buildje sikeres.
 
 - A Render Station popup kompakt: a Workbenchhel közös szélesség- és magasságkeretet használ (asztali 342 px szélesség, alacsony és mobil nézetben közös reszponzív méretek). Rövid EXPORT / OPEN IN VIEWER / RENDER gombok, TARGET SAMPLES mellett BOUNCES 6 · GLASS 10; nincs külön EXPERIMENTAL alcím vagy hosszú kezdő magyarázat. Üres státuszmezők nem foglalnak helyet; a futás, hibák és kompatibilitási figyelmeztetések továbbra is megjelennek.
 - Kompakt UI ellenőrzés: 1280 × 720-as böngészőablakban a Workbench és a Render Station is 342 × 370 px; a Station kezdő tartalma görgetés nélkül elfér. Csomagkiválasztás után kézi háttérrender sikeres, a kompatibilitási figyelmeztetés és a PNG-letöltés elérhető. Mindkét renderer buildje sikeres.

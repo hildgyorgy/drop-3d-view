@@ -102,14 +102,19 @@ export function bindRenderStation({ openPackage }) {
     frame.setAttribute("aria-hidden", "true");
     frame.tabIndex = -1;
     const url = new URL(location.pathname, location.origin);
-    url.search = "?rendererDebug=1&renderWorker=1&build=render-station-6";
+    url.search = "?rendererDebug=1&renderWorker=1&build=render-station-7";
     frame.src = url.href;
     document.body.append(frame);
     updateActions();
     readyTimeout = setTimeout(() => fail("The renderer did not start. Try reopening the page."), 60_000);
   }
   entry.hidden = false;
-  entry.addEventListener("click", () => dialog.showModal());
+  entry.addEventListener("click", () => { if (!dialog.open) dialog.show(); });
+  dialog.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    event.stopPropagation();
+    dialog.close();
+  });
   dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
   choose.addEventListener("click", () => { input.value = ""; input.click(); });
   input.addEventListener("change", () => selectPackage(input.files?.[0]));
