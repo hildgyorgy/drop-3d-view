@@ -113,6 +113,51 @@
   text-align: center;
 }
 
+#materialWorkbench .workbench-map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px;
+  gap: 10px;
+  align-items: center;
+}
+
+#materialWorkbench .workbench-sphere-preview {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 27% 23%, #fff 3%, #ecece8 42%, #777974 77%, #282b28 100%);
+}
+
+#materialWorkbench .workbench-sphere-preview::after {
+  position: absolute;
+  z-index: 0;
+  right: -1px;
+  bottom: -7px;
+  left: 5px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0005;
+  filter: blur(4px);
+  content: "";
+}
+
+#materialWorkbench .workbench-sphere-preview canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+}
+
+#materialWorkbench .workbench-sphere-preview canvas[hidden] {
+  display: none;
+}
+
+#materialWorkbench .workbench-sphere-preview.has-maps {
+  background: transparent;
+}
+
 #materialWorkbench .workbench-file:hover {
   border-color: #f1250c;
 }
@@ -282,6 +327,14 @@
   }
   #materialWorkbench .workbench-file {
     min-height: 42px;
+  }
+  #materialWorkbench .workbench-map-row {
+    grid-template-columns: minmax(0, 1fr) 64px;
+  }
+  #materialWorkbench .workbench-sphere-preview,
+  #materialWorkbench .workbench-sphere-preview canvas {
+    width: 64px;
+    height: 64px;
   }
   #materialWorkbench .workbench-actions {
     margin-top: 4px;

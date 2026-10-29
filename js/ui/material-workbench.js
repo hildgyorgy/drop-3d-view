@@ -21,6 +21,7 @@ import {
   isWorkbenchOperationCurrent
 } from "./workbench-operation.js";
 import { disposeUnusedWorkbenchEdit } from "./workbench-resource-lifecycle.js";
+import { createWorkbenchSpherePreview } from "./workbench-sphere-preview.js";
 import { getMaterialWorkbenchAccess } from "../model/material-workbench-policy.js";
 
 const variantName = "Maxon / Redshift PBR";
@@ -36,11 +37,12 @@ let packageImages = {};
 let lastAction = null;
 let busy = false;
 let fileAcceptGeneration = 0;
+let spherePreviewGeneration = 0;
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
 stylesheet.href = new URL(
-  "../../css/material-workbench.css?v=2.0-workbench-redesign-2",
+  "../../css/material-workbench.css?v=2.0-workbench-sphere-1",
   import.meta.url
 ).href;
 document.head.append(stylesheet);
@@ -64,10 +66,15 @@ panel.innerHTML = `<div class="workbench-header">
       <span>DROP MAPS HERE</span>
       <button id="workbenchClearMaps" type="button" disabled>CLEAR MAPS</button>
     </div>
-    <label class="workbench-file" title="Choose JPG or PNG material maps">
-      <input id="workbenchFiles" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
-      <span id="workbenchMaps" class="workbench-maps">NO MAPS LOADED</span>
-    </label>
+    <div class="workbench-map-row">
+      <label class="workbench-file" title="Choose JPG or PNG material maps">
+        <input id="workbenchFiles" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
+        <span id="workbenchMaps" class="workbench-maps">NO MAPS LOADED</span>
+      </label>
+      <div id="workbenchSpherePreview" class="workbench-sphere-preview" role="img" aria-label="Uploaded material map preview">
+        <canvas width="88" height="88" hidden aria-hidden="true"></canvas>
+      </div>
+    </div>
     <div class="workbench-type-color-row">
       <label class="workbench-type-label"><span>TYPE</span><select id="workbenchType">
         <option value="surface">SURFACE</option><option value="metal">POLISHED METAL</option>
@@ -89,6 +96,7 @@ panel.innerHTML = `<div class="workbench-header">
   </div>`;
 document.body.append(panel);
 const $ = id => panel.querySelector(`#${id}`);
+const spherePreview = createWorkbenchSpherePreview($("workbenchSpherePreview"));
 const status = message => {
   $("workbenchStatus").textContent = message;
 };
@@ -302,6 +310,7 @@ function select(object) {
       : "#ffffff";
   }
   showMaps();
+  void refreshSpherePreview();
   showValues();
   updateModeControls();
   updateButtons();
@@ -351,6 +360,40 @@ function showMaps() {
     .map(([kind, file]) => `${kind}: ${file.name}`);
   $("workbenchMaps").textContent = labels.length ? labels.join(" · ") : "NO MAPS LOADED";
   $("workbenchClearMaps").disabled = labels.length === 0;
+}
+
+function clearSpherePreview() {
+  ++spherePreviewGeneration;
+  spherePreview.clear();
+}
+
+async function refreshSpherePreview() {
+  const generation = ++spherePreviewGeneration;
+  const images = { ...packageImages };
+  if (!Object.values(images).some(Boolean)) {
+    spherePreview.clear();
+    return;
+  }
+  const metalness = images.arm || images.metalness ? 1 : 0;
+  let textures = [];
+  try {
+    const packed = await packedRoughnessImage(images, metalness);
+    textures = await previewImages(images, packed);
+    if (generation !== spherePreviewGeneration) {
+      disposeTextureResources(textures);
+      return;
+    }
+    spherePreview.show({
+      colorMap: textures[0], roughMap: textures[1],
+      normalMap: textures[2], metalness
+    });
+    textures = [];
+  } catch (error) {
+    disposeTextureResources(textures);
+    if (generation !== spherePreviewGeneration) return;
+    clearSpherePreview();
+    console.warn("Workbench map sphere preview unavailable", error);
+  }
 }
 
 function showValues() {
@@ -769,6 +812,7 @@ export async function restoreWorkbenchHandoff(handoff) {
       })
     );
     showMaps();
+    void refreshSpherePreview();
     showValues();
     updateModeControls();
     await apply();
@@ -899,6 +943,7 @@ async function acceptFiles(files) {
     else rejected.push(file.name);
   }
   showMaps();
+  void refreshSpherePreview();
   if (rejected.length)
     status(`IGNORED ${rejected.join(", ")} · USE GENUINE JPEG OR PNG FILES`);
   else status("MAPS READY · SELECT A MATERIAL AND APPLY");
@@ -909,6 +954,7 @@ $("workbenchClearMaps").addEventListener("click", () => {
   packageImages = {};
   $("workbenchFiles").value = "";
   showMaps();
+  clearSpherePreview();
   status("MAPS CLEARED · APPLIED MATERIALS UNCHANGED");
 });
 panel.addEventListener("dragover", event => {
@@ -954,6 +1000,7 @@ window.addEventListener("dropview:model-loaded", event => {
   $("workbenchType").value = "surface";
   packageImages = {};
   $("workbenchFiles").value = "";
+  clearSpherePreview();
   edits.clear();
   baselineMaterials.clear();
   baselineGeometries.clear();
@@ -991,6 +1038,7 @@ window.addEventListener("dropview:model-cleared", event => {
   sourceFile = null;
   selectedIndex = null;
   packageImages = {};
+  clearSpherePreview();
   edits.clear();
   $("workbenchType").value = "surface";
   baselineMaterials.clear();

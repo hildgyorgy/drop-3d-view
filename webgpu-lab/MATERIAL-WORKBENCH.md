@@ -17,6 +17,9 @@ Drop JPEG/PNG maps onto the panel or choose several files at once. Filenames
 containing `diff`/`albedo`/`basecolor`, `rough`, `nor_gl`/`normal`, or `arm`/`orm`
 are recognized. OpenGL normal maps are expected. If both a standalone roughness
 map and an ARM map are supplied, the ARM map takes precedence. Uploaded maps
+appear immediately on the small material sphere, before APPLY changes the
+selected model material. This sphere previews the map package under fixed
+lighting; it does not use the model's metre-based UV projection. The maps
 are used in **SURFACE** and **LACQUERED** modes. Both modes also allow the
 native **COLOR** picker: without an uploaded color map it makes a solid base
 color; with one, it tints the map (white is neutral). **LACQUERED** adds a
@@ -44,7 +47,8 @@ source geometry and normal WebGL/WebGPU views keep their original UV sets.
 
 To use a different package on the next surface, click **CLEAR MAPS**, then
 choose or drop the new files. This clears only the pending map selection;
-materials already applied to the model remain in the preview and saved edits.
+the small preview sphere returns to white. Materials already applied to the
+model remain in the preview and saved edits.
 **UNDO** reverses the most recent APPLY or RESET MATERIAL action. **RESET
 MATERIAL** restores only the currently selected material to the source GLB
 appearance; all other edited materials remain in place. Reload the page to
