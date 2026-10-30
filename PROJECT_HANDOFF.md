@@ -1,88 +1,153 @@
 # Drop & View – fejlesztői átadó
 
-Állapot: 2026-10-29. Aktuális publikus verzió: **2.0** (`package.json`: `2.0.0`). Ez a dokumentum az új fejlesztői chat kiindulópontja; a tényleges kód és a tesztek az elsődleges források. A felhasználói működést a [README](README.md) írja le.
+Állapot: **2026-10-30**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
+
+## Következő cél: Three.js r187
+
+**A felhasználó által kijelölt következő fejlesztési cél a Three.js frissítése r186-ról r187-re. A frissítés még NEM történt meg.** A 2026-10-30-án megjelent kiadást és a migrációs útmutatót ellenőriztük:
+
+- [r187 kiadás](https://github.com/mrdoob/three.js/releases/tag/r187)
+- [186 → 187 migráció](https://github.com/mrdoob/three.js/wiki/Migration-Guide#186--187)
+
+A nekünk fontos változások:
+
+- A PMREM CubeUV-atlasz helyett cube render targetekre épül; `CubeUVReflectionMapping` megszűnt. A javított PMREM miatt az anyagok megjelenése kissé változhat. Ellenőrizni kell a normál HDRI-előnézetet és a Workbench gömbjét is.
+- Változik a TSL implicit típuskonverziója, és a struct storage bufferek mindig tömbként kezelendők. Ez a WebGPU path tracer függőségét is érintheti.
+- A `WebGLRenderer.setViewport()` / `setScissor()` render target mellett már nem skáláz pixelaránnyal. A path tracer részlet-renderelése és a Retina/fix exportfelbontás külön ellenőrizendő.
+- Erőforrás-felszabadítási javítások, többek között explicit storage-buffer disposal, valamint belső `WeakRef` / `FinalizationRegistry` használat. **Ezekből nem következik automatikusan a Mini memóriaproblémájának megoldása.**
+
+Javasolt munkamenet:
+
+1. Pull után `git status -sb`, függőségek telepítése; a mostani r186 állapot legyen az összehasonlítás alapja.
+2. Azonos modellből, kamerával és világítással r186 referenciaképek készítése, külön WebGL és WebGPU előnézet/path tracer alatt. DEMO 1 és DEMO 2 is kell.
+3. A Three.js verzió és a `webgpu-lab/pnpm-lock.yaml` frissítése. A `three-gpu-pathtracer` és a `three-mesh-bvh` kompatibilitását ténylegesen ellenőrizni; a jelenlegi tracer megtartása vagy indokolt frissítése a vizsgálattól függ.
+4. Tesztek + mindkét publikus renderer buildje; böngészős összehasonlítás, különösen Safari LACQUERED, üveg, HDRI, textúraátvétel, forgatható gömb, backend-handoff és fix felbontású csomagrender.
+5. A többcsomagos sor, szüneteltetés, PNG-mentés, újratöltés utáni helyreállítás és Retina-pixelméret ellenőrzése. A `photo-clearcoat.js` a tracer belsejét módosítja, ezért a hozzá tartozó teszt és Safari-vizuális próba különösen fontos.
+6. Generált csomagok és cache-verziók együttes frissítése. A publikus AUTO továbbra is WebGL marad, hacsak a felhasználó másként nem dönt.
 
 ## Gépváltási pillanatkép
 
-- A kör elején a `main` working tree tiszta volt, a helyi ág a helyben ismert `origin/main` állapotával egyezett. Kiinduló commit: **`49a9f48` – offscreen Render Station**. A Render Station közösen egyeztetett javításai és ez az átadó még commitolatlanok; gépváltás előtt commit és push szükséges.
-- Legutóbbi ellenőrzés: **114/114 automatikus teszt sikeres**, mindkét publikus renderer buildje sikeres. A build ismert figyelmeztetései: `three-mesh-bvh` névütközés és nagy chunkok; nem buildhibák.
-- Böngészőben ellenőrzött: SECTION be/ki kapcsolása tiltja/engedélyezi az exportot és a magyarázatot; valódi DEMO 1 csomag exportálható. Eltérő appverzióval jelölt tesztcsomagból 256 × 144-es, 1 mintás PNG készült és letölthető volt, a kompatibilitási figyelmeztetés a kész eredménynél is megmaradt.
-- A popupba áthelyezett export és beállítások böngészőben ellenőrzöttek: az infópanelen csak a belépő maradt, 173-as TARGET SAMPLES bekerült az exportált csomagba, az export státusza a popupban látszik. A csomagválasztás és a háttérrender az új elrendezésben is sikeres.
-- Az export alap mintaszáma 500; a régi, rendercél nélküli csomagok fallbackje is 500. A csomagban explicit mentett cél megmarad. A kiválasztás/drop már csak kijelöl: OPEN IN VIEWER vagy RENDER gombbal kell folytatni. Az OPEN a látható modellt cseréli, helyreállítja az anyagokat, nézetet és renderkeretet/célt, majd bezárja a popupot; automatikus path tracing nincs. A RENDER külön iframe-ben dolgozik, megtartva a látható modellt. Futó háttérrender vagy import közben nincs új kiválasztás/import/indítás.
-- Az új OPEN működés böngészőben ellenőrzött: kamera/napállás/csoportok/felbontás/mintacél változatlan újraexportnál; módosított anyagú, 512 × 512-es csomagból napirány- és vetületváltás után is helyes új csomag készült. A kézzel indított path tracer a csomag 1 mintás céljánál megállt. A külön RENDER 256 × 144-es tesztje is elkészült. A pozicionált importvászon a DOM-ban a viewer UI elé kerül, hogy ne takarja el az adaptív kontrasztú vezérlőket; az ortho frustum a renderkeret képarányát követi vetületváltáskor is.
-- A Render Station review döntései megvalósultak: közös 1024-es limitek, SECTION-exporttiltás, producer-kompatibilitási jelzések. A render továbbra is 0 mintáról indul. További termékdöntés nincs kijelölve.
-- A fejlesztéshez használt helyi HTTP-szervert leállítottuk. A másik gépen Node.js, pnpm és a függőségek helyi telepítése szükséges; a korábbi gép runtime- és Desktop-útvonalaira ne építsünk.
+- A dokumentum frissítése előtt a working tree **tiszta** volt: `main...origin/main`, helyben ismert eltérés nélkül. Ez nem új hálózati fetch/push vagy élő GitHub Pages-ellenőrzés eredménye.
+- Aktuális commit: **`17701f5` – render popup refine**. Ez már tartalmazza a renderelési sort és az exportált képméret kijelzését.
+- Előző fontos commitok: `d712a1e` – render station bugfix; `7672935` – texture import from glb; `2a5a5e2` – export popup; `042619a` – redesign popups.
+- **134/134 teszt sikeres**, a gépváltási átadó írásakor újra futtatva. A legutóbbi kódmódosítás után mindkét publikus renderer buildje is sikeres volt. A nagy chunkokra vonatkozó buildfigyelmeztetés nem buildhiba.
+- Csak ez az átadó lesz új helyi módosítás. Gépváltás előtt ezt is commitolni/pusholni kell; a másik gépen pull szükséges. A jelen körben nem indítottunk új publikálást.
+- A használt helyi tesztszervereket leállítottuk. A korábbi gép `/tmp`, Downloads, Desktop és Codex-runtime útvonalai nem hordozható tesztfüggőségek.
 
-## Termék és döntések
+Rögzített függőségek a `webgpu-lab/package.json`-ban:
 
-- A két panel tényleges magassága is közös: `--tool-panel-size = min(530px, a reszponzív magasságkeret)`, nem csak a max-height azonos. A Workbench és a Render Station egyaránt ezt használja. A Station nem modális (`dialog.show()`), nincs háttérsötétítés vagy a viewert blokkoló réteg. Szaggatott kerete, áttetsző háttere, elmosása és finom árnyéka egyezik a Workbenchével. A középen megjelenő panel bezárógombján egyetlen piros keret van; a fókuszt halvány háttér jelzi. A nyitott Station mellett a WHITE/ORIGINAL váltás böngészőben ellenőrzött, a panelek mért mérete 342 × 370 px; mindkét renderer buildje sikeres.
+| Függőség | Jelenlegi verzió |
+| --- | --- |
+| `three` | `0.186.0` |
+| `three-gpu-pathtracer` | `0.0.27` |
+| `three-mesh-bvh` | `0.9.15` |
+| Vite | `8.2.2` |
 
-- A Render Station popup kompakt: a Workbenchhel közös szélesség- és magasságkeretet használ (asztali 342 px szélesség, alacsony és mobil nézetben közös reszponzív méretek). Rövid EXPORT / OPEN IN VIEWER / RENDER gombok, TARGET SAMPLES mellett BOUNCES 6 · GLASS 10; nincs külön EXPERIMENTAL alcím vagy hosszú kezdő magyarázat. Üres státuszmezők nem foglalnak helyet; a futás, hibák és kompatibilitási figyelmeztetések továbbra is megjelennek.
-- Kompakt UI ellenőrzés: 1280 × 720-as böngészőablakban a Workbench és a Render Station is 342 × 370 px; a Station kezdő tartalma görgetés nélkül elfér. Csomagkiválasztás után kézi háttérrender sikeres, a kompatibilitási figyelmeztetés és a PNG-letöltés elérhető. Mindkét renderer buildje sikeres.
+## Aktuális termékdöntések és UI
 
-- Új debug-only WebGL funkció az **EXPORT** és a **RENDER STATION**. A `.dvrender` csomag az eredeti GLB-t, Workbench-editjeit és képeit, a nézetállapotot, képméretet és rendercélt viszi át. Választható a látható viewerbe megnyitás továbbszerkesztéshez vagy külön offscreen iframe-ben 0 mintáról PNG-renderelés. Nem hálózati jobküldés és nem korábbi samples folytatása. Csak a háttérrender tartja meg a viewer aktuális modelljét.
-- Egyeztetett korlátok: mindkét irányban 1024 erőforrás (a GLB-vel együtt) és 1024 anyagedit, továbbra is 2 GB maximum. SECTION mellett az export tiltott, a Render Station ablakban magyarázattal. Az infópanelen csak a RENDER STATION belépő van; a popup CREATE A RENDER PACKAGE blokkja tartalmazza az exportot és a csomag TARGET SAMPLES beállítását, a rögzített BOUNCES 6 / GLASS 10 jelzéssel. Ezek nem állítják a látható viewer path tracerét. A csomag appverziót, renderer-revíziót és HDRI SHA-256 azonosítót tartalmaz; eltéréskor tartós figyelmeztetés van, a render engedélyezett. Régi, producer-metaadat nélküli csomag továbbra is betölthető, ellenőrizetlen kompatibilitási jelzéssel.
-- A `js/core/render-compatibility.js` HDRI-azonosítóját a `backdrop.hdr` cseréjekor frissíteni kell (teszt ellenőrzi a tényleges fájlt). Ha az appverzió változatlan, de a képképzés módosul, a `rendererRevision` értékét emeljük. A renderelő program és a HDRI bájtjai nem részei a csomagnak.
+- A Drop & View építészek ügyfeleinek szánt, egyszerű, helyben futó GLB-nézegető. Nem modellhosting szolgáltatás. Egyetlen közös app/UI van, két rendererrel.
+- A normál publikus **AUTO WebGL-t választ**. A WebGPU kézzel a `?rendererDebug=1` infópaneljén választható összehasonlításhoz. A WebGPU path tracer nincs a WebGL vizuális referenciájával egyenértékűnek nyilvánítva.
+- A **MATERIAL WORKBENCH és EXPORT a normál standalone nézetben elérhető**, nem debug-only funkciók. Embedben nem töltődnek be a szerkesztőeszközök.
+- A Workbench és Export közös mérete: asztali szélesség **342 px**, magasság `min(600px, reszponzív magasságkeret)`. Kis ablakban automatikusan kisebbek és görgethetők. Nem modálisak; nincs viewert kitakaró háttérréteg.
+- A felhasználó a szűkszavú, nyugodt UI-t kedveli. A rutin magyarázó/sikerfeliratokat eltávolítottuk; az owner/policy figyelmeztetés, hibák és érdemi kompatibilitási jelzések maradjanak. A bezárás X, az akciók keret nélküli piros szövegek.
+- A Workbench gombsora **APPLY / UNDO / RESET**. Nincs SAVE AS; a GLB-mentés az **EXPORT → EXPORT → SAVE GLB** helyre került.
+- Az Export két füle **EXPORT / RENDER**. Az EXPORT fülön SAVE GLB és SAVE PACKAGE, utóbbinál IMAGE pixelméret, SAMPLES és BOUNCES 6 · GLASS 10.
+- Az IMAGE kijelzés a tényleges rendercanvas fizikai pixelméretét mutatja, és resize esetén azonnal frissül. Retina alatt ez eltérhet a CSS-ablakmérettől. Pontosan ez a méret kerül a csomagba. Importált fix renderkeret esetén annak méretét mutatja.
+- A felhasználó bevált munkamódszere az ablak átméretezésével egyszerre komponálni és felbontást választani. A hétköznapi képekhez az aktuális app-ablak tartalma megfelelő; az 5K path tracer render éjszakára is maradhat.
 
-- A Drop & View építészek ügyfeleinek szánt, egyszerű **GLB-nézegető**. Nem mérnöki modellező vagy felhős modellhosting szolgáltatás. A saját fájlt a böngésző helyben dolgozza fel.
-- Egyetlen app és UI van. A publikus `AUTO` jelenleg **WebGL-t** választ, mert ez a kipróbált vizuális és működési referencia. A WebGPU kézzel a `?rendererDebug=1` nézet infóablakában választható összehasonlításhoz. Ne váltsuk át a publikus alapértelmezést pusztán azért, mert egy WebGPU-funkció már elindul.
-- Mindkét motor ugyanazt a **DEMO 1** (`demo/demo_house.glb`) és **DEMO 2** (`demo/demo_house_2.glb`) fájlt használja. Az új exporter már nem készít kettős anyagozást, és a jelenlegi demók nem tartalmaznak `KHR_materials_variants` adatot. A viewer a régebbi, korábban kettős anyaggal exportált GLB-ket továbbra is be tudja olvasni: a publikus nézet az alapanyagot tartja meg, a debug nézet pedig a `Maxon / Redshift PBR` változatot aktiválja, ha van. Ez a kompatibilitási választás a **publikus/debug nézethez**, nem a rendererhez kötött.
-- A normál WebGL és WebGPU nézet finom, `0.2` erősségű HDRI környezeti fényt és tükröződést használ, látható HDRI-háttér nélkül. A nap marad a fő fény; a HDRI fényes pontja az exportált/vezérelt napirányhoz igazodik. Az iPhone-os fekete előnézetet a WebGL-ben is bevezetett ±65504-es half-float korlátozás megoldotta (2026-10-27, felhasználó ellenőrizte). A HDRI induláskor párhuzamosan töltődik, a modell első megjelenítése megvárja a környezetet; a WebGL a PMREM-et is előre elkészíti. Letöltési hiba esetén a modell direkt világítással nyílik meg. A CONTROLS → HDRI LIGHT összehasonlító kapcsoló csak WebGL debug módban látható, alapból bekapcsolt. A két path tracer saját HDRI-beállítással működik.
-- A `WINDOW LIGHTS` az exporter által megjelölt téglalap alakú ablakfényekre épül; alapból kikapcsolt. A régi, üvegeket emisszívvé tevő `GLASS LIGHT` kísérlet rejtett és kikapcsolt marad.
-- A WebGL path tracer jelenleg referencia. A WebGPU path tracer minőségét, különösen az üvegen átmenő fény és árnyék esetét, továbbra is azonos modellel és nézettel kell összehasonlítani; nincs késznek nyilvánítva.
-- A WebGL B/W anyag a végső tónust kizárólag a `reflectedLight.directDiffuse` értékből készíti. A Three.js Lambert anyaga már a scene HDRI-jét is fogadja; ennek derítése a bináris küszöb fölé emelné az önárnyékokat. A közös B/W shader a tömör és az alpha-cutout anyagokra is alkalmazza ezt, az üveg külön anyag marad.
-- A WebGL path tracer LACQUERED/clearcoat számításához a `js/view/photo-clearcoat.js` numerikusan stabil GGX/Smith alakot telepít. Safari alatt a függőség eredeti `acos`/`tan` alapú clearcoat-értékelése fekete felületet adott; a javítás megőrzi a lakkréteget és a mentett anyagadatokat. A pinned renderer belső materialjához fér hozzá, ezért függőségfrissítéskor a kompatibilitási teszt és a Safari-vizuális próba kötelező.
-- A kamera a PATH TRACER alatt szándékosan zárolt. A nézetet ORIGINAL módban kell beállítani, majd a PATH TRACER-t bekapcsolva hagyni konvergálni; ezt ne oldjuk fel pusztán dokumentációs eltérés miatt.
-- Az 1.5 volt a stabilizált viewer mérföldkő; a 2.0 a publikus MATERIAL WORKBENCH kiadása. A Workbench az önálló viewer infópaneljéből érhető el, embedben nem töltődik be. A demók szerkeszthetők, de nem menthetők; saját fájl csak explicit `disabled` exporter-policy hiányában szerkeszthető és menthető.
+## Material Workbench: eredeti textúrák és előnézet
+
+- Felületre kattintva a kiválasztott glTF-anyag összes előfordulása együtt szerkeszthető. SURFACE, POLISHED METAL, LACQUERED, illetve exporterrel kijelölt clear glass esetén GLASS mód van.
+- A gömb valódi Three.js előnézet, a viewerrel egyező WebGL/WebGPU backenddel. Egérrel és billentyűnyilakkal forgatható, csak változáskor renderel. Nagy, középre rendezett gömb a teljes szélességű drop box fölött; a dobozban a fájllista balra igazított.
+- A kiválasztott **eredeti GLB-textúrákat is átveszi**: base color, metallic/roughness (belső `arm` slot), normal, occlusion, emissive. A gömbön megjelennek, módosíthatók/cserélhetők; **CLEAR MAPS + APPLY** törli őket a modellből. UNDO/RESET visszaállíthatja az eredeti anyagot.
+- A beágyazott JPEG/PNG eredeti bájtjai megmaradnak. Más dekódolt képek lehetőség szerint PNG-vé alakulnak. A forrás-textúrák saját UV-csatornája, külön transzformációja, wrappingje/filterezése, metallic faktora és normal/AO erőssége megőrződik.
+- **Fontos:** az átvett textúrák méretezése az eredeti UV-illesztést változtatja a semleges 2.0 beállításhoz képest; ez nem a forrás UV-k tényleges méteres méretének kimérése. Az új, CLEAR MAPS után bedobott csomagok a korábbi világkoordinátás méteres vetítést használják.
+- Új méteres textúráknál külön `TEXCOORD_1` készül, az eredeti UV/geometry bájtjai megmaradnak. Már foglalt második UV-készlet esetén a vetítés elutasított. Közös mesh eltérő világkoordinátás vetítése nem menthető egyetlen közös UV-készletbe; ezt célzott hiba jelzi. A WebGL tracer ideiglenesen átköti a méteres UV-kat.
+- Saját GLB explicit `asset.extras.dropView.materialWorkbench.policy = "disabled"` nélkül szerkeszthető/menthető. Tiltott modellnél a menüpont marad, de az ownerhez irányító figyelmeztetés jelenik meg. A demó szerkeszthető, de nem menthető GLB-ként. Az eredeti fájlt soha nem írjuk felül.
+- Ellenőrizve: valódi kattintásos textúraátvétel, gömb, APPLY, CLEAR MAPS, UNDO; a böngészőből mentett GLB-ben az eredeti textúrabájtok, UV-k, geometria és textúra-transzformáció megmaradtak. A felhasználó is sikeresnek visszajelezte a saját modelljén.
+- Részletek: [MATERIAL-WORKBENCH](webgpu-lab/MATERIAL-WORKBENCH.md).
+
+## Rendercsomag, HDRI és Export
+
+- A `.dvrender` az **eredeti GLB + anyageditek és képeik + nézet/kamera + világítás + csoportláthatóság + pixelméret + sample/bounce cél + aktív Radiance HDRI bájtjai** együttese. Nem a korábban kiszámolt samples folytatása: render mindig nulláról indul.
+- Az appba alapból csomagolt HDRI-t a beolvasott csomag saját HDRI-je felülírja az adott modellhez. Normál új GLB-re váltás visszaállítja az app alap környezetét. Újraexport és backend-handoff az aktív környezetet megőrzi. Előnézet és path tracer ugyanazt az aktív forrást használja.
+- A HDRI érvényességének/azonosságának ellenőrzése a látható modell lecserélése előtt történik. A csomagban appverzió, renderer-revízió, HDRI SHA-256 azonosító is van. Régebbi, HDRI nélküli csomag az app saját környezetével nyílik meg, kompatibilitási jelzéssel.
+- A renderer programkódja nem utazik a csomagban. Producer-eltérés figyelmeztet, de a render engedélyezett. Aktuális renderer-revízió `webgl-photo-1`; képképzési változáskor frissítendő. Az alap HDRI azonosítóját fájlcsere esetén módosítani kell; teszt is ellenőrzi.
+- Alap exportcél **500 samples**, rögzített **6 bounces / 10 transmissive bounces**. A fogadó gép a csomagban mentett értéket használja. Régi, cél/felbontás nélküli csomag háttérrender-fallbackje 500 samples és 1920 × 1080.
+- SECTION mellett exporttiltás marad érdemi figyelmeztetéssel. Közös limitek: 1024 erőforrás (GLB/HDRI is beleszámít), 1024 anyagedit, 2 GB maximális csomagméret.
+- OPEN IN VIEWER a kiválasztott csomagot a látható viewerben állítja helyre, majd az Export fület készíti elő és bezárja a popupot. Nem indít automatikusan path tracert.
+- A SAVE IMAGE / PNG-mentés az éppen felhalmozott tracer képet kezeli, kezelőszervek nélkül; nincs külön, a viewert kitakaró renderelő réteg.
+
+## Többcsomagos renderelési sor – elkészült
+
+- **EXPORT → RENDER → PACKAGES**: több `.dvrender` egyszerre választható/bedobható. A balra igazított lista **a szaggatott dobozon belül** jelenik meg, nem alatta. Soronként név, állapot, PNG-link, újrafuttatás ↻, fel/le nyíl és eltávolítás ×.
+- **START QUEUE** indítja a várakozó csomagokat sorrendben, egyszerre egy rejtett WebGL-renderer iframe-ben. A látható modell érintetlen marad. Futás közben is hozzáadhatók csomagok; az aktív munka nem mozgatható/törölhető.
+- PAUSE/RESUME szünetelteti a munkát és a sor előrelépését; SKIP a következőre lép; CANCEL leállítja a sort, a hátralévők várakoznak. Hibás csomag FAILED jelzést kap, a következő elindul. Az iframe/GPU-erőforrások két munka között felszabadulnak.
+- Kész képnél automatikus PNG-letöltést **indít**, a csomag nevéből és felbontás/sample adatokból képzett fájlnévvel. **Ez nem bizonyítja a letöltés sikerét:** a böngésző engedélyezi vagy blokkolja. A tesztböngésző az első automatikus letöltést átengedte, a másodikat nem. A kész sor saját PNG-linkje kézzel működött. A PNG READY felirat kész képet jelent, nem igazolt Downloads-mentést.
+- A csomagok és a kész PNG Blobok az adott böngésző/origin **IndexedDB** tárolójában maradnak (`dropview-render-queue`, v1, `jobs`). Újratöltéskor visszatér a lista és a kész képek. A félbeszakadt/paused munka QUEUED lesz, **nulláról**, új START QUEUE után folytatható. Tárolóhiba esetén figyelmeztet és az aktuális tab memóriájában megmarad az állapot; a tartósság ilyenkor nem garantált. Törlés/site-data takarítás eltávolítja a tárolt feladatot/képet.
+- A popup bezárása vagy fülváltás nem állítja le a sort. A böngésző tabja maradjon nyitva és a gép ébren; ez továbbra sem szerveroldali/hálózati renderküldés.
+- Böngészős próba: két érvényes csomag eltérő sample-céllal végigfutott; köztük hibás csomag nem blokkolta a sort. Mindkét PNG érvényes 320 × 180 képként ellenőrizve. Reload után a képek megmaradtak, a paused 74/2000-es próba újra QUEUED lett. Átrendezés/eltávolítás is ellenőrizve; a görgetősáv elől a sorvégi vezérlők külön helyet kaptak.
+
+## Mac mini: 5K render és memória – még nyitott vizsgálat
+
+- A rendergép egy **8 GB RAM-os, headless Mac mini**, Jump Desktoppal használva. Safari egy **új, 43,7 MB-os, 5120 × 2880-as** csomagnál kb. 2 sample után újratöltötte/összeomlásjelzéssel helyettesítette az oldalt. Ez Safari-folyamat esemény volt, nem az app saját hibája. A csomag betölthető és a render elindul.
+- Erőforrás-csökkentő javítás elkészült (`d712a1e`): legfeljebb 512 × 512-es GPU-dispatch részletek (5K-nál 10 × 6 = 60 a régi 2 × 2 helyett); rejtett workerben nincs élő canvas-megjelenítés, low-res/fade előnézet, raster shadow map, preview HDRI/PMREM, MSAA/stencil és gömb-preview munka. A felbontás/sample/bounce nem csökkent. PNG-capture idejére visszakapcsol a célkép canvasra rajzolása.
+- **Ez még nem memória-korlátos képrészletenkénti render:** a tracer teljes méretű lebegőpontos pufferei továbbra is megvannak. Három RGBA32F puffer 5120 × 2880-nál kb. **708 MB**, további GPU/mélységi/model/textúra/CPU memória nélkül. A kisebb dispatch önmagában ezt nem oldja meg.
+- Helyi próba: valódi 5120 × 2880 PNG, 4 samples, 6/10 bounce sikeres. Ez **nem** a Mini 500 mintás stabilitásának igazolása.
+- A felhasználó először a javítással is tapasztalt újratöltést; egy következő futást megfigyelés alatt hagyott. Utolsó visszajelzés: **25/500-nál tartott**. Nincs még visszajelzés a végső sikerről vagy újabb hibáról; ne állítsuk megoldottnak.
+- Activity Monitor pillanatkép: weboldal-folyamat **2,84 GB**, Safari Graphics and Media kb. **353 MB**, teljes használt memória **6,90 GB**, tömörített **2,21 GB**, swap **2,43 GB**, **sárga** memóriaterhelés. Mellette BIMcloud/Teamwork, Node és Roon is futott. Ez erősíti a memórianyomás gyanúját, de nem bizonyítja a Safari kilépési okát; nincs crash log.
+- Javasolt, még nem visszaigazolt kontroll: ugyanaz 2560 × 1440-en, negyedakkora képpufferrel. Tartós 5K-megoldás lehet valóban kis GPU-pufferekkel, képrészletenként renderelni és összerakni a végeredményt; **ez még nincs implementálva**.
+- A felhasználó későbbi terve inkább az otthoni MacBookról csomagot készíteni, az irodai Mac Studión renderelni. Az éjszakai futási idő elfogadható. A következő kijelölt fejlesztés ettől függetlenül most az r187 frissítés.
+
+## WebGPU path tracer: ellenőrzött tudás
+
+A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je valódi, de az üvegen átjutó közvetlen árnyéksugarak általános megoldása nem következik belőle.
+
+- A hivatalos changelog szerint a WebGPUPathTracer **0.0.25-ben, 2026-09-28-án** jelent meg, a 0.0.27 2026-10-08-i. Ezt a 0.0.27-et az app már használja.
+- A kamerából induló sugár transzmissziója/fénytörése és a felületről a fény felé indított NEE shadow ray kezelése külön feladat. A megvizsgált `PathTracerMegaKernel.js` a közvetlen fényhez bináris occlusion-t vizsgál; a kód a színezett áttetsző árnyékokat lehetséges továbbfejlesztésként említi. MNEE/kausztika a roadmap Future részében van. Ebből nem következik, hogy semmilyen fény nem jut át üvegen, de az általános „ablakon átjövő direkt napfény megoldva” állítás nem igazolt.
+- Compute shader használata nem jelenti a hardveres RT/RTX-egységek közvetlen használatát; itt a BVH-bejárást/metszést shaderkód végzi.
+- Források: [tracer changelog](https://github.com/gkjohnson/three-gpu-pathtracer/blob/main/CHANGELOG.md), [shader](https://github.com/gkjohnson/three-gpu-pathtracer/blob/main/src/webgpu/compute/PathTracerMegaKernel.js), [roadmap #777](https://github.com/gkjohnson/three-gpu-pathtracer/issues/777). Friss állításnál az aktuális forrást újra ellenőrizzük, ne általános Three.js/WebGPU hírből következtessünk kész tracerfunkcióra.
+
+## Megőrzendő korábbi döntések és regressziók
+
+- Mindkét motor DEMO 1 (`demo/demo_house.glb`) és DEMO 2 (`demo/demo_house_2.glb`) fájlja közös. Az új exporter már nem készít kettős anyagozást. Régi `KHR_materials_variants` GLB-nél a normál nézet az alapanyagot használja, a debug a `Maxon / Redshift PBR` változatot, ha van. Ez nézethez, nem backendhez kötött kompatibilitás.
+- A normál WebGL/WebGPU előnézet finom, 0.2-es HDRI-környezetet használ látható HDRI-háttér nélkül; a nap a fő fény, a környezet fényes pontja a napirányhoz igazodik. Az iPhone fekete előnézetére bevezetett **±65504 half-float clamp** maradjon. Normál nézetben a modell megvárja az előkészített környezetet, letöltési hibánál direkt világítás marad. A háttérworker kihagyja ezt az előnézeti előkészítést.
+- A WebGL B/W shader csak `reflectedLight.directDiffuse` alapján küszöböl, hogy a HDRI ne tüntesse el az önárnyékokat. Alpha-cutout anyagokra is érvényes; az üveg külön anyag.
+- Safari **LACQUERED** regresszió: a `js/view/photo-clearcoat.js` stabil koszinuszos GGX/Smith alakra cseréli a tracer eredeti `acos`/`tan` értékelését. A lakkréteg megmarad, nincs clearcoat-kikapcsolás. Natív Safari alatt korábban fekete lett a DEMO 1 betonkerete/járdája, javítva világos maradt. A `photo-clearcoat.test.js` a pinned függőség belsejéhez illeszkedést ellenőrzi, a GPU-képet nem. Frissítéskor külön Safari-vizuális teszt kell.
+- A PATH TRACER alatt a kamera szándékosan zárolt; ORIGINAL-ban kell komponálni. A WINDOW LIGHTS exporterrel jelölt ablakfényekre épül, alapból ki; a régi emisszív GLASS LIGHT kísérlet rejtett/ki marad.
+- MEASUREMENTS: két modellfelületre húzható végpont, egyenes világkoordinátás távolság méterben, adaptív SVG-osztások. Nincs él/csúcs-snap vagy GLB-mentés. Kamera damping húzás közben szünetel; raycast kizárja a rejtett/levágott felületeket. Új modell/backend-váltás/reload törli, embedben rejtett. Mobilon külön próba továbbra is indokolt.
 
 ## Kódtérkép
 
 | Hely | Szerep |
 | --- | --- |
-| `index.html`, `js/core/renderer-bootstrap.js` | Közös UI, debug renderer-választó, belépés a csomagolt motorokba. |
-| `js/main.js`, `js/core/`, `js/model/`, `js/view/`, `js/section/`, `js/ui/` | Közös app-logika: GLB, kamera, csoportok, metszet, anyagok, vezérlés. |
-| `webgpu-lab/full-*.js`, `webgpu-lab/vite*.config.js` | WebGPU adapterek és a két motor buildje. A `webgpu-lab` név történeti; nincs külön publikus lab-app. |
-| `renderers/webgl/`, `renderers/webgpu/` | Generált, azonos originről kiszolgált publikus JS-csomagok. Kézzel ne szerkesszük. |
-| `js/core/backend-handoff.js`, `js/core/session-runtime.js` | Motorváltáskor a fájl bájtjainak, nézetnek és workbench-állapotnak a mentése/visszaállítása. A váltás oldal-újratöltés és egyszer használatos IndexedDB-átadás. |
-| `js/view/photo1.js`, `webgpu-lab/full-photo.js` | A két eltérő path tracer adapter. |
-| `js/ui/measurements.js`, `js/ui/measurement-scale.js` | Infópanelről kapcsolható kísérleti 3D mérőszalag: felületre húzható két pont, SVG-vetítés és adaptív méterbeosztás. Csak standalone, nincs él-/csúcs-snap vagy GLB-mentés; új modell/rendererváltás törli. |
-| `embed/drop-view-embed.js`, `js/core/embed-bridge.js` | Más weboldalba ágyazható nézőke; a GLB a fogadó oldal tárhelyén marad. |
+| `index.html`, `css/style.css`, `js/main.js` | Közös UI, Export, képméret-kijelzés, snapshot import/export, worker boot. |
+| `js/core/renderer-bootstrap.js`, `js/core/render-worker-mode.js` | Backend-választás és elkülönített WebGL-renderworker mód. |
+| `js/ui/material-workbench.js`, `js/ui/workbench-source-maps.js` | Anyagszerkesztés, eredeti GLB-textúraátvétel, UV/transzformációk és mentés. |
+| `js/ui/workbench-sphere-preview.js`, `js/ui/workbench-preview-renderer.js`, `webgpu-lab/full-workbench-preview-renderer.js` | Forgatható, backendnek megfelelő gömb. |
+| `js/model/glb-material-patch.js` | Eredeti GLB patch-elése, textúrák, UV-k és anyagrekordok mentése. |
+| `js/ui/render-station.js`, `js/ui/render-queue.js`, `js/ui/render-queue-store.js` | Export RENDER fül, sor/vezérlés, automatikus letöltés, IndexedDB-megőrzés. |
+| `js/view/render-worker.js`, `js/view/render-worker-settings.js`, `js/view/render-frame.js` | Worker-protokoll, takarékosabb GPU-ütemezés, rögzített pixelméret/képarány. |
+| `js/core/render-snapshot.js`, `render-job.js`, `render-environment.js`, `environment-source.js`, `render-compatibility.js` | Csomagformátum, célok, HDRI, producer/kompatibilitás. A rövidített nevek mind a `js/core/` alatt vannak. |
+| `js/view/photo1.js`, `webgpu-lab/full-photo.js`, `js/view/photo-clearcoat.js` | Két eltérő tracer adapter és Safari clearcoat-javítás. |
+| `js/view/webgl-environment.js`, `webgpu-lab/full-scene.js` | Normál előnézet HDRI-je/PMREM-je; r187 szempontjából érintett. |
+| `js/core/backend-handoff.js`, `session-runtime.js` | Backend-váltáskor egyszer használatos IndexedDB-handoff. |
+| `webgpu-lab/full-*.js`, `vite*.config.js`, `build-unified.mjs` | Adapterek és build; nincs külön publikus lab-app. |
+| `renderers/webgl/`, `renderers/webgpu/` | Generált publikus bundle-ök: kézzel ne szerkesszük. |
+| `embed/drop-view-embed.js`, `js/core/embed-bridge.js` | Beágyazható nézőke, a modell a fogadó tárhelyén marad. |
 
-## Anyagok és publikus workbench
+## Fejlesztés és ellenőrzés másik gépen
 
-Az önálló viewer infópaneljéből kapcsolható **MATERIAL WORKBENCH** egy GLB kiválasztott glTF-anyagának minden előfordulását együtt szerkeszti. SURFACE, POLISHED METAL, LACQUERED és csak exporterrel kijelölt clear glass esetén GLASS mód van. JPEG/PNG szín-, roughness-, OpenGL normal- és ARM-térképeket fogad; a feltöltött textúrák mérete méterben állítható. APPLY előnézet, UNDO az utolsó műveletet vonja vissza, RESET csak a kiválasztott anyagot állítja helyre, SAVE AS új GLB-fájlt tölt le. Az eredeti GLB soha nem módosul. A demókban csak előnézet van, embedben a Workbench nem töltődik be. Az exporter `asset.extras.dropView.materialWorkbench.policy = "disabled"` jelzése letiltja a szerkesztést; hiányzó vagy ismeretlen policy a régi és külső GLB-k kompatibilitása miatt engedélyezett. Tiltott fájlnál a menüpont látható marad, de a szerkesztő helyett az editable verzió tulajdonostól való kérését jelzi.
+1. `git status -sb`, szükség szerint pull; a felhasználó módosításait őrizzük meg.
+2. Node.js és pnpm helyi telepítése; `pnpm --dir webgpu-lab install` a lockfile alapján. Az előző gépen a `node` nem volt a shell PATH-ban; ne a gépspecifikus Codex-runtime abszolút útvonalát másoljuk át megoldásként.
+3. Helyi szerver a repó gyökeréből: `python3 -m http.server 8000`. Normál `http://127.0.0.1:8000/`; debug `http://127.0.0.1:8000/?rendererDebug=1`. Meglévő szervert ne állítsunk le találomra.
+4. `node --test` / `npm test`; `pnpm --dir webgpu-lab build:public` vagy `node webgpu-lab/build-unified.mjs --public`; végül `git diff --check`. A build mindkét `renderers/` csomagot frissíti; új hash-fájlokat és régi fájlok törlését együtt kell commitolni. Jelenlegi belépő/cache-jelölés: `render-queue-1` (`index.html`, worker URL).
+5. Automatikus teszt nem helyettesíti a WebGL/WebGPU/Safari képi próbát. Az átadó frissítése dokumentációs módosítás, emiatt új renderer build nem készült.
 
-Az infópanel a mockup szerinti SUPPORT, Experimental features és Design credits blokkokat használja. A Workbench és a Measurements sora valódi kétállapotú kapcsoló: aktív állapotban piros pötty, ismét kattintva kikapcsol. A kapcsolás nem zárja be az infópanelt; az `i` vagy mellékattintás bezárja. A Workbench keskeny, kompakt panel, fejlécében EXIT; demónál közvetlenül a cím alatt állandó preview-only felirat. A kezdeti kijelölési szöveg `CLICK A SURFACE`.
+Publikus oldal: <https://hildgyorgy.github.io/drop-3d-view/>. A repó saját licencű, külső összetevők licencei a README-ben. A support oldal **külön `app-support` repó**, `drop-view/index.html`; a fő viewer commitja nem viszi át. A korábbi 2.0/Workbench támogatási leírás létezik, az új Export/sor/mérőszalag támogatási oldalon történő teljes bemutatását ebben a körben nem ellenőriztük/frissítettük.
 
-Az új textúrákhoz a workbench `TEXCOORD_1` UV-kat ment, az eredeti `TEXCOORD_0` megmarad. Íves felületeken a dobozos leképezés varratot adhat; a már foglalt `TEXCOORD_1` esetén a művelet elutasított. Több node által használt közös mesh azonos világkoordinátás UV-projekcióját a mentés deduplikálja; eltérő projekciót az APPLY célzott hibával elutasít, mert a glTF-mesh csak egy közös UV-készletet tárolhat. A WebGL path tracernek külön, ideiglenes UV-átkötése van. Részletek: [MATERIAL-WORKBENCH](webgpu-lab/MATERIAL-WORKBENCH.md) és [MATERIAL-VARIANTS](webgpu-lab/MATERIAL-VARIANTS.md). A korábbi 1K PBR-demókísérlet receptje archív: [PBR-EXPERIMENT](webgpu-lab/PBR-EXPERIMENT.md).
+## Következő chat indítása
 
-## Mérőszalag – az első változat határai
+„Olvasd el a `PROJECT_HANDOFF.md` és `README.md` fájlt, ellenőrizd a `git status -sb` eredményét. A következő cél a Three.js r187-re frissítése a WebGL/WebGPU, Workbench és render queue regresszióinak ellenőrzésével. A Mini 5K/500 samples próbájának végső eredménye még nem ismert.”
 
-- Az infópanel **MEASUREMENTS** kapcsolója egyetlen, két fekete fogópöttyből álló mérőszalagot mutat. A végpontokat a látható modellfelületekre húzva a két világkoordináta közötti egyenes 3D-távolságot írja ki méterben, két tizedessel. A pontosság a GLB léptékétől és a kézi pontelhelyezéstől függ; jelenleg nincs él-/csúcs-snap.
-- A piros SVG-vonalzó valódi térbeli osztásokat vetít a képre, adaptív sűrűséggel. A pontok orbit/zoom/projekcióváltás közben a modellen maradnak. A fogópötty húzása idejére a kameravezérlés és a damping-frissítés szünetel; az eredeti vezérlési állapot visszaállításánál a PATH TRACER és FLY zárolását tiszteletben tartja.
-- Üres tér fölött az utolsó érvényes pont marad meg. A raycast a rejtett csoportokat és a metszettel levágott részeket kizárja. Ha a már lerakott pont csoportját elrejtjük vagy metszettel levágjuk, a mérőszalag elrejtőzik és visszaállítási útmutatást mutat.
-- Ki-/bekapcsolás megőrzi a pontokat. Új modell, oldalfrissítés vagy rendererváltás törli őket. A mérés nem része a GLB-mentésnek vagy a renderer-handoffnak. Embedben a modul nem töltődik be, a kapcsoló rejtett.
-- Élőben mindkét demón ellenőriztük a pontok húzását és a kijelzést; az első demón a kameraforgatás és a ki-/bekapcsolás is ellenőrzött. Az érintéses használathoz pointer capture és nagyobb láthatatlan fogóterület készült, de külön mobil/eszközteszt még indokolt.
-
-## Safari LACQUERED regresszió – ellenőrzési támpont
-
-A hiba a felhasználó szerint mindkét demón kizárólag LACQUERED anyagnál, WebGL PATH TRACER-ben jelentkezett. Natív Safariban a DEMO 1 betonanyagát LACQUERED-re állítva a fehér keret és járda fekete lett; a javított shaderrel világos maradt. Másik tesztböngészőben az eredeti shader sem reprodukálta a feketedést. A javítás nem az UV-átkötést módosítja és nem kapcsolja ki a clearcoatot, hanem a clearcoat GGX/Smith kiértékelését stabilabb koszinuszos alakra cseréli.
-
-A `87f6416` commit 2026-10-25-én a path tracert a `894bf9b8…` fejlesztői commitról a kiadott `0.0.27` verzióra váltotta. Ez lehetséges regressziós határ, de a régi és új függőség azonos Safari-próbája nem történt meg, ezért ne állítsuk bizonyított eredetnek. A `photo-clearcoat.test.js` a csomagolt függőség shaderéhez való illeszkedést és a többi BSDF-ág megőrzését ellenőrzi; a Safari GPU-s megjelenését automatikusan nem teszteli.
-
-## Kapcsolódó, külön repó
-
-Az app-support oldal a **külön `app-support` repó** `drop-view/index.html` fájlja; a fő viewer repó commitja ezt nem viszi át. Utolsó ellenőrzéskor ez a repó is tiszta volt (`66bebf8`). A 2.0/Workbench tájékoztató korábban frissült; a mérőszalag támogatási oldalon történő bemutatása ebben a körben nem készült el. A felhasználói mockupok és az exporter két policy-fixture-je a korábbi gép Desktopján voltak, nem verziózott tesztassetek.
-
-## Fejlesztés és ellenőrzés
-
-1. `git status -sb` – induláskor nézzük meg az ágat és a helyi módosításokat; a felhasználó commitjait és munkáját őrizzük meg.
-2. `python3 -m http.server 8000` a repó gyökerében – helyi nézet. A debug összehasonlításhoz `http://127.0.0.1:8000/?rendererDebug=1&model=demo/demo_house_2.glb`.
-3. Forrásmódosítás után `pnpm --dir webgpu-lab install`, majd `pnpm --dir webgpu-lab build:public`. A build **mindkét** generált `renderers/` csomagot frissíti; az új hash-nevű fájlokat és a régiek törlését együtt kell commitolni. Az `index.html` csomag URL-jének `?v=` értékét módosítsuk, ha a belépő `main.js` gyorsítótárát érvényteleníteni kell.
-4. `npm test` vagy `node --test`, majd `git diff --check`. A böngészőben külön ellenőrizzük a WebGL és WebGPU normál nézetet, a PATH TRACER-t, a motorváltást betöltött modell és anyagszerkesztés mellett, valamint a SAVE NEW GLB-t. Az automatikus tesztek nem helyettesítik a képi összehasonlítást.
-
-Rögzített csomagverziók a `webgpu-lab/package.json`-ban: Three.js `0.186.0`, `three-gpu-pathtracer` `0.0.27`, `three-mesh-bvh` `0.9.15`, Vite `8.2.2`. A Draco-dekóder szükség esetén CDN-ről töltődik be. A publikus oldal: <https://hildgyorgy.github.io/drop-3d-view/>. A repó kódja saját licencű; a külső összetevők licenceit a README sorolja fel.
-
-## Következő chat kezdete
-
-Javasolt első kérés: „Olvasd el a `PROJECT_HANDOFF.md` és `README.md` fájlt, nézd meg a `git status -sb` eredményét, majd a jelenlegi kódból ellenőrizd az adott feladathoz tartozó részeket.” Az átadó tájékozódási pont, nem írja felül a kódot, a felhasználó új döntéseit vagy a frissebb méréseket.
+Az átadó tájékozódási pont; a felhasználó frissebb döntéseit, méréseit és a tényleges kódot nem írja felül.
