@@ -1116,6 +1116,9 @@ body.dragging .drop-title {
 .render-station p { margin: 8px 0; }
 .render-station p:empty { display: none; }
 .render-station .render-job-controls { width: 100%; grid-template-columns: minmax(0, 1fr) 84px; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .04em; margin: 0 0 16px; }
+.render-station .export-render-size { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.render-station .export-render-size > span { font-size: 11px; color: inherit; }
+.render-station .export-render-size > output { font-size: 11px; white-space: nowrap; }
 .render-station .render-job-controls > label { grid-column: 1; }
 .render-station .render-job-controls input { box-sizing: border-box; min-width: 0; height: 28px; border: 1px solid #fff; border-radius: 14px; background: #ffffff42; padding: 3px 8px; font: 12px var(--mono); }
 .render-station .render-job-controls span { grid-column: 1 / -1; color: #999; font-size: 10px; white-space: nowrap; }
@@ -1166,3 +1169,15 @@ body.dragging .drop-title {
   border: 0;
   pointer-events: none;
 }
+
+.render-station .render-package-drop { border: 1px dashed #17171788; padding: 8px 10px; min-height: 80px; box-sizing: border-box; margin-bottom: 12px; }
+.render-station .render-package-drop [data-choose] { border: 0; min-height: 0; margin: 0; padding: 12px 0; width: 100%; font-size: 10px; color: #999; text-align: left; }
+.render-station .render-package-drop:has(.render-package-list:empty) [data-choose] { text-align: center; padding: 24px 0; }
+.render-station .render-package-list { list-style: none; margin: 0; padding: 0 18px 0 0; max-height: 180px; overflow-y: auto; letter-spacing: 0; }
+.render-station .render-package-list li { padding: 8px 0; border-top: 1px solid #ccc7; }
+.render-station .render-package-list [data-select-job] { display: block; width: 100%; text-align: left; font-size: 11px; letter-spacing: 0; padding: 0 0 4px; overflow-wrap: anywhere; color: inherit; }
+.render-station .render-package-list [aria-pressed="true"] { color: var(--red); }
+.render-station .render-queue-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.render-station .render-queue-state { color: #999; font-size: 10px; }
+.render-station .render-queue-tools { display: flex; gap: 2px; }
+.render-station .render-queue-tools button, .render-station .render-queue-tools a { box-sizing: border-box; min-width: 22px; min-height: 24px; padding: 2px; font-size: 11px; line-height: 20px; letter-spacing: 0; text-align: center; }

@@ -118,10 +118,12 @@ function bindRenderSnapshotControls() {
   };
   const jobControls = document.querySelector("#renderJobControls");
   const targetSamples = document.querySelector("#renderTargetSamples");
+  const exportSize = document.querySelector("#renderExportSize");
   exportButton.hidden = false;
   jobControls.hidden = false;
   let exporting = false;
   const update = () => {
+    exportSize.textContent = `${renderer.domElement.width} × ${renderer.domElement.height} px`;
     const access = getMaterialWorkbenchAccess({ policy: State.materialWorkbenchPolicy,
       sourceKind: State.currentFileSourceKind });
     glbButton.disabled = exporting || !materialWorkbench.canSaveWorkbenchGlb();
@@ -135,6 +137,9 @@ function bindRenderSnapshotControls() {
   };
   new MutationObserver(update).observe(document.querySelector("#sectionButton"), {
     attributes: true, attributeFilter: ["aria-pressed"]
+  });
+  new MutationObserver(update).observe(renderer.domElement, {
+    attributes: true, attributeFilter: ["width", "height"]
   });
   window.addEventListener("dropview:workbench-changed", update);
   window.addEventListener("dropview:model-loaded", () => {

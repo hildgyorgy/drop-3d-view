@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=worker-large-render-1" />
+    <link rel="stylesheet" href="css/style.css?v=render-queue-1" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -500,8 +500,8 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=worker-large-render-1",
-          webgl: "renderers/webgl/main.js?v=worker-large-render-1"
+          webgpu: "renderers/webgpu/main.js?v=render-queue-1",
+          webgl: "renderers/webgl/main.js?v=render-queue-1"
         };
       }
     </script>
@@ -525,6 +525,7 @@
         <section class="export-section" aria-labelledby="renderExportTitle">
           <h3 id="renderExportTitle">RENDER PACKAGE</h3>
           <div id="renderJobControls" class="render-job-controls" hidden>
+            <div class="export-render-size"><span>IMAGE</span><output id="renderExportSize" aria-label="Export image size">—</output></div>
             <label for="renderTargetSamples">SAMPLES</label>
             <input id="renderTargetSamples" type="number" min="1" max="100000" step="1" value="500" required>
             <span>BOUNCES 6 · GLASS 10</span>
@@ -535,13 +536,15 @@
         </section>
       </div>
       <div id="renderPanel" class="export-panel" role="tabpanel" aria-labelledby="renderTab" data-pane="render" hidden>
-        <h3>PACKAGE</h3>
-        <button type="button" data-choose>CHOOSE PACKAGE</button>
-        <input type="file" accept=".dvrender" hidden>
-        <p data-filename class="render-station-file"></p>
+        <h3>PACKAGES</h3>
+        <div class="render-package-drop" data-package-drop>
+          <button type="button" data-choose>CHOOSE PACKAGES</button>
+          <ul class="render-package-list" data-package-list aria-label="Render queue"></ul>
+        </div>
+        <input type="file" accept=".dvrender" multiple hidden>
         <div class="render-station-actions">
           <button type="button" data-open-package disabled>OPEN IN VIEWER</button>
-          <button type="button" data-render-package disabled>RENDER</button>
+          <button type="button" data-render-package disabled>START QUEUE</button>
         </div>
         <p data-render-status role="status" aria-live="polite"></p>
         <p data-details class="render-station-details"></p>
@@ -549,12 +552,13 @@
         <progress hidden aria-label="Render progress"></progress>
         <div class="render-station-actions">
           <button type="button" data-pause hidden>PAUSE</button>
+          <button type="button" data-skip hidden>SKIP</button>
           <button type="button" data-cancel hidden>CANCEL</button>
-          <a data-download hidden>DOWNLOAD PNG</a>
         </div>
+        <p data-queue-warning class="render-station-warning" role="status" hidden></p>
         <p data-keep-open class="render-station-note" hidden>Keep this tab open while rendering.</p>
       </div>
     </dialog>
-    <script type="module" src="js/core/renderer-bootstrap.js?v=worker-large-render-1"></script>
+    <script type="module" src="js/core/renderer-bootstrap.js?v=render-queue-1"></script>
   </body>
 </html>
