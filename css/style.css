@@ -1111,37 +1111,42 @@ body.dragging .drop-title {
   -webkit-backdrop-filter: blur(12px);
 }
 .render-station header { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
-.render-station h2 { margin: 0; font: inherit; letter-spacing: .12em; }
-.render-station h2 { font-size: 13px; }
-.render-station h3 { margin: 10px 0 6px; font: inherit; letter-spacing: .08em; }
-.render-station p { margin: 5px 0; }
+.render-station h2 { margin: 0; font: 13px var(--mono); letter-spacing: .16em; }
+.render-station h3 { margin: 0 0 12px; color: #999; font: 10px var(--mono); letter-spacing: .14em; }
+.render-station p { margin: 8px 0; }
 .render-station p:empty { display: none; }
-.render-station-export { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #aaa; }
-.render-station .render-job-controls { grid-template-columns: 84px 1fr; align-items: center; font-size: 10px; letter-spacing: .04em; }
-.render-station .render-job-controls > label { grid-column: 1 / -1; }
-.render-station .render-job-controls input { box-sizing: border-box; min-width: 0; font: 12px var(--mono); }
-.render-station .render-job-controls span { white-space: nowrap; }
+.render-station .render-job-controls { width: 100%; grid-template-columns: minmax(0, 1fr) 84px; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .04em; margin: 0 0 16px; }
+.render-station .render-job-controls > label { grid-column: 1; }
+.render-station .render-job-controls input { box-sizing: border-box; min-width: 0; height: 28px; border: 1px solid #fff; border-radius: 14px; background: #ffffff42; padding: 3px 8px; font: 12px var(--mono); }
+.render-station .render-job-controls span { grid-column: 1 / -1; color: #999; font-size: 10px; white-space: nowrap; }
 .render-station button, .render-station a {
   display: inline-block;
-  border: 1px solid #bbb;
-  border-radius: 7px;
-  padding: 6px 10px;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 0;
   background: transparent;
-  color: inherit;
-  font: 11px monospace;
-  letter-spacing: .06em;
+  color: var(--red);
+  font: 13px var(--mono);
+  letter-spacing: .12em;
   text-decoration: none;
   cursor: pointer;
 }
 .render-station [hidden] { display: none !important; }
 .render-station button:disabled { opacity: .45; cursor: default; }
-.render-station [data-close] { border: 1px solid var(--red); border-radius: 10px; font-size: 16px; padding: 3px 8px; }
-.render-station [data-close]:focus-visible { outline: none; background: #f1250c12; }
+.render-station [data-close] { color: inherit; font-size: 13px; padding: 0; }
+.render-station .export-tabs { display: flex; gap: 32px; margin-top: 24px; border-bottom: 1px solid #ccc8; }
+.render-station .export-tabs [role="tab"] { color: #999; font-size: 11px; padding: 0 0 10px; border-bottom: 1px solid transparent; }
+.render-station .export-tabs [aria-selected="true"] { color: var(--red); border-bottom-color: var(--red); }
+.render-station .export-panel { padding-top: 24px; }
+.render-station .export-section + .export-section { margin-top: 36px; }
+.render-station .export-model-name { margin: 0 0 12px; overflow-wrap: anywhere; letter-spacing: 0; }
+.render-station .export-section [role="status"], .render-station .render-snapshot-hint { font-size: 10px; letter-spacing: .03em; line-height: 1.5; }
+.render-station [data-choose] { width: 100%; min-height: 80px; margin: 0 0 8px; padding: 12px; border: 1px dashed #777; color: #999; font-size: 10px; text-align: center; }
 .render-station-file { overflow-wrap: anywhere; font-weight: bold; }
-.render-station-details, .render-station-note { color: #666; font-size: 11px; }
-.render-station-warning { color: #a34308; font-size: 12px; }
+.render-station-details, .render-station-note { color: #777; font-size: 10px; letter-spacing: .03em; }
+.render-station-warning { color: #a34308; font-size: 10px; letter-spacing: .03em; line-height: 1.5; }
 .render-station progress { width: 100%; accent-color: #ed432d; }
-.render-station-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.render-station-actions { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 8px 0 16px; }
 .render-station-actions:has(> [hidden]):not(:has(> :not([hidden]))) { display: none; }
 .render-station [data-download] { border-color: #ed432d; color: #c32c1a; }
 @media (max-height: 780px) and (min-width: 601px) {

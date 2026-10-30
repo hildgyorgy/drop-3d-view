@@ -45,9 +45,16 @@ export function applyImportedRenderFrame(size) {
   clearImportedRenderFrame();
   if (!size) return; // Older snapshot packages had no fixed image frame.
   assertRenderSize(size);
-  const context = renderer.getContext();
-  const limit = Math.min(renderer.capabilities.maxTextureSize,
-    context.getParameter(context.MAX_RENDERBUFFER_SIZE));
+  let limit;
+  if (renderer.isWebGPURenderer) {
+    limit = renderer.backend.device.limits.maxTextureDimension2D;
+  } else {
+    const context = renderer.getContext();
+    if (context.isContextLost())
+      throw new Error("The graphics context was lost. Reload the page and try again.");
+    limit = Math.min(renderer.capabilities.maxTextureSize,
+      context.getParameter(context.MAX_RENDERBUFFER_SIZE));
+  }
   if (size.width > limit || size.height > limit)
     throw new Error(`This GPU supports at most ${limit} pixels per side`);
   importedSize = { width: size.width, height: size.height };

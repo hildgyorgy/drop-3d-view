@@ -4,7 +4,7 @@ Open the standalone viewer's red **i** panel and choose **MATERIAL WORKBENCH**.
 Click a visible model surface to select its glTF material. Every primitive
 sharing that material is edited together. Embedded viewers never load the
 Workbench. The built-in demos allow the complete editing preview but keep
-**SAVE NEW GLB** disabled.
+**EXPORT → SAVE GLB** disabled.
 
 Exporter-created files can set
 `asset.extras.dropView.materialWorkbench.policy` to `disabled`. The Workbench
@@ -35,12 +35,12 @@ but any existing glass maps are preserved.
 The original IOR is retained. TEXTURE SIZE sets the repeat width in metres
 (0.1–20 m, initially 2 m). Rotation and X/Y shift apply to uploaded maps as
 one aligned set. Click
-**APPLY** for a live preview in ORIGINAL mode, then **SAVE NEW GLB** to download
-`*_pbr.glb`.
+**APPLY** for a live preview in ORIGINAL mode, then **EXPORT → SAVE GLB** to download
+`*_pbr.glb`. The Workbench itself offers APPLY, UNDO and RESET; saving is in the shared Export window.
 
 Uploaded maps use real-world metre mapping instead of scaling the exporter's
 original UVs. The preview projects from mesh positions and
-normals into a separate UV set. SAVE NEW GLB appends those coordinates as
+normals into a separate UV set. GLB export appends those coordinates as
 `TEXCOORD_1`, and only the newly uploaded maps read them. The original
 `TEXCOORD_0` and source geometry bytes stay intact. This is a box projection:
 curved surfaces can show seams where the projection axis changes. Meshes that

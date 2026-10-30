@@ -42,7 +42,7 @@ let spherePreviewGeneration = 0;
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
 stylesheet.href = new URL(
-  "../../css/material-workbench.css?v=2.0-workbench-orbit-3",
+  "../../css/material-workbench.css?v=2.0-workbench-export-2",
   import.meta.url
 ).href;
 document.head.append(stylesheet);
@@ -98,8 +98,7 @@ panel.innerHTML = `<div class="workbench-header">
     </section>
     <div class="workbench-actions"><button id="workbenchApply" type="button">APPLY</button>
       <button id="workbenchUndo" type="button" disabled>UNDO</button>
-      <button id="workbenchReset" type="button" disabled>RESET</button>
-      <button id="workbenchDownload" type="button">SAVE AS</button></div>
+      <button id="workbenchReset" type="button" disabled>RESET</button></div>
     </div>
   </div>`;
 document.body.append(panel);
@@ -170,7 +169,15 @@ function updateButtons() {
   $("workbenchUndo").disabled = !lastAction || busy || !access.canEdit;
   $("workbenchReset").disabled =
     selectedIndex === null || !edits.has(selectedIndex) || busy || !access.canEdit;
-  $("workbenchDownload").disabled = !access.canSave || !edits.size || busy;
+  window.dispatchEvent(new Event("dropview:workbench-changed"));
+}
+
+export function canSaveWorkbenchGlb() {
+  return Boolean(sourceFile && edits.size && !busy && currentAccess().canSave);
+}
+
+export function isWorkbenchBusy() {
+  return busy;
 }
 
 function updateModeControls() {
@@ -285,7 +292,7 @@ function select(object) {
   if (saved) {
     for (const [id, value] of Object.entries(saved.inputs)) $(id).value = value;
     // Keep the staging area independent from the last applied edit: choosing
-    // another file must not silently alter what SAVE NEW GLB would export.
+    // another file must not silently alter what GLB export would save.
     packageImages = { ...saved.images };
   } else {
     $("workbenchType").value = selectedGlassMaterial(index) ? "glass" : "surface";
@@ -842,13 +849,17 @@ export async function restoreWorkbenchHandoff(handoff) {
   status("");
 }
 
-async function download() {
-  if (busy || !sourceFile || !edits.size || !currentAccess().canSave) return;
+export async function saveWorkbenchGlb() {
+  if (!canSaveWorkbenchGlb()) return null;
+  const file = sourceFile;
+  const sourceGltf = gltf;
+  const savedEdits = [...edits.values()];
   busy = true;
+  updateButtons();
   status("");
   try {
     const patches = [];
-    for (const edit of edits.values()) {
+    for (const edit of savedEdits) {
       const [color, roughness, normal] = await Promise.all([
         imageRecord(edit.images.color),
         imageRecord(edit.packed),
@@ -873,19 +884,25 @@ async function download() {
           transform: transformFromInputs(edit.inputs)
         });
     }
-    const buffer = patchGlbMaterials(await sourceFile.arrayBuffer(), patches);
+    const fileBytes = await file.arrayBuffer();
+    if (sourceFile !== file || gltf !== sourceGltf)
+      throw new Error("Model changed during export");
+    const buffer = patchGlbMaterials(fileBytes, patches);
     const url = URL.createObjectURL(new Blob([buffer], { type: "model/gltf-binary" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = sourceFile.name.replace(/\.glb$/i, "") + "_pbr.glb";
+    link.download = file.name.replace(/\.glb$/i, "") + "_pbr.glb";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
     status("");
+    return link.download;
   } catch (error) {
     console.error("Workbench export failed", error);
     status(`SAVE FAILED: ${error.message}`);
+    throw error;
   } finally {
     busy = false;
+    updateButtons();
   }
 }
 
@@ -1002,7 +1019,6 @@ $("workbenchType").addEventListener("change", event => {
 $("workbenchApply").addEventListener("click", apply);
 $("workbenchUndo").addEventListener("click", undo);
 $("workbenchReset").addEventListener("click", resetMaterial);
-$("workbenchDownload").addEventListener("click", download);
 $("workbenchClose").addEventListener("click", closeWorkbench);
 renderer.domElement.addEventListener("click", onCanvasClick);
 window.addEventListener("dropview:model-loaded", event => {

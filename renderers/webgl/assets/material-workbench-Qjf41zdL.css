@@ -305,7 +305,7 @@
 
 #materialWorkbench .workbench-actions {
   display: grid;
-  grid-template-columns: repeat(4, max-content);
+  grid-template-columns: repeat(3, max-content);
   justify-content: space-between;
   gap: 8px;
   margin-top: 12px;

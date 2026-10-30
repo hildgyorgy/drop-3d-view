@@ -15,6 +15,9 @@ export function bindRenderStation({ openPackage }) {
   const pause = dialog.querySelector("[data-pause]");
   const cancel = dialog.querySelector("[data-cancel]");
   const download = dialog.querySelector("[data-download]");
+  const keepOpen = dialog.querySelector("[data-keep-open]");
+  const tabs = [...dialog.querySelectorAll("[role=tab]")];
+  const panes = [...dialog.querySelectorAll("[role=tabpanel]")];
   let frame = null;
   let readyTimeout = null;
   let imageUrl = null;
@@ -23,6 +26,29 @@ export function bindRenderStation({ openPackage }) {
   let currentFile = null;
   let selectedFile = null;
   let opening = false;
+
+  function selectTab(name, focus = false) {
+    for (const tab of tabs) {
+      const selected = tab.dataset.tab === name;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && focus) tab.focus();
+    }
+    for (const pane of panes) pane.hidden = pane.dataset.pane !== name;
+  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => selectTab(tab.dataset.tab));
+    tab.addEventListener("keydown", event => {
+      let target;
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft") target = 1 - index;
+      else if (event.key === "Home") target = 0;
+      else if (event.key === "End") target = 1;
+      else return;
+      event.preventDefault();
+      event.stopPropagation();
+      selectTab(tabs[target].dataset.tab, true);
+    });
+  });
 
   function updateActions() {
     const busy = Boolean(frame) || opening;
@@ -42,6 +68,7 @@ export function bindRenderStation({ openPackage }) {
       return;
     }
     selectedFile = file;
+    selectTab("render");
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     imageUrl = null;
     download.removeAttribute("href");
@@ -65,7 +92,9 @@ export function bindRenderStation({ openPackage }) {
     pause.disabled = false;
     updateActions();
     pause.hidden = cancel.hidden = true;
-    entry.textContent = "RENDER STATION";
+    keepOpen.hidden = true;
+    entry.textContent = "EXPORT";
+    dialog.querySelector("#renderTab").textContent = "RENDER";
   }
   function fail(message) {
     releaseWorker();
@@ -94,7 +123,9 @@ export function bindRenderStation({ openPackage }) {
     cancel.hidden = false;
     pause.hidden = true;
     pause.textContent = "PAUSE";
-    entry.textContent = "RENDER STATION · ACTIVE";
+    entry.textContent = "EXPORT · RENDERING";
+    dialog.querySelector("#renderTab").textContent = "RENDER · ACTIVE";
+    keepOpen.hidden = false;
     pausePhotoRender(true);
     frame = document.createElement("iframe");
     frame.className = "render-worker-frame";
@@ -102,14 +133,17 @@ export function bindRenderStation({ openPackage }) {
     frame.setAttribute("aria-hidden", "true");
     frame.tabIndex = -1;
     const url = new URL(location.pathname, location.origin);
-    url.search = "?rendererDebug=1&renderWorker=1&build=render-hdri-1";
+    url.search = "?rendererDebug=1&renderWorker=1&build=export-panel-2";
     frame.src = url.href;
     document.body.append(frame);
     updateActions();
     readyTimeout = setTimeout(() => fail("The renderer did not start. Try reopening the page."), 60_000);
   }
   entry.hidden = false;
-  entry.addEventListener("click", () => { if (!dialog.open) dialog.show(); });
+  entry.addEventListener("click", () => {
+    if (frame) selectTab("render");
+    if (!dialog.open) dialog.show();
+  });
   dialog.addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
     event.stopPropagation();
@@ -129,6 +163,7 @@ export function bindRenderStation({ openPackage }) {
       showCompatibility(result.warnings);
       details.textContent = `${result.width} × ${result.height} px · ${result.targetSamples} target samples`;
       status.textContent = "Opened in viewer.";
+      selectTab("export");
       dialog.close();
     } catch (error) {
       status.textContent = `Could not open package: ${error.message}`;

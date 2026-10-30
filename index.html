@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=render-hdri-1" />
+    <link rel="stylesheet" href="css/style.css?v=export-panel-2" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -105,7 +105,7 @@
                     MEASUREMENTS
                   </button>
                   <button id="renderStationEntry" class="about-workbench" type="button" hidden>
-                    RENDER STATION
+                    EXPORT
                   </button>
                 </div>
                 <div id="rendererPicker" class="renderer-picker" hidden>
@@ -500,49 +500,61 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=render-hdri-1",
-          webgl: "renderers/webgl/main.js?v=render-hdri-1"
+          webgpu: "renderers/webgpu/main.js?v=export-panel-2",
+          webgl: "renderers/webgl/main.js?v=export-panel-2"
         };
       }
     </script>
     <dialog id="renderStation" class="render-station" aria-labelledby="renderStationTitle">
       <header>
-        <h2 id="renderStationTitle">RENDER STATION</h2>
-        <button type="button" data-close aria-label="Close render station">✕</button>
+        <h2 id="renderStationTitle">EXPORT</h2>
+        <button type="button" data-close aria-label="Close export">X</button>
       </header>
-      <section class="render-station-export" aria-labelledby="renderExportTitle">
-        <h3 id="renderExportTitle">CREATE A RENDER PACKAGE</h3>
-        <p>Export the current model and view.</p>
-        <div id="renderJobControls" class="render-job-controls" hidden>
-          <label for="renderTargetSamples">TARGET SAMPLES</label>
-          <input id="renderTargetSamples" type="number" min="1" max="100000" step="1" value="500" required title="Sample count saved in the render package">
-          <span>BOUNCES 6 · GLASS 10</span>
+      <div class="export-tabs" role="tablist" aria-label="Export and render">
+        <button id="exportTab" type="button" role="tab" aria-selected="true" aria-controls="exportPanel" data-tab="export">EXPORT</button>
+        <button id="renderTab" type="button" role="tab" aria-selected="false" aria-controls="renderPanel" tabindex="-1" data-tab="render">RENDER</button>
+      </div>
+      <div id="exportPanel" class="export-panel" role="tabpanel" aria-labelledby="exportTab" data-pane="export">
+        <section class="export-section" aria-labelledby="exportModelTitle">
+          <h3 id="exportModelTitle">MODEL</h3>
+          <p id="exportModelName" class="export-model-name">—</p>
+          <button id="exportGlb" type="button" disabled>SAVE GLB</button>
+          <p id="exportGlbHint" class="render-snapshot-hint" hidden>VIEW-ONLY · ASK THE MODEL OWNER FOR AN EDITABLE GLB</p>
+          <p id="exportGlbStatus" role="status" aria-live="polite"></p>
+        </section>
+        <section class="export-section" aria-labelledby="renderExportTitle">
+          <h3 id="renderExportTitle">RENDER PACKAGE</h3>
+          <div id="renderJobControls" class="render-job-controls" hidden>
+            <label for="renderTargetSamples">SAMPLES</label>
+            <input id="renderTargetSamples" type="number" min="1" max="100000" step="1" value="500" required>
+            <span>BOUNCES 6 · GLASS 10</span>
+          </div>
+          <button id="renderSnapshotExport" type="button" hidden>SAVE PACKAGE</button>
+          <p id="renderSnapshotHint" class="render-snapshot-hint" hidden>Turn off SECTION before exporting a render package.</p>
+          <p id="renderSnapshotStatus" role="status" aria-live="polite"></p>
+        </section>
+      </div>
+      <div id="renderPanel" class="export-panel" role="tabpanel" aria-labelledby="renderTab" data-pane="render" hidden>
+        <h3>PACKAGE</h3>
+        <button type="button" data-choose>CHOOSE PACKAGE</button>
+        <input type="file" accept=".dvrender" hidden>
+        <p data-filename class="render-station-file"></p>
+        <div class="render-station-actions">
+          <button type="button" data-open-package disabled>OPEN IN VIEWER</button>
+          <button type="button" data-render-package disabled>RENDER</button>
         </div>
-        <button id="renderSnapshotExport" type="button" hidden>EXPORT</button>
-        <p id="renderSnapshotHint" class="render-snapshot-hint" hidden>Turn off SECTION before exporting a render package.</p>
-        <p id="renderSnapshotStatus" class="render-station-note" role="status" aria-live="polite"></p>
-      </section>
-      <h3>OPEN OR RENDER A PACKAGE</h3>
-      <p>Drop or choose a .dvrender package.</p>
-      <button type="button" data-choose>CHOOSE PACKAGE</button>
-      <input type="file" accept=".dvrender" hidden>
-      <p data-filename class="render-station-file"></p>
-      <div class="render-station-actions">
-        <button type="button" data-open-package disabled title="Replace the current model with the packaged scene">OPEN IN VIEWER</button>
-        <button type="button" data-render-package disabled title="Render in the background without replacing the current model">RENDER</button>
+        <p data-render-status role="status" aria-live="polite"></p>
+        <p data-details class="render-station-details"></p>
+        <p data-compatibility class="render-station-warning" aria-live="polite" hidden></p>
+        <progress hidden aria-label="Render progress"></progress>
+        <div class="render-station-actions">
+          <button type="button" data-pause hidden>PAUSE</button>
+          <button type="button" data-cancel hidden>CANCEL</button>
+          <a data-download hidden>DOWNLOAD PNG</a>
+        </div>
+        <p data-keep-open class="render-station-note" hidden>Keep this tab open while rendering.</p>
       </div>
-      <p class="render-station-note">OPEN for editing. RENDER creates a PNG in the background.</p>
-      <p data-render-status role="status" aria-live="polite"></p>
-      <p data-details class="render-station-details"></p>
-      <p data-compatibility class="render-station-warning" aria-live="polite" hidden></p>
-      <progress hidden aria-label="Render progress"></progress>
-      <div class="render-station-actions">
-        <button type="button" data-pause hidden>PAUSE</button>
-        <button type="button" data-cancel hidden>CANCEL</button>
-        <a data-download hidden>DOWNLOAD PNG</a>
-      </div>
-      <p class="render-station-note">Keep tab open. You can close this panel.</p>
     </dialog>
-    <script type="module" src="js/core/renderer-bootstrap.js?v=render-hdri-1"></script>
+    <script type="module" src="js/core/renderer-bootstrap.js?v=export-panel-2"></script>
   </body>
 </html>

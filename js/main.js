@@ -32,7 +32,7 @@ import { restoreBackendHandoff } from "./core/backend-restore.js";
 import { getSafeViewportSize } from "./view/viewport-size.js";
 import { resizeSectionRenderer } from "./section/section-resize.js";
 import { readEmbedConfiguration } from "./core/embed-bridge.js";
-import { shouldLoadMaterialWorkbench } from "./model/material-workbench-policy.js";
+import { shouldLoadMaterialWorkbench, getMaterialWorkbenchAccess } from "./model/material-workbench-policy.js";
 import { encodeRenderSnapshot, decodeRenderSnapshot, assertRenderSnapshotView } from "./core/render-snapshot.js";
 import { renderCompatibilityWarnings, RENDER_PRODUCER } from "./core/render-compatibility.js";
 import { setStatus } from "./ui/status.js";
@@ -64,7 +64,7 @@ function resizeViewport() {
     window.innerHeight
   );
 
-  if (backendKind === "webgl" && resizeImportedRenderFrame()) return;
+  if (resizeImportedRenderFrame()) return;
 
   perspectiveCamera.aspect = aspect;
 
@@ -102,7 +102,9 @@ let materialWorkbench = null;
 let measurements = null;
 
 function bindRenderSnapshotControls() {
-  if (backendKind !== "webgl") return;
+  const glbButton = document.querySelector("#exportGlb");
+  const glbHint = document.querySelector("#exportGlbHint");
+  const glbStatus = document.querySelector("#exportGlbStatus");
   const exportButton = document.querySelector("#renderSnapshotExport");
   const exportHint = document.querySelector("#renderSnapshotHint");
   const exportStatus = document.querySelector("#renderSnapshotStatus");
@@ -116,24 +118,49 @@ function bindRenderSnapshotControls() {
   jobControls.hidden = false;
   let exporting = false;
   const update = () => {
-    exportButton.disabled = exporting || !State.currentFile || State.sectionEnabled;
+    const access = getMaterialWorkbenchAccess({ policy: State.materialWorkbenchPolicy,
+      sourceKind: State.currentFileSourceKind });
+    glbButton.disabled = exporting || !materialWorkbench.canSaveWorkbenchGlb();
+    glbHint.hidden = !State.currentFile || access.canEdit;
+    document.querySelector("#exportModelName").textContent = State.currentFile?.name ?? "—";
+    exportButton.disabled = exporting || materialWorkbench.isWorkbenchBusy() || !State.currentFile || State.sectionEnabled;
     exportHint.hidden = !State.sectionEnabled;
     exportButton.title = State.sectionEnabled
       ? "Turn off SECTION before exporting a render package."
-      : "Export the scene and settings for a new render starting at 0 samples";
+      : "";
   };
   new MutationObserver(update).observe(document.querySelector("#sectionButton"), {
     attributes: true, attributeFilter: ["aria-pressed"]
   });
-  window.addEventListener("dropview:model-loaded", update);
+  window.addEventListener("dropview:workbench-changed", update);
+  window.addEventListener("dropview:model-loaded", () => {
+    glbStatus.textContent = exportStatus.textContent = "";
+    update();
+  });
   update();
+  glbButton.addEventListener("click", async () => {
+    if (exporting || !materialWorkbench.canSaveWorkbenchGlb()) return;
+    exporting = true;
+    glbStatus.textContent = "";
+    glbButton.textContent = "SAVING…";
+    update();
+    try {
+      await materialWorkbench.saveWorkbenchGlb();
+    } catch (error) {
+      glbStatus.textContent = `GLB SAVE FAILED: ${error.message}`;
+    } finally {
+      exporting = false;
+      glbButton.textContent = "SAVE GLB";
+      update();
+    }
+  });
   bindRenderStation({ openPackage: async file => {
     exporting = true;
     update();
     try {
       const result = await restoreRenderSnapshot(file);
       targetSamples.value = String(result.targetSamples);
-      reportExport(`Package opened · ${result.width} × ${result.height} px. ${result.warnings.join(" ")}`);
+      exportStatus.textContent = "";
       return result;
     } finally {
       exporting = false;
@@ -150,7 +177,8 @@ function bindRenderSnapshotControls() {
     if (!targetSamples.reportValidity()) return;
     exporting = true;
     update();
-    reportExport("Preparing render snapshot…");
+    exportStatus.textContent = "";
+    exportButton.textContent = "SAVING…";
     try {
       const viewSession = captureCurrentViewSession();
       assertRenderSnapshotView(viewSession);
@@ -174,12 +202,13 @@ function bindRenderSnapshotControls() {
       link.download = file.name.replace(/\.glb$/i, "") + ".dvrender";
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      reportExport(`Saved: ${link.download}`);
+      exportStatus.textContent = "";
     } catch (error) {
       console.error("Render snapshot export failed", error);
-      reportExport(`RENDER SNAPSHOT EXPORT FAILED: ${error.message}`);
+      reportExport(`PACKAGE SAVE FAILED: ${error.message}`);
     } finally {
       exporting = false;
+      exportButton.textContent = "SAVE PACKAGE";
       update();
     }
   });
@@ -217,8 +246,7 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
-  if (backendKind === "webgl")
-    window.addEventListener("dropview:model-loaded", () => {
+  window.addEventListener("dropview:model-loaded", () => {
       clearImportedRenderFrame();
       setRenderJob(null);
     });
