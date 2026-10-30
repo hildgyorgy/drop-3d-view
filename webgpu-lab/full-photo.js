@@ -9,8 +9,9 @@ import { photo1Button, perspectiveButton, axonButton, orthoButton,
 import { environmentSunDirectionFromPixel } from "../js/model/sun-metadata.js";
 import { getSunDirectionFromControls } from "../js/view/ground-sun.js";
 import { setStatus } from "../js/ui/status.js";
+import { getEnvironmentSource } from "../js/core/environment-source.js";
 
-const environmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
+let environmentUrl = null;
 // The WebGPU preview background is HDR-scaled above 1. The path tracer packs
 // scene.background into an 8-bit texture, where that value wraps to dark gray.
 // Use the page's own background colour instead of a separate sky colour.
@@ -78,8 +79,13 @@ function findHdrSun(texture) {
 }
 
 async function getEnvironment() {
-  if (environment) return environment;
-  const texture = await new HDRLoader().setDataType(THREE.FloatType).loadAsync(environmentUrl);
+  const source = getEnvironmentSource();
+  if (environment && environmentUrl === source.url) return environment;
+  const texture = await new HDRLoader().setDataType(THREE.FloatType).loadAsync(source.url);
+  if (getEnvironmentSource().url !== source.url) {
+    texture.dispose();
+    throw new Error("The scene environment changed while loading");
+  }
   sourceSun = findHdrSun(texture);
   const data = texture.image?.data;
   if (data instanceof Float32Array) {
@@ -87,7 +93,9 @@ async function getEnvironment() {
     texture.needsUpdate = true;
   }
   texture.mapping = THREE.EquirectangularReflectionMapping;
+  environment?.dispose();
   environment = texture;
+  environmentUrl = source.url;
   return texture;
 }
 

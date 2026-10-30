@@ -3,13 +3,14 @@ import { assertValidViewSession } from "./view-session.js";
 import { assertRenderSize } from "./render-size.js";
 import { assertRenderJob } from "./render-job.js";
 import { RENDER_PRODUCER, assertRenderProducer } from "./render-compatibility.js";
+import { assertRenderEnvironment } from "./render-environment.js";
 
 export const MAX_RENDER_RESOURCES = 1024;
 export const MAX_RENDER_MATERIAL_EDITS = 1024;
 
 function assertResourceCount(count) {
   if (count < 1 || count > MAX_RENDER_RESOURCES)
-    throw new Error(`Render packages support at most ${MAX_RENDER_RESOURCES} resources (including the GLB)`);
+    throw new Error(`Render packages support at most ${MAX_RENDER_RESOURCES} resources (including the GLB and HDRI)`);
 }
 
 function assertMaterialEdits(workbench) {
@@ -48,7 +49,7 @@ function bytesOf(value) {
 }
 
 export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
-  workbench = null, renderSize = null, renderJob = null,
+  workbench = null, renderSize = null, renderJob = null, environment = null,
   producer = RENDER_PRODUCER }) {
   if (!validName(fileName) || !/\.glb$/i.test(fileName))
     throw new Error("Snapshot needs a named GLB file");
@@ -80,9 +81,16 @@ export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
       }))
     };
   }
+  let savedEnvironment = null;
+  if (environment) {
+    assertRenderEnvironment(environment);
+    assertResourceCount(resources.length + 1);
+    savedEnvironment = { name: environment.name,
+      resource: resources.push(bytesOf(environment.bytes)) - 1 };
+  }
   const manifest = encoder.encode(JSON.stringify({
     version: 1, fileName, viewSession, workbench: savedWorkbench,
-    renderSize, renderJob, producer,
+    renderSize, renderJob, producer, environment: savedEnvironment,
     lengths: resources.map(resource => resource.byteLength)
   }));
   if (manifest.byteLength > maxManifestBytes) throw new Error("Snapshot metadata is too large");
@@ -150,8 +158,16 @@ export async function decodeRenderSnapshot(file) {
           }) };
       }) };
   }
+  let environment = null;
+  if (manifest.environment !== undefined && manifest.environment !== null) {
+    const saved = manifest.environment;
+    if (!saved || !Number.isSafeInteger(saved.resource) || saved.resource < 1 ||
+        saved.resource >= resources.length)
+      throw new Error("Invalid packaged HDRI resource");
+    environment = assertRenderEnvironment({ name: saved.name, bytes: resources[saved.resource] });
+  }
   return { file: new File([resources[0]], manifest.fileName,
     { type: "model/gltf-binary" }), viewSession: manifest.viewSession,
     workbench, renderSize: manifest.renderSize ?? null,
-    renderJob: manifest.renderJob ?? null, producer: manifest.producer ?? null };
+    renderJob: manifest.renderJob ?? null, producer: manifest.producer ?? null, environment };
 }

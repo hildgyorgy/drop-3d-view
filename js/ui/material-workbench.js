@@ -42,7 +42,7 @@ let spherePreviewGeneration = 0;
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
 stylesheet.href = new URL(
-  "../../css/material-workbench.css?v=2.0-workbench-sphere-1",
+  "../../css/material-workbench.css?v=2.0-workbench-orbit-3",
   import.meta.url
 ).href;
 document.head.append(stylesheet);
@@ -53,26 +53,31 @@ panel.hidden = true;
 panel.setAttribute("aria-label", "Material Workbench");
 panel.innerHTML = `<div class="workbench-header">
     <span>MATERIAL WORKBENCH</span>
-    <button id="workbenchClose" class="workbench-close" type="button">EXIT</button>
+    <button id="workbenchClose" class="workbench-close" type="button" aria-label="Close Material Workbench">X</button>
   </div>
-  <div id="workbenchContext" class="workbench-context"></div>
   <div class="workbench-body">
     <p id="workbenchLockMessage" class="workbench-lock-message" hidden>THIS MODEL IS VIEW-ONLY · ASK THE MODEL OWNER FOR AN EDITABLE GLB TO USE MATERIAL WORKBENCH</p>
     <div id="workbenchEditor" class="workbench-editor">
-    <div class="workbench-field-label">SELECTED MATERIAL</div>
-    <div id="workbenchMaterial" class="workbench-selected">NO MATERIAL SELECTED</div>
-    <div id="workbenchStatus" role="status">ORIGINAL FILE STAYS UNCHANGED</div>
-    <div class="workbench-map-heading">
-      <span>DROP MAPS HERE</span>
-      <button id="workbenchClearMaps" type="button" disabled>CLEAR MAPS</button>
+    <div class="workbench-selection">
+      <div class="workbench-field-label">SELECTED MATERIAL</div>
+      <div id="workbenchMaterial" class="workbench-selected">—</div>
+    </div>
+    <div id="workbenchStatus" role="status"></div>
+    <div class="workbench-preview-stage">
+      <div id="workbenchSpherePreview" class="workbench-sphere-preview" role="group" aria-label="Material preview">
+        <canvas width="88" height="88" hidden tabindex="0" role="img" aria-label="Material preview: drag or use arrow keys to rotate"></canvas>
+      </div>
     </div>
     <div class="workbench-map-row">
-      <label class="workbench-file" title="Choose JPG or PNG material maps">
-        <input id="workbenchFiles" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
-        <span id="workbenchMaps" class="workbench-maps">NO MAPS LOADED</span>
-      </label>
-      <div id="workbenchSpherePreview" class="workbench-sphere-preview" role="img" aria-label="Uploaded material map preview">
-        <canvas width="88" height="88" hidden aria-hidden="true"></canvas>
+      <div class="workbench-map-upload">
+        <div class="workbench-map-heading">
+          <span>DROP MAPS</span>
+          <button id="workbenchClearMaps" type="button" disabled>CLEAR MAPS</button>
+        </div>
+        <label class="workbench-file">
+          <input id="workbenchFiles" aria-label="Material maps" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
+          <span id="workbenchMaps" class="workbench-maps"></span>
+        </label>
       </div>
     </div>
     <div class="workbench-type-color-row">
@@ -82,16 +87,19 @@ panel.innerHTML = `<div class="workbench-header">
       </select></label>
       <label class="workbench-color-label"><span>COLOR</span><input id="workbenchColor" type="color" value="#ffffff" aria-label="Material color"></label>
     </div>
+    <section class="workbench-texture-settings" aria-labelledby="workbenchTextureTitle">
+    <h3 id="workbenchTextureTitle" class="workbench-field-label">TEXTURE SETTINGS</h3>
     <label>ROUGHNESS <input id="workbenchRoughness" type="range" min="0.02" max="1" step="0.01" value="0.75"><output id="workbenchRoughnessValue">0.75</output></label>
     <label id="workbenchGlassTransparencyRow" hidden>TRANSPARENCY <input id="workbenchGlassTransparency" type="range" min="0.05" max="1" step="0.01" value="0.98"><output id="workbenchGlassTransparencyValue">98%</output></label>
     <label>TEXTURE SIZE <input id="workbenchTileMetres" type="range" min="0.1" max="20" step="0.1" value="2"><output id="workbenchTileMetresValue">2.0 m</output></label>
     <label>ROTATION <input id="workbenchRotation" type="range" min="-180" max="180" step="1" value="0"><output id="workbenchRotationValue">0°</output></label>
-    <label>SHIFT X <input id="workbenchOffsetX" type="range" min="-1" max="1" step="0.01" value="0"></label>
-    <label>SHIFT Y <input id="workbenchOffsetY" type="range" min="-1" max="1" step="0.01" value="0"></label>
+    <label>SHIFT X <input id="workbenchOffsetX" type="range" min="-1" max="1" step="0.01" value="0"><output id="workbenchOffsetXValue" for="workbenchOffsetX">0 m</output></label>
+    <label>SHIFT Y <input id="workbenchOffsetY" type="range" min="-1" max="1" step="0.01" value="0"><output id="workbenchOffsetYValue" for="workbenchOffsetY">0 m</output></label>
+    </section>
     <div class="workbench-actions"><button id="workbenchApply" type="button">APPLY</button>
       <button id="workbenchUndo" type="button" disabled>UNDO</button>
       <button id="workbenchReset" type="button" disabled>RESET</button>
-      <button id="workbenchDownload" type="button" title="Save as a new GLB">SAVE AS</button></div>
+      <button id="workbenchDownload" type="button">SAVE AS</button></div>
     </div>
   </div>`;
 document.body.append(panel);
@@ -128,27 +136,20 @@ function updateWorkbenchAccess() {
   const access = currentAccess();
   if (entry) entry.hidden = !access.visible;
   aboutMenu?.classList.toggle("has-workbench-entry", access.visible);
-  updateWorkbenchContext(access);
   const locked = Boolean(State.model) && !access.canEdit;
   $("workbenchLockMessage").hidden = !locked;
   $("workbenchEditor").hidden = locked;
+  spherePreview.setVisible(Boolean(panel.open) && !locked);
   updateButtons();
   return access;
-}
-
-function updateWorkbenchContext(access = currentAccess()) {
-  let message = "OPEN A GLB OR TRY A DEMO TO START";
-  if (gltf && State.currentFileSourceKind === "demo")
-    message = "DEMO MODEL · PREVIEW ONLY · OPEN YOUR OWN GLB TO SAVE";
-  else if (gltf && !access.canEdit) message = "VIEW-ONLY MODEL";
-  else if (gltf && access.canSave) message = "ORIGINAL FILE STAYS UNCHANGED";
-  $("workbenchContext").textContent = message;
 }
 
 function setWorkbenchOpen(open) {
   panel.open = open;
   panel.hidden = !open;
   entry?.setAttribute("aria-pressed", String(open));
+  showValues();
+  spherePreview.setVisible(open && !$("workbenchEditor").hidden);
 }
 
 function toggleWorkbench() {
@@ -314,7 +315,7 @@ function select(object) {
   showValues();
   updateModeControls();
   updateButtons();
-  status("SELECT MAPS, ADJUST, THEN APPLY");
+  status("");
 }
 
 function onCanvasClick(event) {
@@ -358,7 +359,7 @@ function showMaps() {
   const labels = Object.entries(packageImages)
     .filter(([, file]) => file)
     .map(([kind, file]) => `${kind}: ${file.name}`);
-  $("workbenchMaps").textContent = labels.length ? labels.join(" · ") : "NO MAPS LOADED";
+  $("workbenchMaps").textContent = labels.join("\n");
   $("workbenchClearMaps").disabled = labels.length === 0;
 }
 
@@ -405,6 +406,25 @@ function showValues() {
   $("workbenchTileMetresValue").textContent =
     `${Number($("workbenchTileMetres").value).toFixed(1)} m`;
   $("workbenchRotationValue").textContent = `${$("workbenchRotation").value}°`;
+  // Offsets are stored as UV fractions of a tile; show their physical distance.
+  const tileMetres = Number($("workbenchTileMetres").value);
+  for (const axis of ["X", "Y"]) {
+    const input = $(`workbenchOffset${axis}`);
+    const metres = Number((Number(input.value) * tileMetres).toFixed(3));
+    const text = `${metres} m`;
+    $(`workbenchOffset${axis}Value`).textContent = text;
+    input.setAttribute("aria-valuetext", text);
+  }
+  spherePreview.setValues({
+    type: $("workbenchType").value,
+    color: $("workbenchColor").value,
+    roughness: Number($("workbenchRoughness").value),
+    transparency: Number($("workbenchGlassTransparency").value),
+    tileMetres,
+    rotation: Number($("workbenchRotation").value),
+    offsetX: Number($("workbenchOffsetX").value),
+    offsetY: Number($("workbenchOffsetY").value)
+  });
 }
 
 function imageBitmap(file) {
@@ -744,11 +764,7 @@ async function apply() {
     setViewMode("original");
     lastAction = before;
     disposeSnapshotResourcesIfUnused(discardedAction);
-    status(
-      currentAccess().canSave
-        ? `${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} READY · SAVE A NEW GLB`
-        : `${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} READY · PREVIEW ONLY`
-    );
+    status("");
   } catch (error) {
     if (before) restoreMaterial(before);
     disposeOwnedResources(resources);
@@ -823,17 +839,13 @@ export async function restoreWorkbenchHandoff(handoff) {
   }
   const selected = materialObjects(handoff.selectedIndex)[0];
   if (selected) select(selected);
-  status(
-    currentAccess().canSave
-      ? `${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} KEPT · SAVE A NEW GLB`
-      : `${edits.size} MATERIAL${edits.size === 1 ? "" : "S"} KEPT · PREVIEW ONLY`
-  );
+  status("");
 }
 
 async function download() {
   if (busy || !sourceFile || !edits.size || !currentAccess().canSave) return;
   busy = true;
-  status("SAVING NEW GLB…");
+  status("");
   try {
     const patches = [];
     for (const edit of edits.values()) {
@@ -868,7 +880,7 @@ async function download() {
     link.download = sourceFile.name.replace(/\.glb$/i, "") + "_pbr.glb";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    status(`SAVED ${link.download} · ORIGINAL UNCHANGED`);
+    status("");
   } catch (error) {
     console.error("Workbench export failed", error);
     status(`SAVE FAILED: ${error.message}`);
@@ -886,7 +898,7 @@ function undo() {
   disposeEditResourcesIfUnused(discardedEdit);
   if (selectedIndex === previous.index && previous.objects[0])
     select(previous.objects[0].object);
-  status("LAST MATERIAL CHANGE UNDONE");
+  status("");
   updateButtons();
 }
 
@@ -915,7 +927,7 @@ function resetMaterial() {
   $("workbenchFiles").value = "";
   setViewMode("original");
   if (previous.objects[0]) select(previous.objects[0].object);
-  status("SELECTED MATERIAL RESTORED · OTHER EDITS KEPT");
+  status("");
   updateButtons();
 }
 
@@ -929,7 +941,7 @@ async function acceptFiles(files) {
     status("NO RECOGNIZED MAPS · USE DIFF / ROUGH / NOR_GL / ARM NAMES");
     return;
   }
-  status("CHECKING IMAGE FILES…");
+  status("");
   const checked = await Promise.all(
     candidates.map(async candidate => ({
       ...candidate,
@@ -946,7 +958,7 @@ async function acceptFiles(files) {
   void refreshSpherePreview();
   if (rejected.length)
     status(`IGNORED ${rejected.join(", ")} · USE GENUINE JPEG OR PNG FILES`);
-  else status("MAPS READY · SELECT A MATERIAL AND APPLY");
+  else status("");
 }
 $("workbenchFiles").addEventListener("change", event => acceptFiles(event.target.files));
 $("workbenchClearMaps").addEventListener("click", () => {
@@ -955,7 +967,7 @@ $("workbenchClearMaps").addEventListener("click", () => {
   $("workbenchFiles").value = "";
   showMaps();
   clearSpherePreview();
-  status("MAPS CLEARED · APPLIED MATERIALS UNCHANGED");
+  status("");
 });
 panel.addEventListener("dragover", event => {
   event.preventDefault();
@@ -970,6 +982,7 @@ panel.addEventListener("drop", event => {
   acceptFiles(event.dataTransfer.files);
 });
 for (const id of controls) $(id).addEventListener("input", showValues);
+$("workbenchColor").addEventListener("input", showValues);
 $("workbenchType").addEventListener("change", event => {
   if (selectedGlassMaterial() && event.target.value !== "glass")
     event.target.value = "glass";
@@ -1014,7 +1027,7 @@ window.addEventListener("dropview:model-loaded", event => {
       baselineGeometries.set(object.uuid, object.geometry);
     }
   });
-  $("workbenchMaterial").textContent = "CLICK A SURFACE";
+  $("workbenchMaterial").textContent = "—";
   showMaps();
   updateModeControls();
   const access = updateWorkbenchAccess();
@@ -1045,8 +1058,7 @@ window.addEventListener("dropview:model-cleared", event => {
   lastAction = null;
   baselineGeometries.clear();
   $("workbenchFiles").value = "";
-  $("workbenchMaterial").textContent = "NO MATERIAL SELECTED";
-  updateWorkbenchContext();
+  $("workbenchMaterial").textContent = "—";
   showMaps();
   updateModeControls();
   $("workbenchLockMessage").hidden = true;

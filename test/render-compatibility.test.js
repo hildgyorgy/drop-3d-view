@@ -32,3 +32,11 @@ test("matching packages are quiet; mismatches and legacy packages warn without b
   assert.match(warnings[2], /HDRI differs/);
   assert.match(renderCompatibilityWarnings(null)[0], /cannot be verified/);
 });
+
+test("an embedded HDRI overrides only the HDRI compatibility mismatch", () => {
+  const producer = { ...RENDER_PRODUCER, hdriId: "another-environment" };
+  assert.deepEqual(renderCompatibilityWarnings(producer, RENDER_PRODUCER,
+    { embeddedEnvironment: true }), []);
+  assert.equal(renderCompatibilityWarnings({ ...producer, appVersion: "older" },
+    RENDER_PRODUCER, { embeddedEnvironment: true }).length, 1);
+});

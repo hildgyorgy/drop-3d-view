@@ -5,11 +5,11 @@
   top: var(--workbench-top);
   right: var(--edge, 28px);
   width: min(var(--tool-panel-width, 342px), calc(100vw - 2 * var(--edge, 28px)));
-  height: var(--tool-panel-size, min(530px, var(--tool-panel-height)));
+  height: var(--tool-panel-size, min(600px, var(--tool-panel-height)));
   max-height: var(--tool-panel-height, calc(100dvh - var(--workbench-top) - max(210px, 20dvh)));
   overflow: auto;
   box-sizing: border-box;
-  padding: 20px 24px 24px;
+  padding: 18px 24px 20px;
   border: 1px dashed #17171788;
   border-radius: 18px;
   background: rgba(239, 239, 237, 0.94);
@@ -24,29 +24,24 @@
   box-shadow: 0 2px 10px #0001;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
 }
 
 #materialWorkbench .workbench-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 5px;
+  margin-bottom: 16px;
   font-size: 13px;
   letter-spacing: 0.16em;
 }
 
-#materialWorkbench .workbench-context {
-  min-height: 13px;
-  margin-bottom: 18px;
-  color: #777;
-  font-size: 9px;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
 #materialWorkbench .workbench-body,
 #materialWorkbench .workbench-editor {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 #materialWorkbench .workbench-body {
@@ -54,7 +49,29 @@
 }
 
 #materialWorkbench .workbench-editor {
-  gap: 9px;
+  gap: 0;
+}
+
+#materialWorkbench .workbench-editor > * {
+  flex-shrink: 0;
+}
+
+#materialWorkbench .workbench-selection {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+#materialWorkbench .workbench-texture-settings {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+#materialWorkbench .workbench-texture-settings h3 {
+  margin: 0 0 3px;
+  font-weight: normal;
+  line-height: 1.3;
 }
 
 #materialWorkbench [hidden] {
@@ -71,7 +88,7 @@
 
 #materialWorkbench .workbench-selected {
   min-height: 15px;
-  margin-top: -4px;
+  margin-top: 0;
   font-weight: 700;
   letter-spacing: 0;
   overflow-wrap: anywhere;
@@ -79,18 +96,22 @@
 
 #workbenchStatus {
   min-height: 13px;
-  margin-top: -3px;
+  margin: 0 0 12px;
   color: #777;
   font-size: 9px;
   letter-spacing: 0.04em;
   overflow-wrap: anywhere;
 }
 
+#workbenchStatus:empty {
+  display: none;
+}
+
 #materialWorkbench .workbench-map-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 4px;
+  min-height: 14px;
 }
 
 #materialWorkbench .workbench-map-heading button {
@@ -104,26 +125,42 @@
 
 #materialWorkbench .workbench-file {
   display: flex;
-  min-height: 65px;
-  align-items: center;
-  justify-content: center;
+  min-height: 60px;
+  height: 60px;
+  overflow: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
   padding: 8px;
   border: 1px dashed #777;
   cursor: pointer;
-  text-align: center;
+  text-align: left;
 }
 
 #materialWorkbench .workbench-map-row {
+  width: 100%;
+  margin-top: 0;
+}
+
+#materialWorkbench .workbench-map-upload {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 88px;
-  gap: 10px;
-  align-items: center;
+  grid-template-rows: 14px 60px;
+  gap: 6px;
+}
+
+#materialWorkbench .workbench-preview-stage {
+  position: relative;
+  flex: 1 0 88px;
+  min-height: 88px;
+  margin-bottom: 10px;
 }
 
 #materialWorkbench .workbench-sphere-preview {
-  position: relative;
-  width: 88px;
-  height: 88px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background: radial-gradient(circle at 27% 23%, #fff 3%, #ecece8 42%, #777974 77%, #282b28 100%);
 }
@@ -145,16 +182,22 @@
   position: relative;
   z-index: 1;
   display: block;
-  width: 88px;
-  height: 88px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+}
+
+#materialWorkbench .workbench-sphere-preview.rotating canvas {
+  cursor: grabbing;
 }
 
 #materialWorkbench .workbench-sphere-preview canvas[hidden] {
   display: none;
 }
 
-#materialWorkbench .workbench-sphere-preview.has-maps {
+#materialWorkbench .workbench-sphere-preview.has-renderer {
   background: transparent;
 }
 
@@ -171,11 +214,14 @@
 }
 
 #materialWorkbench .workbench-maps {
+  width: 100%;
   max-width: 100%;
   color: #777;
   font-size: 9px;
   letter-spacing: 0;
   overflow-wrap: anywhere;
+  white-space: pre-line;
+  text-align: left;
 }
 
 #materialWorkbench .workbench-type-color-row {
@@ -183,7 +229,7 @@
   grid-template-columns: minmax(0, 1fr) 80px;
   align-items: end;
   gap: 20px;
-  margin: 2px 0 6px;
+  margin: 10px 0 0;
 }
 
 #materialWorkbench .workbench-type-color-row label {
@@ -233,18 +279,13 @@
   border-radius: 14px;
 }
 
-#materialWorkbench .workbench-editor > label:has(input[type="range"]) {
+#materialWorkbench .workbench-texture-settings > label {
   display: grid;
-  grid-template-columns: 125px minmax(70px, 1fr) 42px;
+  grid-template-columns: 100px minmax(0, 1fr) 54px;
   align-items: center;
   gap: 6px;
-  min-height: 23px;
-  padding-left: 5px;
+  min-height: 22px;
   letter-spacing: 0.04em;
-}
-
-#materialWorkbench .workbench-editor > label:has(input[type="range"]):not(:has(output)) {
-  grid-template-columns: 125px minmax(118px, 1fr);
 }
 
 #materialWorkbench input[type="range"] {
@@ -264,9 +305,11 @@
 
 #materialWorkbench .workbench-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-top: 10px;
+  grid-template-columns: repeat(4, max-content);
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 6px;
 }
 
 #materialWorkbench button {
@@ -299,6 +342,19 @@
   border-color: #aaa;
 }
 
+#materialWorkbench .workbench-actions button {
+  border: 0;
+  padding: 8px 0 0;
+  color: #f1250c;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+
+#materialWorkbench .workbench-actions button:hover:not(:disabled) {
+  color: #c51d08;
+}
+
 #materialWorkbench .workbench-lock-message {
   margin: 0;
   color: #555;
@@ -317,27 +373,20 @@
     padding: 14px 18px 16px;
   }
   #materialWorkbench .workbench-header {
-    margin-bottom: 5px;
-  }
-  #materialWorkbench .workbench-context {
-    margin-bottom: 10px;
+    margin-bottom: 18px;
   }
   #materialWorkbench .workbench-editor {
+    gap: 0;
+  }
+  #materialWorkbench .workbench-selection {
+    margin-bottom: 8px;
+  }
+  #materialWorkbench .workbench-texture-settings {
+    margin-top: 18px;
     gap: 5px;
   }
-  #materialWorkbench .workbench-file {
-    min-height: 42px;
-  }
-  #materialWorkbench .workbench-map-row {
-    grid-template-columns: minmax(0, 1fr) 64px;
-  }
-  #materialWorkbench .workbench-sphere-preview,
-  #materialWorkbench .workbench-sphere-preview canvas {
-    width: 64px;
-    height: 64px;
-  }
   #materialWorkbench .workbench-actions {
-    margin-top: 4px;
+    padding-top: 10px;
   }
 }
 
@@ -348,13 +397,5 @@
     width: min(330px, calc(100vw - 24px));
     max-height: calc(100dvh - 175px);
     padding: 16px;
-  }
-  #materialWorkbench .workbench-editor > label:has(input[type="range"]) {
-    grid-template-columns: 110px minmax(64px, 1fr) 38px;
-  }
-  #materialWorkbench
-    .workbench-editor
-    > label:has(input[type="range"]):not(:has(output)) {
-    grid-template-columns: 110px minmax(102px, 1fr);
   }
 }

@@ -6,6 +6,8 @@ import { DEFAULT_WEBGPU_TUNING } from "./full-tuning.js";
 import { environmentSunDirectionFromPixel } from "../js/model/sun-metadata.js";
 import { getSafeViewportSize } from "../js/view/viewport-size.js";
 
+import { getEnvironmentSource } from "../js/core/environment-source.js";
+
 export const backendKind = "webgpu";
 
 export const scene = new THREE.Scene();
@@ -60,9 +62,17 @@ export function syncWebGpuEnvironmentToSun(direction) {
   );
 }
 
-const environmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
-const previewEnvironmentReady = new HDRLoader().setDataType(THREE.FloatType).loadAsync(environmentUrl)
+let previewEnvironmentReady = null;
+let previewEnvironmentUrl = null;
+export function preparePreviewEnvironment() {
+  const source = getEnvironmentSource();
+  if (previewEnvironmentReady && previewEnvironmentUrl === source.url)
+    return previewEnvironmentReady;
+  previewEnvironmentUrl = source.url;
+  previewEnvironmentReady = new HDRLoader().setDataType(THREE.FloatType).loadAsync(source.url)
   .then(texture => {
+      if (getEnvironmentSource().url !== source.url) { texture.dispose(); return; }
+      const previous = previewHdriTexture;
       const { data, width, height } = texture.image ?? {};
       if (data instanceof Float32Array && width && height) {
         let brightest = 0;
@@ -85,15 +95,24 @@ const previewEnvironmentReady = new HDRLoader().setDataType(THREE.FloatType).loa
       previewHdriLoaded = true;
       // A path-tracer activation may have replaced the environment while the
       // HDRI was loading. Do not overwrite that renderer's active lighting.
-      if (scene.environment === null) {
+      if (scene.environment === null || scene.environment === previous) {
         scene.environment = texture;
         // Restrained fill and reflections; the existing sun remains the key light.
         scene.environmentIntensity = 0.2;
         syncWebGpuEnvironmentToSun(sun.position.clone().sub(sun.target.position));
       }
+      previous?.dispose();
     })
-  .catch(error => console.warn("WebGPU preview HDRI unavailable", error));
-
-export function preparePreviewEnvironment() {
+    .catch(error => {
+      if (getEnvironmentSource().url !== source.url) return;
+      const previous = previewHdriTexture;
+      if (scene.environment === previous) scene.environment = null;
+      previewHdriTexture = null;
+      previewHdriLoaded = false;
+      previous?.dispose();
+      previewEnvironmentReady = null;
+      if (source.embedded) throw error;
+      console.warn("WebGPU preview HDRI unavailable", error);
+    });
   return previewEnvironmentReady;
 }

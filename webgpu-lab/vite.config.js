@@ -13,7 +13,8 @@ const replacementModules = new Map([
   ["js/view/ground-sun.js", "webgpu-lab/full-ground-sun.js"],
   ["js/view/window-lights.js", "webgpu-lab/full-window-lights.js"],
   ["js/view/view-modes.js", "webgpu-lab/full-view-modes.js"],
-  ["js/ui/adaptive-contrast.js", "webgpu-lab/full-contrast.js"]
+  ["js/ui/adaptive-contrast.js", "webgpu-lab/full-contrast.js"],
+  ["js/ui/workbench-preview-renderer.js", "webgpu-lab/full-workbench-preview-renderer.js"]
 ]);
 
 // Serve the versioned demo GLBs and HDRI from the project root.

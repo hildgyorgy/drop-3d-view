@@ -81,6 +81,7 @@ test("older snapshots without a render size remain readable", async () => {
   const decoded = await decodeRenderSnapshot(new File([blob], "old.dvrender"));
   assert.equal(decoded.renderSize, null);
   assert.equal(decoded.renderJob, null);
+  assert.equal(decoded.environment, null);
 });
 
 test("invalid path tracing target is rejected", () => {
@@ -238,4 +239,58 @@ test("malformed producer metadata is rejected on both sides", async () => {
     manifest.producer.hdriId = [];
   });
   await assert.rejects(decodeRenderSnapshot(invalid), /Invalid render package producer/);
+});
+
+const hdr = new Uint8Array([
+  ...new TextEncoder().encode("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 1 +X 1\n"),
+  128, 64, 32, 129
+]);
+
+test("packaged HDRI round trips without changing GLB or material resources", async () => {
+  const blob = encodeRenderSnapshot({
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession,
+    workbench: { version: 1, selectedIndex: 0, edits: [materialEdit(0, 1)] },
+    environment: { name: "studio.hdr", bytes: hdr.buffer }
+  });
+  const decoded = await decodeRenderSnapshot(new File([blob], "house.dvrender"));
+  assert.equal(decoded.environment.name, "studio.hdr");
+  assert.deepEqual(new Uint8Array(decoded.environment.bytes), hdr);
+  assert.deepEqual(new Uint8Array(await decoded.file.arrayBuffer()), glb);
+  assert.deepEqual(new Uint8Array(decoded.workbench.edits[0].images[0].bytes),
+    new Uint8Array([1, 2, 3]));
+});
+
+test("invalid or aliased HDRI resources are rejected", async () => {
+  assert.throws(() => encodeRenderSnapshot({
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession,
+    environment: { name: "bad.hdr", bytes: glb.buffer }
+  }), /Invalid packaged HDRI/);
+  const blob = encodeRenderSnapshot({
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession,
+    environment: { name: "studio.hdr", bytes: hdr.buffer }
+  });
+  const aliased = await changeManifest(blob, manifest => { manifest.environment.resource = 0; });
+  await assert.rejects(decodeRenderSnapshot(aliased), /Invalid packaged HDRI resource/);
+  const missing = await changeManifest(blob, manifest => { manifest.environment.resource = 99; });
+  await assert.rejects(decodeRenderSnapshot(missing), /Invalid packaged HDRI resource/);
+});
+
+test("oversized HDRI dimensions are rejected before decoding pixels", () => {
+  const bytes = new Uint8Array([
+    ...new TextEncoder().encode("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 999999 +X 999999\n"),
+    128, 64, 32, 129
+  ]);
+  assert.throws(() => encodeRenderSnapshot({
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession,
+    environment: { name: "huge.hdr", bytes: bytes.buffer }
+  }), /Invalid packaged HDRI dimensions/);
+});
+
+test("the HDRI counts towards the package resource limit", () => {
+  const edits = Array.from({ length: 341 }, (_, i) => materialEdit(i, 3));
+  assert.throws(() => encodeRenderSnapshot({
+    fileName: "house.glb", fileBytes: glb.buffer, viewSession,
+    workbench: { version: 1, selectedIndex: 0, edits },
+    environment: { name: "studio.hdr", bytes: hdr.buffer }
+  }), /1024 resources/);
 });

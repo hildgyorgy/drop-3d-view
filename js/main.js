@@ -34,7 +34,7 @@ import { resizeSectionRenderer } from "./section/section-resize.js";
 import { readEmbedConfiguration } from "./core/embed-bridge.js";
 import { shouldLoadMaterialWorkbench } from "./model/material-workbench-policy.js";
 import { encodeRenderSnapshot, decodeRenderSnapshot, assertRenderSnapshotView } from "./core/render-snapshot.js";
-import { renderCompatibilityWarnings } from "./core/render-compatibility.js";
+import { renderCompatibilityWarnings, RENDER_PRODUCER } from "./core/render-compatibility.js";
 import { setStatus } from "./ui/status.js";
 import { applyImportedRenderFrame, clearImportedRenderFrame,
   resizeImportedRenderFrame } from "./view/render-frame.js";
@@ -42,6 +42,8 @@ import { makeRenderJob, setRenderJob } from "./core/render-job.js";
 import { renderWorkerMode } from "./core/render-worker-mode.js";
 import { bindRenderStation } from "./ui/render-station.js";
 import { startRenderWorker } from "./view/render-worker.js";
+import { captureRenderEnvironment, environmentIdentity, getPackagedEnvironment,
+  validateRenderEnvironment } from "./core/environment-source.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
@@ -100,8 +102,7 @@ let materialWorkbench = null;
 let measurements = null;
 
 function bindRenderSnapshotControls() {
-  if (backendKind !== "webgl" ||
-      new URLSearchParams(location.search).get("rendererDebug") !== "1") return;
+  if (backendKind !== "webgl") return;
   const exportButton = document.querySelector("#renderSnapshotExport");
   const exportHint = document.querySelector("#renderSnapshotHint");
   const exportStatus = document.querySelector("#renderSnapshotStatus");
@@ -159,11 +160,13 @@ function bindRenderSnapshotControls() {
       };
       const renderJob = makeRenderJob(Number(targetSamples.value));
       const workbench = await materialWorkbench.captureWorkbenchHandoff();
+      const environment = await captureRenderEnvironment();
+      const producer = { ...RENDER_PRODUCER, hdriId: await environmentIdentity(environment) };
       const fileBytes = await file.arrayBuffer();
       if (State.currentFile !== file) throw new Error("Model changed during export");
       const snapshot = encodeRenderSnapshot({
         fileName: file.name, fileBytes, viewSession, workbench, renderSize,
-        renderJob
+        renderJob, environment, producer
       });
       const url = URL.createObjectURL(snapshot);
       const link = document.createElement("a");
@@ -184,7 +187,8 @@ function bindRenderSnapshotControls() {
 
 async function restoreRenderSnapshot(packageFile, { worker = false } = {}) {
   const snapshot = await decodeRenderSnapshot(packageFile);
-  if (!await openFile(snapshot.file, { sourceKind: "user" }))
+  await validateRenderEnvironment(snapshot.environment, snapshot.producer);
+  if (!await openFile(snapshot.file, { sourceKind: "user", environment: snapshot.environment }))
     throw new Error("Could not open the packaged GLB");
   if (snapshot.workbench)
     await materialWorkbench.restoreWorkbenchHandoff(snapshot.workbench);
@@ -194,7 +198,8 @@ async function restoreRenderSnapshot(packageFile, { worker = false } = {}) {
   setRenderJob(job);
   return { width: renderer.domElement.width, height: renderer.domElement.height,
     targetSamples: job.samples,
-    warnings: renderCompatibilityWarnings(snapshot.producer) };
+    warnings: renderCompatibilityWarnings(snapshot.producer, RENDER_PRODUCER,
+      { embeddedEnvironment: Boolean(snapshot.environment) }) };
 }
 
 async function boot() {
@@ -282,13 +287,15 @@ export async function getBackendHandoff() {
   return State.currentFile
     ? { file: State.currentFile, viewSession: captureCurrentViewSession(),
         workbench: await materialWorkbench?.captureWorkbenchHandoff(),
+        environment: getPackagedEnvironment(),
         sourceKind: State.currentFileSourceKind }
     : null;
 }
 
-export async function openBackendHandoff(file, { viewSession, workbench, sourceKind } = {}) {
+export async function openBackendHandoff(file, { viewSession, workbench, sourceKind, environment = null } = {}) {
+  await validateRenderEnvironment(environment);
   return restoreBackendHandoff(file, { viewSession, workbench, sourceKind }, {
-    openFile,
+    openFile: (file, options) => openFile(file, { ...options, environment }),
     restoreWorkbench: materialWorkbench
       ? state => materialWorkbench.restoreWorkbenchHandoff(state)
       : null,

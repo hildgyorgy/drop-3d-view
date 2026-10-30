@@ -18,8 +18,12 @@ containing `diff`/`albedo`/`basecolor`, `rough`, `nor_gl`/`normal`, or `arm`/`or
 are recognized. OpenGL normal maps are expected. If both a standalone roughness
 map and an ARM map are supplied, the ARM map takes precedence. Uploaded maps
 appear immediately on the small material sphere, before APPLY changes the
-selected model material. This sphere previews the map package under fixed
-lighting; it does not use the model's metre-based UV projection. The maps
+selected model material. The sphere uses the viewer's Three.js renderer backend
+(WebGL or WebGPU), including when no maps are selected. Drag it or use the arrow
+keys while it is focused to rotate it independently of the model. Color,
+roughness, material type and texture controls update it immediately. It renders
+on demand under fixed studio lighting; sphere UVs approximate a two-metre sample
+and do not use the model's box projection. The maps
 are used in **SURFACE** and **LACQUERED** modes. Both modes also allow the
 native **COLOR** picker: without an uploaded color map it makes a solid base
 color; with one, it tints the map (white is neutral). **LACQUERED** adds a
@@ -47,7 +51,7 @@ source geometry and normal WebGL/WebGPU views keep their original UV sets.
 
 To use a different package on the next surface, click **CLEAR MAPS**, then
 choose or drop the new files. This clears only the pending map selection;
-the small preview sphere returns to white. Materials already applied to the
+the small preview sphere returns to the selected solid color. Materials already applied to the
 model remain in the preview and saved edits.
 **UNDO** reverses the most recent APPLY or RESET MATERIAL action. **RESET
 MATERIAL** restores only the currently selected material to the source GLB

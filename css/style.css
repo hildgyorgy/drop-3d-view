@@ -7,7 +7,7 @@
   --tool-panel-width: 342px;
   --tool-panel-top: clamp(190px, 24.5dvh, 265px);
   --tool-panel-height: calc(100dvh - var(--tool-panel-top) - max(210px, 20dvh));
-  --tool-panel-size: min(530px, var(--tool-panel-height));
+  --tool-panel-size: min(600px, var(--tool-panel-height));
 }
 * {
   box-sizing: border-box;
@@ -1097,9 +1097,9 @@ body.dragging .drop-title {
   box-sizing: border-box;
   width: min(var(--tool-panel-width), calc(100vw - 2 * var(--edge)));
   height: var(--tool-panel-size);
-  max-height: calc(100dvh - 40px);
+  max-height: var(--tool-panel-height);
   overflow: auto;
-  padding: 20px 24px 24px;
+  padding: 18px 24px 20px;
   border: 1px dashed #17171788;
   border-radius: 18px;
   background: rgba(239, 239, 237, 0.94);

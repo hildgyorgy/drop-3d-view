@@ -35,8 +35,8 @@ import { setStatus } from "../ui/status.js";
 import { PHOTO_BOUNCES, PHOTO_TRANSMISSIVE_BOUNCES,
   getRenderJob, setRenderJob } from "../core/render-job.js";
 import { renderWorkerMode } from "../core/render-worker-mode.js";
+import { getEnvironmentSource } from "../core/environment-source.js";
 
-const photoEnvironmentUrl = new URL("assets/hdri/backdrop.hdr", document.baseURI).href;
 // Dormant interior-lighting experiment. True restores the GLASS LIGHT button;
 // false leaves the authored-glass emission code available but never uses it.
 // Useful when a bright interior matters more than seeing through the windows.
@@ -272,10 +272,11 @@ function clampEnvironmentForHalfFloat(environment) {
 }
 
 async function loadPhotoEnvironment(HDRLoader, GradientEquirectTexture) {
+  const source = getEnvironmentSource();
   try {
     const environment = await new HDRLoader()
       .setDataType(THREE.FloatType)
-      .loadAsync(photoEnvironmentUrl);
+      .loadAsync(source.url);
     photoEnvironmentSunDirection = findEnvironmentSunDirection(environment);
     photoEnvironmentSunAzimuth = Math.atan2(
       photoEnvironmentSunDirection.z,
@@ -285,6 +286,7 @@ async function loadPhotoEnvironment(HDRLoader, GradientEquirectTexture) {
     environment.mapping = THREE.EquirectangularReflectionMapping;
     return environment;
   } catch (error) {
+    if (source.embedded) throw error;
     console.warn("PATH TRACER HDRI could not be loaded; using gradient lighting", error);
     photoEnvironmentSunDirection = getSunDirectionFromControls();
     photoEnvironmentSunAzimuth = Math.atan2(
@@ -644,6 +646,7 @@ async function activatePhoto1() {
     prepareScene();
     updatePhotoSaveButtonState();
   } catch (error) {
+    if (currentActivation !== activation) return;
     console.error("PATH TRACER could not start", error);
     deactivatePhoto1({ restoreStatus: false });
     setStatus("PATH TRACER IS NOT AVAILABLE ON THIS DEVICE.");

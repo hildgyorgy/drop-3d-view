@@ -33,7 +33,7 @@ export function bindRenderStation({ openPackage }) {
     const messages = warnings.filter(item => typeof item === "string");
     compatibility.hidden = messages.length === 0;
     compatibility.textContent = messages.length
-      ? `${messages.join(" ")} This viewer uses its own renderer and HDRI; the image may differ.` : "";
+      ? `${messages.join(" ")} This viewer uses its own renderer; the image may differ.` : "";
   }
   function selectPackage(file) {
     if (!file || frame || opening) return;
@@ -102,7 +102,7 @@ export function bindRenderStation({ openPackage }) {
     frame.setAttribute("aria-hidden", "true");
     frame.tabIndex = -1;
     const url = new URL(location.pathname, location.origin);
-    url.search = "?rendererDebug=1&renderWorker=1&build=render-station-7";
+    url.search = "?rendererDebug=1&renderWorker=1&build=render-hdri-1";
     frame.src = url.href;
     document.body.append(frame);
     updateActions();

@@ -6,6 +6,7 @@ import { scene, renderer } from "../core/scene.js";
 import { State } from "../core/state.js";
 import { getSunDirectionFromControls } from "./ground-sun.js";
 import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
+import { getEnvironmentSource } from "../core/environment-source.js";
 
 const ENVIRONMENT_INTENSITY = 0.2;
 const toggle = document.querySelector("#previewHdriToggle");
@@ -14,6 +15,9 @@ const traceButton = document.querySelector("#photo1Button");
 const sourceSun = new THREE.Vector3();
 let environment = null;
 let loading = null;
+let loadedUrl = null;
+let loadingUrl = null;
+let environmentTarget = null;
 
 // Production always uses the calibrated HDRI. Keep the comparison switch only
 // in debug mode, starting enabled and without storing a browser preference.
@@ -37,10 +41,14 @@ function alignWithSun() {
 }
 
 async function loadEnvironment() {
-  if (environment || loading) return loading;
-  loading = new HDRLoader().setDataType(THREE.FloatType)
-    .loadAsync(new URL("assets/hdri/backdrop.hdr", document.baseURI).href)
+  const source = getEnvironmentSource();
+  if (environment && loadedUrl === source.url) return;
+  if (loading && loadingUrl === source.url) return loading;
+  loadingUrl = source.url;
+  const request = new HDRLoader().setDataType(THREE.FloatType)
+    .loadAsync(source.url)
     .then(texture => {
+      if (getEnvironmentSource().url !== source.url) { texture.dispose(); return; }
       const { data, width, height } = texture.image ?? {};
       if (data instanceof Float32Array && width && height) {
         let brightest = 0;
@@ -65,16 +73,28 @@ async function loadEnvironment() {
       try {
         // Finish the GPU conversion before revealing the model. Assigning the
         // prefiltered texture also avoids another conversion on the first frame.
-        environment = generator.fromEquirectangular(texture).texture;
+        const previous = environmentTarget;
+        environmentTarget = generator.fromEquirectangular(texture);
+        environment = environmentTarget.texture;
+        loadedUrl = source.url;
+        previous?.dispose();
       } finally {
         generator.dispose();
         texture.dispose();
       }
       applyEnvironment();
     })
-    .catch(error => console.warn("WebGL HDRI could not be loaded; using the original lighting", error))
-    .finally(() => { loading = null; });
-  return loading;
+    .catch(error => {
+      if (getEnvironmentSource().url !== source.url) return;
+      environmentTarget?.dispose();
+      environmentTarget = environment = loadedUrl = null;
+      applyEnvironment();
+      if (source.embedded) throw error;
+      console.warn("WebGL HDRI could not be loaded; using the original lighting", error);
+    })
+    .finally(() => { if (loading === request) loading = null; });
+  loading = request;
+  return request;
 }
 
 export function preparePreviewEnvironment() {

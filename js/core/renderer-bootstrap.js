@@ -1,6 +1,6 @@
 /* One document/UI, with renderer-specific module graphs selected at startup. */
 import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js";
-import { saveBackendHandoff, takeBackendHandoff } from "./backend-handoff.js";
+import { saveBackendHandoff, takeBackendHandoff } from "./backend-handoff.js?v=embedded-hdri-1";
 import { renderWorkerMode } from "./render-worker-mode.js";
 import {
   enableEmbedBridge,
@@ -58,7 +58,8 @@ async function start() {
               current.file,
               current.viewSession,
               current.workbench,
-              current.sourceKind
+              current.sourceKind,
+              current.environment
             );
           localStorage.setItem(modeKey, nextMode);
           restartRequested = true;

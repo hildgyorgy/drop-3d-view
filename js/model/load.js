@@ -50,6 +50,7 @@ import {
   InvalidModelBoundsError
 } from "./model-bounds.js";
 import { stageModelReplacement } from "./model-replacement.js";
+import { setEnvironmentSource } from "../core/environment-source.js";
 import { applyMaterialVariant } from "./material-variants.js";
 import { disposeDetachedModel, disposeModelResources } from "./model-resource-disposal.js";
 import { buildEdges } from "../view/edges.js";
@@ -188,7 +189,7 @@ window.addEventListener("drop", event => {
 
 export async function openFile(
   file,
-  { viewSession = null, request = null, sourceKind = "user" } = {}
+  { viewSession = null, request = null, sourceKind = "user", environment = null } = {}
 ) {
   request ??= modelOpenGate.begin();
   resetStartMessage();
@@ -235,6 +236,7 @@ export async function openFile(
       commit: candidate => {
         replacementStarted = true;
         disposeCurrentModel();
+        setEnvironmentSource(environment);
         State.currentFileName = file.name;
         State.currentFile = file;
         State.currentFileSourceKind = sourceKind;
@@ -244,6 +246,11 @@ export async function openFile(
       }
     });
     if (!opened) return false;
+    await preparePreviewEnvironment().catch(error => {
+      if (environment) throw error;
+      console.warn("Preview lighting unavailable; using direct lights", error);
+    });
+    if (!request.isCurrent()) return false;
     window.dispatchEvent(new CustomEvent("dropview:model-loaded", {
       detail: {
         gltf: result,
@@ -376,6 +383,7 @@ export function disposeCurrentModel() {
       detail: { materials: workbenchMaterials, geometries: workbenchGeometries }
     }));
   deactivatePhoto1({ restoreStatus: false });
+  setEnvironmentSource(null);
   clearWindowLights();
   if (State.hasImportedSun) {
     sunAngle.value = "45";

@@ -25,7 +25,8 @@ export function assertRenderProducer(producer) {
     throw new Error("Invalid render package producer information");
 }
 
-export function renderCompatibilityWarnings(producer, current = RENDER_PRODUCER) {
+export function renderCompatibilityWarnings(producer, current = RENDER_PRODUCER,
+  { embeddedEnvironment = false } = {}) {
   if (!producer)
     return [
       "This older package has no app or HDRI identity. Render compatibility cannot be verified."
@@ -38,7 +39,7 @@ export function renderCompatibilityWarnings(producer, current = RENDER_PRODUCER)
     );
   if (producer.rendererRevision !== current.rendererRevision)
     warnings.push("The rendering revision differs from the package creator's version.");
-  if (producer.hdriId !== current.hdriId)
+  if (!embeddedEnvironment && producer.hdriId !== current.hdriId)
     warnings.push("The HDRI differs from the package creator's environment.");
   return warnings;
 }
