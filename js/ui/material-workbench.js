@@ -1,6 +1,7 @@
 // Public standalone material editor. The opened GLB is never overwritten; download is
 // a copy with material records patched into the original binary container.
 import * as THREE from "three";
+import { renderWorkerMode } from "../core/render-worker-mode.js";
 import { State } from "../core/state.js";
 import { renderer } from "../core/scene.js";
 import { setViewMode } from "../view/view-modes.js";
@@ -286,7 +287,7 @@ function disposeSnapshotResourcesIfUnused(snapshot) {
   disposeEditResourcesIfUnused(snapshot?.edit);
 }
 
-async function select(object) {
+async function select(object, { loadSourceMaps = true } = {}) {
   if (busy) return;
   const index = materialIndexFor(object);
   if (!Number.isInteger(index)) return;
@@ -340,7 +341,7 @@ async function select(object) {
   updateButtons();
   status("");
   try {
-    if (!saved && !selectedGlassMaterial(index)) {
+    if (loadSourceMaps && !saved && !selectedGlassMaterial(index)) {
       const result = await readSourceMaterialMaps(gltf.parser, index);
       if (generation !== selectionGeneration) return;
       packageImages = result.images;
@@ -415,6 +416,7 @@ function clearSpherePreview() {
 }
 
 async function refreshSpherePreview() {
+  if (renderWorkerMode) return;
   const generation = ++spherePreviewGeneration;
   const images = { ...packageImages };
   if (!Object.values(images).some(Boolean)) {
@@ -873,7 +875,7 @@ export async function restoreWorkbenchHandoff(handoff) {
     const object = materialObjects(entry.index)[0];
     if (!object)
       throw new Error(`Material ${entry.index} is missing after renderer switching.`);
-    await select(object);
+    await select(object, { loadSourceMaps: false });
     for (const [id, value] of Object.entries(entry.inputs)) {
       const control = $(id);
       if (control) control.value = value;

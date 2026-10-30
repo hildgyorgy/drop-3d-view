@@ -133,7 +133,7 @@ export function bindRenderStation({ openPackage }) {
     frame.setAttribute("aria-hidden", "true");
     frame.tabIndex = -1;
     const url = new URL(location.pathname, location.origin);
-    url.search = "?rendererDebug=1&renderWorker=1&build=source-material-maps-1";
+    url.search = "?rendererDebug=1&renderWorker=1&build=worker-large-render-1";
     frame.src = url.href;
     document.body.append(frame);
     updateActions();

@@ -34,6 +34,7 @@ import { getSunDirectionFromControls } from "./ground-sun.js";
 import { setStatus } from "../ui/status.js";
 import { PHOTO_BOUNCES, PHOTO_TRANSMISSIVE_BOUNCES,
   getRenderJob, setRenderJob } from "../core/render-job.js";
+import { configureRenderWorkerTracer } from "./render-worker-settings.js";
 import { renderWorkerMode } from "../core/render-worker-mode.js";
 import { getEnvironmentSource } from "../core/environment-source.js";
 
@@ -107,6 +108,7 @@ export async function capturePhotoImage() {
   const base = (State.currentFileName || "drop-view").replace(/\.glb$/i, "")
     .replace(/[^a-z0-9_-]+/gi, "-");
   const previous = {
+    renderToCanvas: tracer.renderToCanvas,
     pausePathTracing: tracer.pausePathTracing,
     dynamicLowRes: tracer.dynamicLowRes,
     minSamples: tracer.minSamples,
@@ -117,6 +119,7 @@ export async function capturePhotoImage() {
   try {
     // Repaint the accumulated full-resolution target without adding a sample.
     // This also works after PAUSE when the browser has cleared its canvas buffer.
+    tracer.renderToCanvas = true;
     tracer.pausePathTracing = true;
     tracer.dynamicLowRes = false;
     tracer.minSamples = 1;
@@ -638,6 +641,9 @@ async function activatePhoto1() {
     pathTracer.minSamples = 2;
     pathTracer.fadeDuration = 240;
     pathTracer.tiles.set(2, 2);
+    if (renderWorkerMode) configureRenderWorkerTracer(pathTracer, {
+      width: renderer.domElement.width, height: renderer.domElement.height
+    });
 
     // Let the loading message reach the screen before the synchronous BVH build.
     await new Promise(resolve => renderWorkerMode
@@ -777,7 +783,7 @@ export function renderPhoto1() {
   if (!active) return false;
 
   if (!pathTracer || preparing) {
-    renderer.render(scene, State.camera);
+    if (!renderWorkerMode) renderer.render(scene, State.camera);
     return true;
   }
 

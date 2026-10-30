@@ -84,6 +84,10 @@ const viewportObserver = globalThis.ResizeObserver
 viewportObserver?.observe(document.documentElement);
 
 function animate(time) {
+  if (renderWorkerMode) {
+    renderPhoto1();
+    return;
+  }
   updateNavigation(time);
 
   // OrbitControls damping changes the camera for several frames after the

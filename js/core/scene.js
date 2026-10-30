@@ -10,6 +10,7 @@
 */
 
 import * as THREE from "three";
+import { renderWorkerMode } from "./render-worker-mode.js";
 import { getSafeViewportSize } from "../view/viewport-size.js";
 
 export const backendKind = "webgl";
@@ -17,6 +18,7 @@ export const backendKind = "webgl";
 // Keep the environment loader lazy so the renderer exists before PMREM work.
 // Model loading awaits the same promise that startup begins in the background.
 export async function preparePreviewEnvironment() {
+  if (renderWorkerMode) return;
   const environment = await import("../view/webgl-environment.js");
   return environment.preparePreviewEnvironment();
 }
@@ -34,8 +36,8 @@ scene.background = new THREE.Color(0xefefed);
 ====================================================== */
 
 export const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  stencil: true
+  antialias: !renderWorkerMode,
+  stencil: !renderWorkerMode
 });
 
 const initialViewport = getSafeViewportSize(window.innerWidth, window.innerHeight);
@@ -50,7 +52,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
 renderer.toneMappingExposure = 1;
 
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !renderWorkerMode;
 
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
