@@ -32,8 +32,8 @@ export function readGlb(buffer) {
 
 function textureInfo(json, binaryParts, imageRecord, transform, texCoord, cache) {
   if (!imageRecord) return null;
-  let texture = cache.get(imageRecord);
-  if (texture === undefined) {
+  let cached = cache.get(imageRecord);
+  if (!cached) {
     const { bytes, mimeType } = imageRecord;
     if (detectSupportedImageMime(bytes) !== mimeType)
       throw new Error("Texture image bytes and JPEG/PNG MIME type do not match.");
@@ -43,17 +43,25 @@ function textureInfo(json, binaryParts, imageRecord, transform, texCoord, cache)
     binaryParts.push(bytes, new Uint8Array(pad4(bytes.length) - bytes.length));
     const image = json.images.length;
     json.images.push({ bufferView, mimeType });
+    cached = { image, textures: new Map() };
+    cache.set(imageRecord, cached);
+  }
+  const sampler = ensureRepeatSampler(json, transform);
+  let texture = cached.textures.get(sampler);
+  if (texture === undefined) {
     texture = json.textures.length;
-    json.textures.push({ source: image, sampler: ensureRepeatSampler(json) });
-    cache.set(imageRecord, texture);
+    json.textures.push({ source: cached.image, sampler });
+    cached.textures.set(sampler, texture);
   }
   const info = { index: texture };
   if (texCoord) info.texCoord = texCoord;
-  if (transform && (transform.scale !== 1 || transform.rotation !== 0 || transform.offsetX || transform.offsetY)) {
+  const scaleX = transform?.scaleX ?? transform?.scale ?? 1;
+  const scaleY = transform?.scaleY ?? transform?.scale ?? 1;
+  if (transform && (scaleX !== 1 || scaleY !== 1 || transform.rotation || transform.offsetX || transform.offsetY)) {
     info.extensions = {
       KHR_texture_transform: {
-        scale: [transform.scale, transform.scale],
-        rotation: transform.rotation,
+        scale: [scaleX, scaleY],
+        rotation: transform.rotation || 0,
         offset: [transform.offsetX || 0, transform.offsetY || 0]
       }
     };
@@ -85,11 +93,18 @@ function appendMeterUvs(json, binaryParts, records) {
   }
 }
 
-function ensureRepeatSampler(json) {
+function ensureRepeatSampler(json, transform) {
+  const wrapS = transform?.wrapS ?? 10497;
+  const wrapT = transform?.wrapT ?? 10497;
   json.samplers ??= [];
-  const index = json.samplers.findIndex(s => s.wrapS === 10497 && s.wrapT === 10497);
+  const sampler = { wrapS, wrapT,
+    ...(transform?.minFilter !== undefined ? { minFilter: transform.minFilter } : {}),
+    ...(transform?.magFilter !== undefined ? { magFilter: transform.magFilter } : {})
+  };
+  const index = json.samplers.findIndex(s => s.wrapS === wrapS && s.wrapT === wrapT &&
+    s.minFilter === sampler.minFilter && s.magFilter === sampler.magFilter);
   if (index >= 0) return index;
-  return json.samplers.push({ wrapS: 10497, wrapT: 10497 }) - 1;
+  return json.samplers.push(sampler) - 1;
 }
 
 export function patchGlbMaterials(source, edits) {
@@ -132,16 +147,25 @@ export function patchGlbMaterials(source, edits) {
     delete pbr.baseColorTexture;
     delete pbr.metallicRoughnessTexture;
     delete material.normalTexture;
+    delete material.occlusionTexture;
+    delete material.emissiveTexture;
     pbr.baseColorFactor = [...(edit.color ?? [1, 1, 1]), pbr.baseColorFactor?.[3] ?? 1];
     for (const [field, target] of [
       ["color", "baseColorTexture"],
       ["roughness", "metallicRoughnessTexture"],
-      ["normal", "normalTexture"]
+      ["normal", "normalTexture"],
+      ["occlusion", "occlusionTexture"],
+      ["emissive", "emissiveTexture"]
     ]) {
       const image = edit.images[field];
       if (!image || edit.ignoreMaps) continue;
-      const info = textureInfo(json, binaryParts, image, edit.transform, edit.texCoord || 0, textureCache);
-      if (target === "normalTexture") material.normalTexture = info;
+      const settings = edit.mapSettings?.[field];
+      const info = textureInfo(json, binaryParts, image, settings || edit.transform, settings?.texCoord ?? edit.texCoord ?? 0, textureCache);
+      if (target === "normalTexture" || target === "occlusionTexture" || target === "emissiveTexture") {
+        if (field === "normal" && edit.normalScale !== undefined) info.scale = edit.normalScale;
+        if (field === "occlusion" && edit.occlusionStrength !== undefined) info.strength = edit.occlusionStrength;
+        material[target] = info;
+      }
       else pbr[target] = info;
     }
     if (edit.clearcoat > 0) {

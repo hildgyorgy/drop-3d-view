@@ -155,3 +155,49 @@ test("glass edits only exporter-selected clear glass and retain its IOR", async 
     materialIndex: nonClearIndex, glassTransmission: 0.5, color: [1, 1, 1], roughness: 0.2
   }]), /not exporter-selected clear glass/);
 });
+
+test("imported source maps keep separate UV transforms, sampler wrapping and strengths", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const original = readGlb(source);
+  const image = { bytes: pngBytes(8), mimeType: "image/png" };
+  const edited = readGlb(patchGlbMaterials(source, [{
+    materialIndex: 0, images: { color: image, normal: { ...image }, occlusion: { ...image } },
+    roughness: .6, metalness: .2, normalScale: .4, occlusionStrength: .7,
+    mapSettings: {
+      color: { texCoord: 0, scaleX: 3, scaleY: 4, rotation: .3, offsetX: .1, offsetY: .2, wrapS: 33071, wrapT: 33648 },
+      normal: { texCoord: 1, scaleX: 2, scaleY: 2 },
+      occlusion: { texCoord: 0, scaleX: 1, scaleY: 1 }
+    }
+  }]));
+  const material = edited.json.materials[0];
+  const info = material.pbrMetallicRoughness.baseColorTexture;
+  assert.deepEqual(info.extensions.KHR_texture_transform.scale, [3, 4]);
+  assert.deepEqual(info.extensions.KHR_texture_transform.offset, [.1, .2]);
+  assert.deepEqual(edited.json.samplers[edited.json.textures[info.index].sampler], { wrapS: 33071, wrapT: 33648 });
+  assert.equal(material.normalTexture.texCoord, 1);
+  assert.equal(material.normalTexture.scale, .4);
+  assert.equal(material.occlusionTexture.strength, .7);
+  assert.deepEqual(edited.json.meshes, original.json.meshes);
+  assert.deepEqual(edited.binary.slice(0, original.binary.length), original.binary);
+});
+
+test("shared image bytes can retain different source samplers", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const original = readGlb(source);
+  const image = { bytes: pngBytes(9), mimeType: "image/png" };
+  const { json } = readGlb(patchGlbMaterials(source, [{
+    materialIndex: 0, images: { color: image, normal: image },
+    mapSettings: {
+      color: { wrapS: 33071, wrapT: 33071, minFilter: 9728, magFilter: 9728 },
+      normal: { wrapS: 10497, wrapT: 10497 }
+    }
+  }]));
+  const color = json.textures[json.materials[0].pbrMetallicRoughness.baseColorTexture.index];
+  const normal = json.textures[json.materials[0].normalTexture.index];
+  assert.equal(json.images.length, original.json.images.length + 1);
+  assert.equal(color.source, normal.source);
+  assert.notEqual(color.sampler, normal.sampler);
+  assert.equal(json.samplers[color.sampler].magFilter, 9728);
+});

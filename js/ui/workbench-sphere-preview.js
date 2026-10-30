@@ -1,6 +1,7 @@
 // Independent preview scene using the same renderer backend as the viewer.
 // Only edits, dragging and keyboard rotation schedule a frame.
 import * as THREE from "three";
+import { sourceMapSettings } from "./workbench-source-maps.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { renderer as viewerRenderer } from "../core/scene.js";
 import { createWorkbenchPreviewRenderer } from "./workbench-preview-renderer.js";
@@ -50,7 +51,7 @@ export function createWorkbenchSpherePreview(element) {
     const usesMaps = ["surface", "lacquered"].includes(settings.type);
     material.color.set(settings.color);
     material.roughness = settings.roughness;
-    material.metalness = settings.type === "metal" ? 1 : 0;
+    material.metalness = settings.type === "metal" ? 1 : settings.sourceMaps?.metalness ?? 0;
     material.clearcoat = settings.type === "lacquered" ? 1 : 0;
     material.clearcoatRoughness = .08;
     material.transmission = settings.type === "glass" ? settings.transparency : 0;
@@ -58,10 +59,30 @@ export function createWorkbenchSpherePreview(element) {
     material.map = usesMaps ? ownedTextures[0] ?? null : null;
     material.roughnessMap = material.metalnessMap = usesMaps ? ownedTextures[1] ?? null : null;
     material.normalMap = usesMaps ? ownedTextures[2] ?? null : null;
-    for (const texture of ownedTextures.filter(Boolean)) {
+    material.aoMap = usesMaps ? ownedTextures[3] ?? null : null;
+    material.emissiveMap = usesMaps ? ownedTextures[4] ?? null : null;
+    material.emissive.fromArray(settings.sourceMaps?.emissive ?? [0, 0, 0]);
+    material.normalScale.setScalar(settings.sourceMaps?.normalScale ?? 1);
+    material.aoMapIntensity = settings.sourceMaps?.occlusionStrength ?? 1;
+    for (const [index, texture] of ownedTextures.entries()) {
+      if (!texture) continue;
       texture.repeat.set(2 / settings.tileMetres, 2 / settings.tileMetres);
       texture.rotation = settings.rotation * Math.PI / 180;
       texture.offset.set(settings.offsetX, settings.offsetY);
+      if (settings.sourceMaps) {
+        const transform = sourceMapSettings(settings.sourceMaps,
+          ["color", "roughness", "normal", "occlusion", "emissive"][index], {
+            workbenchTileMetres: settings.tileMetres, workbenchRotation: settings.rotation,
+            workbenchOffsetX: settings.offsetX, workbenchOffsetY: settings.offsetY
+          });
+        texture.repeat.set(transform.scaleX, transform.scaleY);
+        texture.rotation = transform.rotation;
+        texture.offset.set(transform.offsetX, transform.offsetY);
+        texture.wrapS = transform.wrapS;
+        texture.wrapT = transform.wrapT;
+        if (transform.minFilter !== undefined) texture.minFilter = transform.minFilter;
+        if (transform.magFilter !== undefined) texture.magFilter = transform.magFilter;
+      }
     }
     material.needsUpdate = true;
     schedule();
@@ -152,9 +173,9 @@ export function createWorkbenchSpherePreview(element) {
       settings = { ...settings, ...values };
       updateMaterial();
     },
-    show({ colorMap, roughMap, normalMap }) {
+    show({ colorMap, roughMap, normalMap, aoMap, emissiveMap }) {
       disposeTextureResources(ownedTextures);
-      ownedTextures = [colorMap, roughMap, normalMap];
+      ownedTextures = [colorMap, roughMap, normalMap, aoMap, emissiveMap];
       updateMaterial();
     },
     clear() {

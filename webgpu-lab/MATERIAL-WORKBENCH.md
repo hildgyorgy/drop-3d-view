@@ -13,6 +13,14 @@ then shows a view-only message and does not permit editing. An explicit
 for compatibility with older and third-party GLBs. Only a user-opened file can
 be saved; demos, embeds and comparison fixtures cannot.
 
+Selecting a surface also imports its original base-color, normal, metallic/roughness,
+occlusion and emissive maps into the list and sphere. Embedded JPEG/PNG bytes are
+retained; decoded image formats are converted to PNG when possible. Original maps
+keep their own UV channel, wrapping and `KHR_texture_transform` on APPLY and export.
+Texture-size changes scale that original mapping relative to the neutral 2.0 setting;
+it is not a measurement of the source UVs in metres. CLEAR MAPS removes them from
+the staging area, APPLY removes them from the model, and UNDO/RESET can restore them.
+
 Drop JPEG/PNG maps onto the panel or choose several files at once. Filenames
 containing `diff`/`albedo`/`basecolor`, `rough`, `nor_gl`/`normal`, or `arm`/`orm`
 are recognized. OpenGL normal maps are expected. If both a standalone roughness
@@ -38,10 +46,11 @@ one aligned set. Click
 **APPLY** for a live preview in ORIGINAL mode, then **EXPORT → SAVE GLB** to download
 `*_pbr.glb`. The Workbench itself offers APPLY, UNDO and RESET; saving is in the shared Export window.
 
-Uploaded maps use real-world metre mapping instead of scaling the exporter's
+After CLEAR MAPS, newly uploaded maps use real-world metre mapping instead of scaling the exporter's
 original UVs. The preview projects from mesh positions and
 normals into a separate UV set. GLB export appends those coordinates as
-`TEXCOORD_1`, and only the newly uploaded maps read them. The original
+`TEXCOORD_1`, and the replacement maps read them. Maps added to an original
+texture set instead use that set’s existing UV basis. The original
 `TEXCOORD_0` and source geometry bytes stay intact. This is a box projection:
 curved surfaces can show seams where the projection axis changes. Meshes that
 already have `TEXCOORD_1` are refused, to avoid overwriting their existing

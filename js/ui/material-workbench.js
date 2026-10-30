@@ -21,6 +21,7 @@ import {
   isWorkbenchOperationCurrent
 } from "./workbench-operation.js";
 import { disposeUnusedWorkbenchEdit } from "./workbench-resource-lifecycle.js";
+import { readSourceMaterialMaps, sourceMapSettings } from "./workbench-source-maps.js";
 import { createWorkbenchSpherePreview } from "./workbench-sphere-preview.js";
 import { getMaterialWorkbenchAccess } from "../model/material-workbench-policy.js";
 
@@ -34,6 +35,10 @@ let gltf = null;
 let sourceFile = null;
 let selectedIndex = null;
 let packageImages = {};
+let sourceMaps = null;
+let selectionGeneration = 0;
+let loadingMaps = false;
+let mapLoadFailed = false;
 let lastAction = null;
 let busy = false;
 let fileAcceptGeneration = 0;
@@ -165,7 +170,7 @@ entry?.addEventListener("click", toggleWorkbench);
 
 function updateButtons() {
   const access = currentAccess();
-  $("workbenchApply").disabled = selectedIndex === null || busy || !access.canEdit;
+  $("workbenchApply").disabled = selectedIndex === null || busy || loadingMaps || mapLoadFailed || !access.canEdit;
   $("workbenchUndo").disabled = !lastAction || busy || !access.canEdit;
   $("workbenchReset").disabled =
     selectedIndex === null || !edits.has(selectedIndex) || busy || !access.canEdit;
@@ -281,16 +286,27 @@ function disposeSnapshotResourcesIfUnused(snapshot) {
   disposeEditResourcesIfUnused(snapshot?.edit);
 }
 
-function select(object) {
+async function select(object) {
   if (busy) return;
   const index = materialIndexFor(object);
   if (!Number.isInteger(index)) return;
+  const generation = ++selectionGeneration;
+  ++fileAcceptGeneration;
+  loadingMaps = true;
+  mapLoadFailed = false;
+  sourceMaps = null;
+  packageImages = {};
+  clearSpherePreview();
   selectedIndex = index;
   const name = gltf.parser.json.materials[index]?.name || `MATERIAL ${index}`;
   $("workbenchMaterial").textContent = `${name} · #${index}`;
   const saved = edits.get(index);
   if (saved) {
-    for (const [id, value] of Object.entries(saved.inputs)) $(id).value = value;
+    for (const [id, value] of Object.entries(saved.inputs)) {
+      if ($(id)) $(id).value = value;
+    }
+    sourceMaps = saved.inputs.workbenchSourceMaps
+      ? JSON.parse(saved.inputs.workbenchSourceMaps) : null;
     // Keep the staging area independent from the last applied edit: choosing
     // another file must not silently alter what GLB export would save.
     packageImages = { ...saved.images };
@@ -313,16 +329,39 @@ function select(object) {
         authored.extensions.KHR_materials_transmission.transmissionFactor
       );
     }
+    $("workbenchRoughness").value = String(material?.roughness ?? 0.75);
     $("workbenchColor").value = material?.color
       ? `#${material.color.getHexString(THREE.SRGBColorSpace)}`
       : "#ffffff";
   }
   showMaps();
-  void refreshSpherePreview();
   showValues();
   updateModeControls();
   updateButtons();
   status("");
+  try {
+    if (!saved && !selectedGlassMaterial(index)) {
+      const result = await readSourceMaterialMaps(gltf.parser, index);
+      if (generation !== selectionGeneration) return;
+      packageImages = result.images;
+      sourceMaps = result.settings;
+    }
+    if (generation !== selectionGeneration) return;
+    showMaps();
+    void refreshSpherePreview();
+    showValues();
+  } catch (error) {
+    if (generation === selectionGeneration) {
+      mapLoadFailed = true;
+      status(`COULD NOT LOAD ORIGINAL MAPS: ${error.message}`);
+      console.error("Original material maps unavailable", error);
+    }
+  } finally {
+    if (generation === selectionGeneration) {
+      loadingMaps = false;
+      updateButtons();
+    }
+  }
 }
 
 function onCanvasClick(event) {
@@ -382,7 +421,7 @@ async function refreshSpherePreview() {
     spherePreview.clear();
     return;
   }
-  const metalness = images.arm || images.metalness ? 1 : 0;
+  const metalness = sourceMaps?.metalness ?? (images.arm || images.metalness ? 1 : 0);
   let textures = [];
   try {
     const packed = await packedRoughnessImage(images, metalness);
@@ -393,7 +432,7 @@ async function refreshSpherePreview() {
     }
     spherePreview.show({
       colorMap: textures[0], roughMap: textures[1],
-      normalMap: textures[2], metalness
+      normalMap: textures[2], aoMap: textures[3], emissiveMap: textures[4], metalness
     });
     textures = [];
   } catch (error) {
@@ -430,7 +469,8 @@ function showValues() {
     tileMetres,
     rotation: Number($("workbenchRotation").value),
     offsetX: Number($("workbenchOffsetX").value),
-    offsetY: Number($("workbenchOffsetY").value)
+    offsetY: Number($("workbenchOffsetY").value),
+    sourceMaps
   });
 }
 
@@ -524,7 +564,9 @@ async function previewImages(images, packed) {
   const settled = await Promise.allSettled([
     imageForPreview(images.color, true),
     imageForPreview(packed),
-    imageForPreview(images.normal)
+    imageForPreview(images.normal),
+    imageForPreview(images.occlusion),
+    imageForPreview(images.emissive, true)
   ]);
   const textures = settled
     .filter(item => item.status === "fulfilled")
@@ -540,7 +582,12 @@ async function previewImages(images, packed) {
 
 function setTransform(texture, transform) {
   if (!texture) return;
-  texture.repeat.set(transform.scale, transform.scale);
+  texture.repeat.set(transform.scaleX ?? transform.scale, transform.scaleY ?? transform.scale);
+  if (transform.wrapS !== undefined) texture.wrapS = transform.wrapS;
+  if (transform.wrapT !== undefined) texture.wrapT = transform.wrapT;
+  if (transform.texCoord !== undefined) texture.channel = transform.texCoord;
+  if (transform.minFilter !== undefined) texture.minFilter = transform.minFilter;
+  if (transform.magFilter !== undefined) texture.magFilter = transform.magFilter;
   texture.rotation = transform.rotation;
   texture.offset.set(transform.offsetX, transform.offsetY);
   texture.needsUpdate = true;
@@ -620,7 +667,7 @@ function editableMaterial(original) {
 }
 
 async function apply() {
-  if (busy || selectedIndex === null || !gltf || !sourceFile) return;
+  if (busy || loadingMaps || mapLoadFailed || selectedIndex === null || !gltf || !sourceFile) return;
   if (!currentAccess().canEdit) {
     status("THIS MODEL IS VIEW-ONLY");
     return;
@@ -639,6 +686,7 @@ async function apply() {
     const inputs = Object.fromEntries(
       [...controls, "workbenchType", "workbenchColor"].map(id => [id, $(id).value])
     );
+    if (sourceMaps) inputs.workbenchSourceMaps = JSON.stringify(sourceMaps);
     const type = inputs.workbenchType;
     const glass = type === "glass";
     if (glass !== selectedGlassMaterial(materialIndex, operation.gltf))
@@ -648,11 +696,11 @@ async function apply() {
           : "Clear glass must use GLASS mode."
       );
     const usesMaps = type === "surface" || type === "lacquered";
-    const metalness = type === "metal" ? 1 : 0;
+    const metalness = type === "metal" ? 1 : sourceMaps?.metalness ?? 0;
     const clearcoat = type === "lacquered" ? 1 : 0;
     const images = usesMaps ? { ...packageImages } : {};
     const meterUv =
-      usesMaps &&
+      usesMaps && !sourceMaps &&
       Boolean(
         images.color ||
         images.normal ||
@@ -663,16 +711,16 @@ async function apply() {
     const packed = usesMaps ? await packedRoughnessImage(images, metalness) : null;
     if (!isWorkbenchOperationCurrent(operation, gltf, State.model)) return;
     const transform = transformFromInputs(inputs);
-    const [colorMap, roughMap, normalMap] = await previewImages(images, packed);
-    [colorMap, roughMap, normalMap]
+    const [colorMap, roughMap, normalMap, aoMap, emissiveMap] = await previewImages(images, packed);
+    [colorMap, roughMap, normalMap, aoMap, emissiveMap]
       .filter(Boolean)
       .forEach(texture => resources.textures.add(texture));
     if (!isWorkbenchOperationCurrent(operation, gltf, State.model)) {
       disposeOwnedResources(resources);
       return;
     }
-    for (const texture of [colorMap, roughMap, normalMap]) {
-      setTransform(texture, transform);
+    for (const [kind, texture] of Object.entries({color: colorMap, roughness: roughMap, normal: normalMap, occlusion: aoMap, emissive: emissiveMap})) {
+      setTransform(texture, sourceMaps ? sourceMapSettings(sourceMaps, kind, inputs) : transform);
       if (texture && meterUv) texture.channel = 1;
     }
     before = captureMaterial(materialIndex);
@@ -738,6 +786,10 @@ async function apply() {
           material.normalMap = null;
           material.bumpMap = null;
           material.displacementMap = null;
+        }
+        if (!glass) {
+          material.aoMap = aoMap;
+          material.emissiveMap = emissiveMap;
         }
         material.color.set(inputs.workbenchColor);
         if (roughMap) material.roughnessMap = roughMap;
@@ -821,11 +873,13 @@ export async function restoreWorkbenchHandoff(handoff) {
     const object = materialObjects(entry.index)[0];
     if (!object)
       throw new Error(`Material ${entry.index} is missing after renderer switching.`);
-    select(object);
+    await select(object);
     for (const [id, value] of Object.entries(entry.inputs)) {
       const control = $(id);
       if (control) control.value = value;
     }
+    sourceMaps = entry.inputs.workbenchSourceMaps
+      ? JSON.parse(entry.inputs.workbenchSourceMaps) : null;
     packageImages = Object.fromEntries(
       entry.images.map(({ kind, name, bytes }) => {
         const mimeType = detectSupportedImageMime(bytes);
@@ -845,7 +899,7 @@ export async function restoreWorkbenchHandoff(handoff) {
       );
   }
   const selected = materialObjects(handoff.selectedIndex)[0];
-  if (selected) select(selected);
+  if (selected) await select(selected);
   status("");
 }
 
@@ -860,15 +914,24 @@ export async function saveWorkbenchGlb() {
   try {
     const patches = [];
     for (const edit of savedEdits) {
-      const [color, roughness, normal] = await Promise.all([
+      const sourceSettings = edit.inputs.workbenchSourceMaps
+        ? JSON.parse(edit.inputs.workbenchSourceMaps) : null;
+      const [color, roughness, normal, occlusion, emissive] = await Promise.all([
         imageRecord(edit.images.color),
         imageRecord(edit.packed),
-        imageRecord(edit.images.normal)
+        imageRecord(edit.images.normal),
+        imageRecord(edit.images.occlusion),
+        imageRecord(edit.images.emissive)
       ]);
       for (const [targetIndex, materialIndex] of edit.materialIndices.entries())
         patches.push({
           materialIndex,
-          images: { color, roughness, normal },
+          images: { color, roughness, normal, occlusion, emissive },
+          mapSettings: sourceSettings ? Object.fromEntries(
+            ["color", "roughness", "normal", "occlusion", "emissive"].map(kind => [kind, sourceMapSettings(sourceSettings, kind, edit.inputs)])
+          ) : undefined,
+          normalScale: sourceSettings?.normalScale,
+          occlusionStrength: sourceSettings?.occlusionStrength,
           meterUvs: targetIndex === 0 ? edit.meterUvs : undefined,
           texCoord: edit.meterUvs?.length ? 1 : 0,
           ignoreMaps: edit.inputs.workbenchType === "metal",
@@ -878,7 +941,8 @@ export async function saveWorkbenchGlb() {
               : undefined,
           color: new THREE.Color(edit.inputs.workbenchColor).toArray(),
           roughness: Number(edit.inputs.workbenchRoughness),
-          metalness: edit.inputs.workbenchType === "metal" ? 1 : 0,
+          metalness: edit.inputs.workbenchType === "metal" ? 1 :
+            sourceSettings?.metalness ?? 0,
           clearcoat: edit.inputs.workbenchType === "lacquered" ? 1 : 0,
           clearcoatRoughness: 0.08,
           transform: transformFromInputs(edit.inputs)
@@ -949,7 +1013,12 @@ function resetMaterial() {
 }
 
 async function acceptFiles(files) {
+  if (busy || loadingMaps) return;
   const generation = ++fileAcceptGeneration;
+  ++selectionGeneration;
+  loadingMaps = false;
+  mapLoadFailed = false;
+  updateButtons();
   const candidates = [...(files || [])]
     .map(file => ({ file, kind: classify(file.name) }))
     .filter(candidate => candidate.kind);
@@ -968,7 +1037,13 @@ async function acceptFiles(files) {
   if (generation !== fileAcceptGeneration) return;
   const rejected = [];
   for (const { file, kind, mimeType } of checked) {
-    if (mimeType) packageImages[kind] = file;
+    if (mimeType) {
+      packageImages[kind] = file;
+      if (sourceMaps) {
+        sourceMaps = { ...sourceMaps };
+        delete sourceMaps[kind === "arm" || kind === "metalness" ? "roughness" : kind];
+      }
+    }
     else rejected.push(file.name);
   }
   showMaps();
@@ -979,7 +1054,13 @@ async function acceptFiles(files) {
 }
 $("workbenchFiles").addEventListener("change", event => acceptFiles(event.target.files));
 $("workbenchClearMaps").addEventListener("click", () => {
+  if (busy) return;
   ++fileAcceptGeneration;
+  ++selectionGeneration;
+  loadingMaps = false;
+  mapLoadFailed = false;
+  sourceMaps = null;
+  updateButtons();
   packageImages = {};
   $("workbenchFiles").value = "";
   showMaps();
@@ -1023,6 +1104,10 @@ $("workbenchClose").addEventListener("click", closeWorkbench);
 renderer.domElement.addEventListener("click", onCanvasClick);
 window.addEventListener("dropview:model-loaded", event => {
   ++fileAcceptGeneration;
+  ++selectionGeneration;
+  loadingMaps = false;
+  mapLoadFailed = false;
+  sourceMaps = null;
   gltf = event.detail.gltf;
   sourceFile = event.detail.file;
   selectedIndex = null;
@@ -1051,6 +1136,10 @@ window.addEventListener("dropview:model-loaded", event => {
 });
 window.addEventListener("dropview:model-cleared", event => {
   ++fileAcceptGeneration;
+  ++selectionGeneration;
+  loadingMaps = false;
+  mapLoadFailed = false;
+  sourceMaps = null;
   const resources = event.detail;
   if (resources?.materials && resources?.geometries) {
     baselineMaterials.forEach(material => resources.materials.add(material));
