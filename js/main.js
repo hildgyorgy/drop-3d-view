@@ -196,13 +196,13 @@ function bindRenderSnapshotControls() {
         height: renderer.domElement.height
       };
       const renderJob = makeRenderJob(Number(targetSamples.value));
-      const workbench = await materialWorkbench.captureWorkbenchHandoff();
+      const resolvedFileBytes = await materialWorkbench.captureResolvedWorkbenchGlb();
       const environment = await captureRenderEnvironment();
       const producer = { ...RENDER_PRODUCER, hdriId: await environmentIdentity(environment) };
-      const fileBytes = await file.arrayBuffer();
+      const fileBytes = resolvedFileBytes ?? await file.arrayBuffer();
       if (State.currentFile !== file) throw new Error("Model changed during export");
       const snapshot = encodeRenderSnapshot({
-        fileName: file.name, fileBytes, viewSession, workbench, renderSize,
+        fileName: file.name, fileBytes, viewSession, renderSize,
         renderJob, environment, producer
       });
       const url = URL.createObjectURL(snapshot);
@@ -228,8 +228,6 @@ async function restoreRenderSnapshot(packageFile, { worker = false } = {}) {
   await validateRenderEnvironment(snapshot.environment, snapshot.producer);
   if (!await openFile(snapshot.file, { sourceKind: "user", environment: snapshot.environment }))
     throw new Error("Could not open the packaged GLB");
-  if (snapshot.workbench)
-    await materialWorkbench.restoreWorkbenchHandoff(snapshot.workbench);
   restoreCurrentViewSession(snapshot.viewSession);
   applyImportedRenderFrame(snapshot.renderSize ?? (worker ? { width: 1920, height: 1080 } : null));
   const job = snapshot.renderJob ?? makeRenderJob(500);

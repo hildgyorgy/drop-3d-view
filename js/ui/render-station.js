@@ -219,7 +219,7 @@ export function bindRenderStation({ openPackage }) {
     frame.className = "render-worker-frame"; frame.title = "Background render";
     frame.setAttribute("aria-hidden", "true"); frame.tabIndex = -1;
     const url = new URL(location.pathname, location.origin);
-    url.search = "?rendererDebug=1&renderWorker=1&build=render-queue-1";
+    url.search = "?rendererDebug=1&renderWorker=1&build=three-r187-3";
     frame.src = url.href; document.body.append(frame);
     paintList();
     readyTimeout = setTimeout(() => fail("The renderer did not start. Try reopening the page."), 60_000);

@@ -11,9 +11,9 @@
     "build:public": "node build-unified.mjs --public"
   },
   "dependencies": {
-    "three": "0.186.0",
-    "three-gpu-pathtracer": "0.0.27",
-    "three-mesh-bvh": "0.9.15"
+    "three": "0.187.0",
+    "three-gpu-pathtracer": "github:gkjohnson/three-gpu-pathtracer#45919f326dded43b136f9fb08eb1de47878e4ad6",
+    "three-mesh-bvh": "0.9.17"
   },
   "devDependencies": {
     "vite": "8.2.2"

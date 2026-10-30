@@ -1,7 +1,7 @@
 // Three's DRACOLoader defines local decoder URLs even when setDecoderPath()
 // overrides them at runtime. Vite would otherwise copy those unused files
 // into every renderer bundle. Keep the fallback URLs remote as well.
-const decoderBase = "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/libs/draco/";
+const decoderBase = "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/libs/draco/";
 
 export function externalDracoDecoder() {
   return {

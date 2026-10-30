@@ -905,55 +905,64 @@ export async function restoreWorkbenchHandoff(handoff) {
   status("");
 }
 
-export async function saveWorkbenchGlb() {
-  if (!canSaveWorkbenchGlb()) return null;
+async function buildWorkbenchGlbBuffer() {
   const file = sourceFile;
   const sourceGltf = gltf;
   const savedEdits = [...edits.values()];
+  const patches = [];
+  for (const edit of savedEdits) {
+    const sourceSettings = edit.inputs.workbenchSourceMaps
+      ? JSON.parse(edit.inputs.workbenchSourceMaps) : null;
+    const [color, roughness, normal, occlusion, emissive] = await Promise.all([
+      imageRecord(edit.images.color),
+      imageRecord(edit.packed),
+      imageRecord(edit.images.normal),
+      imageRecord(edit.images.occlusion),
+      imageRecord(edit.images.emissive)
+    ]);
+    for (const [targetIndex, materialIndex] of edit.materialIndices.entries())
+      patches.push({
+        materialIndex,
+        images: { color, roughness, normal, occlusion, emissive },
+        mapSettings: sourceSettings ? Object.fromEntries(
+          ["color", "roughness", "normal", "occlusion", "emissive"].map(kind => [kind, sourceMapSettings(sourceSettings, kind, edit.inputs)])
+        ) : undefined,
+        normalScale: sourceSettings?.normalScale,
+        occlusionStrength: sourceSettings?.occlusionStrength,
+        meterUvs: targetIndex === 0 ? edit.meterUvs : undefined,
+        texCoord: edit.meterUvs?.length ? 1 : 0,
+        ignoreMaps: edit.inputs.workbenchType === "metal",
+        glassTransmission:
+          edit.inputs.workbenchType === "glass"
+            ? Number(edit.inputs.workbenchGlassTransparency)
+            : undefined,
+        color: new THREE.Color(edit.inputs.workbenchColor).toArray(),
+        roughness: Number(edit.inputs.workbenchRoughness),
+        metalness: edit.inputs.workbenchType === "metal" ? 1 :
+          sourceSettings?.metalness ?? 0,
+        clearcoat: edit.inputs.workbenchType === "lacquered" ? 1 : 0,
+        clearcoatRoughness: 0.08,
+        transform: transformFromInputs(edit.inputs)
+      });
+  }
+  const fileBytes = await file.arrayBuffer();
+  if (sourceFile !== file || gltf !== sourceGltf)
+    throw new Error("Model changed during export");
+  return patchGlbMaterials(fileBytes, patches);
+}
+
+export async function captureResolvedWorkbenchGlb() {
+  return edits.size ? buildWorkbenchGlbBuffer() : null;
+}
+
+export async function saveWorkbenchGlb() {
+  if (!canSaveWorkbenchGlb()) return null;
+  const file = sourceFile;
   busy = true;
   updateButtons();
   status("");
   try {
-    const patches = [];
-    for (const edit of savedEdits) {
-      const sourceSettings = edit.inputs.workbenchSourceMaps
-        ? JSON.parse(edit.inputs.workbenchSourceMaps) : null;
-      const [color, roughness, normal, occlusion, emissive] = await Promise.all([
-        imageRecord(edit.images.color),
-        imageRecord(edit.packed),
-        imageRecord(edit.images.normal),
-        imageRecord(edit.images.occlusion),
-        imageRecord(edit.images.emissive)
-      ]);
-      for (const [targetIndex, materialIndex] of edit.materialIndices.entries())
-        patches.push({
-          materialIndex,
-          images: { color, roughness, normal, occlusion, emissive },
-          mapSettings: sourceSettings ? Object.fromEntries(
-            ["color", "roughness", "normal", "occlusion", "emissive"].map(kind => [kind, sourceMapSettings(sourceSettings, kind, edit.inputs)])
-          ) : undefined,
-          normalScale: sourceSettings?.normalScale,
-          occlusionStrength: sourceSettings?.occlusionStrength,
-          meterUvs: targetIndex === 0 ? edit.meterUvs : undefined,
-          texCoord: edit.meterUvs?.length ? 1 : 0,
-          ignoreMaps: edit.inputs.workbenchType === "metal",
-          glassTransmission:
-            edit.inputs.workbenchType === "glass"
-              ? Number(edit.inputs.workbenchGlassTransparency)
-              : undefined,
-          color: new THREE.Color(edit.inputs.workbenchColor).toArray(),
-          roughness: Number(edit.inputs.workbenchRoughness),
-          metalness: edit.inputs.workbenchType === "metal" ? 1 :
-            sourceSettings?.metalness ?? 0,
-          clearcoat: edit.inputs.workbenchType === "lacquered" ? 1 : 0,
-          clearcoatRoughness: 0.08,
-          transform: transformFromInputs(edit.inputs)
-        });
-    }
-    const fileBytes = await file.arrayBuffer();
-    if (sourceFile !== file || gltf !== sourceGltf)
-      throw new Error("Model changed during export");
-    const buffer = patchGlbMaterials(fileBytes, patches);
+    const buffer = await buildWorkbenchGlbBuffer();
     const url = URL.createObjectURL(new Blob([buffer], { type: "model/gltf-binary" }));
     const link = document.createElement("a");
     link.href = url;

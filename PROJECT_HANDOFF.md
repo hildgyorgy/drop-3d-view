@@ -2,9 +2,9 @@
 
 Állapot: **2026-10-30**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
-## Következő cél: Three.js r187
+## Three.js r187 frissítés – elkészült, Safari-vizuális kontroll még kell
 
-**A felhasználó által kijelölt következő fejlesztési cél a Three.js frissítése r186-ról r187-re. A frissítés még NEM történt meg.** A 2026-10-30-án megjelent kiadást és a migrációs útmutatót ellenőriztük:
+**A Three.js r186 → r187 frissítés 2026-10-30-án megtörtént.** A kiadást és a migrációs útmutatót ellenőriztük:
 
 - [r187 kiadás](https://github.com/mrdoob/three.js/releases/tag/r187)
 - [186 → 187 migráció](https://github.com/mrdoob/three.js/wiki/Migration-Guide#186--187)
@@ -16,19 +16,16 @@ A nekünk fontos változások:
 - A `WebGLRenderer.setViewport()` / `setScissor()` render target mellett már nem skáláz pixelaránnyal. A path tracer részlet-renderelése és a Retina/fix exportfelbontás külön ellenőrizendő.
 - Erőforrás-felszabadítási javítások, többek között explicit storage-buffer disposal, valamint belső `WeakRef` / `FinalizationRegistry` használat. **Ezekből nem következik automatikusan a Mini memóriaproblémájának megoldása.**
 
-Javasolt munkamenet:
+Az npm-es `three-gpu-pathtracer` 0.0.27 WebGPU útvonala r187 alatt a storage-buffer változás miatt hibás compute pipeline-t készített. A tracer szerzőjének célzott, még kiadatlan r187-javítását egzakt commitra pineltük (`45919f326dded43b136f9fb08eb1de47878e4ad6`, upstream `webgpu/three-r187` ág), mellette a megkövetelt `three-mesh-bvh` 0.9.17 fut. Mozgó GitHub branch nincs használatban; a lockfile tarball-integritást is rögzít.
 
-1. Pull után `git status -sb`, függőségek telepítése; a mostani r186 állapot legyen az összehasonlítás alapja.
-2. Azonos modellből, kamerával és világítással r186 referenciaképek készítése, külön WebGL és WebGPU előnézet/path tracer alatt. DEMO 1 és DEMO 2 is kell.
-3. A Three.js verzió és a `webgpu-lab/pnpm-lock.yaml` frissítése. A `three-gpu-pathtracer` és a `three-mesh-bvh` kompatibilitását ténylegesen ellenőrizni; a jelenlegi tracer megtartása vagy indokolt frissítése a vizsgálattól függ.
-4. Tesztek + mindkét publikus renderer buildje; böngészős összehasonlítás, különösen Safari LACQUERED, üveg, HDRI, textúraátvétel, forgatható gömb, backend-handoff és fix felbontású csomagrender.
-5. A többcsomagos sor, szüneteltetés, PNG-mentés, újratöltés utáni helyreállítás és Retina-pixelméret ellenőrzése. A `photo-clearcoat.js` a tracer belsejét módosítja, ezért a hozzá tartozó teszt és Safari-vizuális próba különösen fontos.
-6. Generált csomagok és cache-verziók együttes frissítése. A publikus AUTO továbbra is WebGL marad, hacsak a felhasználó másként nem dönt.
+Ellenőrizve: 135/135 teszt, mindkét publikus renderer buildje, DEMO 1 WebGL előnézet/path tracer, DEMO 2 WebGL előnézet, WebGPU előnézet és DEMO 2 WebGPU path tracer. A tiszta WebGPU-próbán a mintaszám nőtt, kép épült és nem volt konzolhiba. A cache-jelölés `three-r187-3`, a render producer revíziója `webgl-photo-3`, a Draco CDN pinje r187. A publikus AUTO továbbra is WebGL.
+
+**Még szükséges valódi Safari-vizuális kontroll:** LACQUERED, üveg, HDRI/PMREM, Workbench-gömb, textúraátvétel, backend-handoff, fix/Retina felbontású csomagrender és a render queue teljes UI-folyamata. A `photo-clearcoat.js` illeszkedési tesztje sikeres, de GPU-képet nem igazol.
 
 ## Gépváltási pillanatkép
 
 - A dokumentum frissítése előtt a working tree **tiszta** volt: `main...origin/main`, helyben ismert eltérés nélkül. Ez nem új hálózati fetch/push vagy élő GitHub Pages-ellenőrzés eredménye.
-- Aktuális commit: **`17701f5` – render popup refine**. Ez már tartalmazza a renderelési sort és az exportált képméret kijelzését.
+- A frissítés alapcommitja: **`4ba3830` – Update PROJECT_HANDOFF.md**. Az r187 módosításai e sor írásakor még nincsenek commitolva.
 - Előző fontos commitok: `d712a1e` – render station bugfix; `7672935` – texture import from glb; `2a5a5e2` – export popup; `042619a` – redesign popups.
 - **134/134 teszt sikeres**, a gépváltási átadó írásakor újra futtatva. A legutóbbi kódmódosítás után mindkét publikus renderer buildje is sikeres volt. A nagy chunkokra vonatkozó buildfigyelmeztetés nem buildhiba.
 - Csak ez az átadó lesz új helyi módosítás. Gépváltás előtt ezt is commitolni/pusholni kell; a másik gépen pull szükséges. A jelen körben nem indítottunk új publikálást.
@@ -38,9 +35,9 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 
 | Függőség | Jelenlegi verzió |
 | --- | --- |
-| `three` | `0.186.0` |
-| `three-gpu-pathtracer` | `0.0.27` |
-| `three-mesh-bvh` | `0.9.15` |
+| `three` | `0.187.0` |
+| `three-gpu-pathtracer` | `0.0.27` + upstream r187 commit `45919f3` |
+| `three-mesh-bvh` | `0.9.17` |
 | Vite | `8.2.2` |
 
 ## Aktuális termékdöntések és UI
@@ -69,12 +66,12 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 
 ## Rendercsomag, HDRI és Export
 
-- A `.dvrender` az **eredeti GLB + anyageditek és képeik + nézet/kamera + világítás + csoportláthatóság + pixelméret + sample/bounce cél + aktív Radiance HDRI bájtjai** együttese. Nem a korábban kiszámolt samples folytatása: render mindig nulláról indul.
+- A `.dvrender` az **aktuális anyagozott GLB + nézet/kamera + világítás + csoportláthatóság + pixelméret + sample/bounce cél + aktív Radiance HDRI bájtjai** együttese. Az eredeti GLB és a Workbench-editek külön története nincs benne. Nem a korábban kiszámolt samples folytatása: render mindig nulláról indul.
 - Az appba alapból csomagolt HDRI-t a beolvasott csomag saját HDRI-je felülírja az adott modellhez. Normál új GLB-re váltás visszaállítja az app alap környezetét. Újraexport és backend-handoff az aktív környezetet megőrzi. Előnézet és path tracer ugyanazt az aktív forrást használja.
 - A HDRI érvényességének/azonosságának ellenőrzése a látható modell lecserélése előtt történik. A csomagban appverzió, renderer-revízió, HDRI SHA-256 azonosító is van. Régebbi, HDRI nélküli csomag az app saját környezetével nyílik meg, kompatibilitási jelzéssel.
 - A renderer programkódja nem utazik a csomagban. Producer-eltérés figyelmeztet, de a render engedélyezett. Aktuális renderer-revízió `webgl-photo-1`; képképzési változáskor frissítendő. Az alap HDRI azonosítóját fájlcsere esetén módosítani kell; teszt is ellenőrzi.
 - Alap exportcél **500 samples**, rögzített **6 bounces / 10 transmissive bounces**. A fogadó gép a csomagban mentett értéket használja. Régi, cél/felbontás nélküli csomag háttérrender-fallbackje 500 samples és 1920 × 1080.
-- SECTION mellett exporttiltás marad érdemi figyelmeztetéssel. Közös limitek: 1024 erőforrás (GLB/HDRI is beleszámít), 1024 anyagedit, 2 GB maximális csomagméret.
+- SECTION mellett exporttiltás marad érdemi figyelmeztetéssel. A v1 csomag legfeljebb két erőforrása az aktuális GLB és az opcionális HDRI; a maximális csomagméret 2 GB.
 - OPEN IN VIEWER a kiválasztott csomagot a látható viewerben állítja helyre, majd az Export fület készíti elő és bezárja a popupot. Nem indít automatikusan path tracert.
 - A SAVE IMAGE / PNG-mentés az éppen felhalmozott tracer képet kezeli, kezelőszervek nélkül; nincs külön, a viewert kitakaró renderelő réteg.
 
@@ -97,16 +94,27 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 - A felhasználó először a javítással is tapasztalt újratöltést; egy következő futást megfigyelés alatt hagyott. Utolsó visszajelzés: **25/500-nál tartott**. Nincs még visszajelzés a végső sikerről vagy újabb hibáról; ne állítsuk megoldottnak.
 - Activity Monitor pillanatkép: weboldal-folyamat **2,84 GB**, Safari Graphics and Media kb. **353 MB**, teljes használt memória **6,90 GB**, tömörített **2,21 GB**, swap **2,43 GB**, **sárga** memóriaterhelés. Mellette BIMcloud/Teamwork, Node és Roon is futott. Ez erősíti a memórianyomás gyanúját, de nem bizonyítja a Safari kilépési okát; nincs crash log.
 - Javasolt, még nem visszaigazolt kontroll: ugyanaz 2560 × 1440-en, negyedakkora képpufferrel. Tartós 5K-megoldás lehet valóban kis GPU-pufferekkel, képrészletenként renderelni és összerakni a végeredményt; **ez még nincs implementálva**.
-- A felhasználó későbbi terve inkább az otthoni MacBookról csomagot készíteni, az irodai Mac Studión renderelni. Az éjszakai futási idő elfogadható. A következő kijelölt fejlesztés ettől függetlenül most az r187 frissítés.
+- A felhasználó későbbi terve inkább az otthoni MacBookról csomagot készíteni, az irodai Mac Studión renderelni. Az éjszakai futási idő elfogadható. Az r187 frissítés elkészült; a Safari-vizuális kontroll és a Mini végső 5K-eredménye nyitott.
 
 ## WebGPU path tracer: ellenőrzött tudás
 
 A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je valódi, de az üvegen átjutó közvetlen árnyéksugarak általános megoldása nem következik belőle.
 
-- A hivatalos changelog szerint a WebGPUPathTracer **0.0.25-ben, 2026-09-28-án** jelent meg, a 0.0.27 2026-10-08-i. Ezt a 0.0.27-et az app már használja.
+- A hivatalos changelog szerint a WebGPUPathTracer **0.0.25-ben, 2026-09-28-án** jelent meg, a 0.0.27 2026-10-08-i. Az app ennek egzakt upstream r187-kompatibilitási commitját (`45919f3`) használja, amíg ugyanez kiadott verzióban meg nem jelenik.
 - A kamerából induló sugár transzmissziója/fénytörése és a felületről a fény felé indított NEE shadow ray kezelése külön feladat. A megvizsgált `PathTracerMegaKernel.js` a közvetlen fényhez bináris occlusion-t vizsgál; a kód a színezett áttetsző árnyékokat lehetséges továbbfejlesztésként említi. MNEE/kausztika a roadmap Future részében van. Ebből nem következik, hogy semmilyen fény nem jut át üvegen, de az általános „ablakon átjövő direkt napfény megoldva” állítás nem igazolt.
 - Compute shader használata nem jelenti a hardveres RT/RTX-egységek közvetlen használatát; itt a BVH-bejárást/metszést shaderkód végzi.
 - Források: [tracer changelog](https://github.com/gkjohnson/three-gpu-pathtracer/blob/main/CHANGELOG.md), [shader](https://github.com/gkjohnson/three-gpu-pathtracer/blob/main/src/webgpu/compute/PathTracerMegaKernel.js), [roadmap #777](https://github.com/gkjohnson/three-gpu-pathtracer/issues/777). Friss állításnál az aktuális forrást újra ellenőrizzük, ne általános Three.js/WebGPU hírből következtessünk kész tracerfunkcióra.
+
+## Tervezett headless final render és figyelendő natív Metal-alternatíva
+
+- A kijelölt final-render irány egy **rádobós, headless Blender/Cycles segéd**: a Drop & View marad a Blender-ismeretet nem igénylő szerkesztő/komponáló felület, a `.dvrender` csomagot egy külön macOS-es indító adja át a háttérben futó Cyclesnek, Metal GPU-val. A webes path tracer megmarad gyors, integrált előnézetnek; a Cycles mellette, nem helyette készít nagy felbontású PNG/EXR finalt. Célnak a stabil Blender 5.2.3 LTS lett kiválasztva; a 5.3 Beta most nem része a támogatott útnak.
+- A terjeszthető kliens végleges iránya **nem localhost-szerver és nem böngésző-extension**. Elsőként natív SwiftUI macOS-app készül saját drag-and-drop ablakkal, valódi Cycles sample/progress kijelzéssel, Cancel és Show in Finder funkcióval, `.dvrender` fájltársítással, Blender-felderítéssel, Developer ID aláírással és notarizálással. A felhasználó nem lát Terminalt vagy Pythont; a Blender saját beépített Pythonja futtat egy vékony, az app bundle-be tett `bpy` adaptert, külön Python-runtime nélkül.
+- A Blender-adapter és a Swift kliens közti kommunikáció eleve platformfüggetlen JSON-soros protokoll legyen (`stage`, `sample`, `total`, `remaining`, `output`, strukturált hiba). A renderlogika közös marad; később egy vékony natív C#/WinUI Windows-kliens épül rá. A GPU-választást általánosítani kell: NVIDIA RTX → OptiX, régebbi NVIDIA → CUDA, AMD → HIP, Intel Arc → oneAPI, Apple Silicon → Metal, végül CPU fallback. Így a két platform csak a natív GUI-ban, Blender-felderítésben, fájltársításban és telepítő/aláírási folyamatban tér el.
+- A Cycles bridge elkészült a `tools/cycles/` alatt: a valódi macOS-dropletként fordított `Drop & View Cycles.app` fogad egy vagy több rádobott GLB-t vagy `.dvrender` csomagot, dupla kattintáskor pedig natív többfájlos választót nyit. Az app a naplóhoz Terminalt nyit, majd a `Render with Cycles.command` indítón át futtatja a `render_glb.py` fájlt; Blender UI nélkül importál, Cycles/Metalra áll, denoise-ol és PNG-t ír a bemenet mellé. A Terminal előkészítés közben mozgó aktivitássávot és eltelt időt, render közben pedig Blender-statisztikából származó valódi sample-százalékot és hátralévőidő-becslést mutat; siker után a Finder kijelöli a képet. Sima GLB-nél exporter-metaadat esetén az `asset.extras.dropView.initialView` kameráját és napirányát használja, különben automatikusan keretez. A valódi `demo_house.glb` próbán felismerte az **Apple M1 Max 32-core Metal GPU-t**, a GLB-import kb. 0,67 s volt; az első shaderes futás kb. 1:53, utána a 640 × 360 / 16 samples ellenőrzőkép teljes renderideje kb. 2,6 s. A kép érvényes, az épület, textúrák, üveg, vegetáció és exporter-kamera megjelent.
+- A `.dvrender` v1 szándékosan lapos és nem lossless projektarchívum: pontosan egy, az aktuális Workbench-anyagokat már tartalmazó GLB a 0. erőforrás, mellette opcionálisan az aktív HDRI. Nincs original GLB, külön Workbench-handoff vagy második resolved GLB; a kamera, láthatóság és renderbeállítás a manifestben marad. Ugyanaz a `patchGlbMaterials` út állítja elő az aktuális GLB-t, mint a bevált SAVE GLB funkció. A korábbi kísérleti v1 csomagokat sem a viewer, sem a Cycles bridge nem támogatja; újra kell exportálni őket. A döntés tudatos: a forrás GLB Archicadből újra előállítható, a mentett scene pedig a pillanatnyi anyagozott állapotból folytatható.
+- `.dvrender` esetén a bridge korlátozott méretekkel és erőforrásszámmal, streamelve bontja ki a GLB/HDRI erőforrást, majd visszaállítja a viewer aktuális perspektív vagy ortografikus kameráját, modellközpontosítását, felső szintű csoportláthatóságát, pixelméretét, sample/bounce célját és a csomagolt HDRI-t. A HDRI legfényesebb nappontját a mentett `sunAngle`/`sunHeight` irányhoz forgatja, külön Sun lámpa nélkül, így nem keletkezik kettős nap. Egy valódi GLB+HDRI tartalmú 37 MB-os tesztcsomag 320 × 180 / 4 samples beállítással 2,18 s alatt készült el. A generált csomag kódolási és Cycles-folyamata igazolt; következő vizuális kontrollként egy közvetlenül a böngészőből mentett, tényleges Workbench-edites csomagot kell összehasonlítani a webes nézettel.
+- Jövőbeni natív alternatívaként figyelendő: [dariopagliaricci/Metal-PathTracer-arm64](https://github.com/dariopagliaricci/Metal-PathTracer-arm64). MIT licencű C++/Objective-C++/Metal renderer, GLB/PBR betöltéssel, headless CLI-val, HDRI/MIS-szel és PNG/EXR kimenettel. A `v3.0.0` aktuális nyilvános checkoutja helyben felépült, és a `demo_house.glb` fájlból 58 mesht, 322 570 háromszöget és 6 textúrát beolvasott; a tényleges render azonban a jelenlegi Metal compilerrel shaderfordítási hibán (`thread Ray currentRay`) megállt. A publikus CI csak buildet és `--help` smoke-ot futtat, GPU-rendert nem.
+- A natív tracer jelenleg nem közvetlen `.dvrender`-fogadó: saját `.scene` wrapper kell hozzá. A glTF importerben transmission/volume/IOR van, de `KHR_materials_clearcoat` nincs, ezért a Drop & View LACQUERED anyaga külön fejlesztést igényelne; az ortografikus kamerautat és a Drop & View-napot is ki kellene egészíteni. M1 Maxon dedikált hardveres RT helyett a renderer software BVH Metal útja használható. Emiatt most nem váltja ki a Cycles tervet, de később érdemes ugyanazzal a resolved GLB-vel sebesség-, memória- és képminőségtesztet futtatni, majd csak mért eredmény alapján újraértékelni.
 
 ## Megőrzendő korábbi döntések és regressziók
 
@@ -129,6 +137,7 @@ A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je va
 | `js/ui/render-station.js`, `js/ui/render-queue.js`, `js/ui/render-queue-store.js` | Export RENDER fül, sor/vezérlés, automatikus letöltés, IndexedDB-megőrzés. |
 | `js/view/render-worker.js`, `js/view/render-worker-settings.js`, `js/view/render-frame.js` | Worker-protokoll, takarékosabb GPU-ütemezés, rögzített pixelméret/képarány. |
 | `js/core/render-snapshot.js`, `render-job.js`, `render-environment.js`, `environment-source.js`, `render-compatibility.js` | Csomagformátum, célok, HDRI, producer/kompatibilitás. A rövidített nevek mind a `js/core/` alatt vannak. |
+| `tools/cycles/` | Rádobós macOS headless Blender/Cycles bridge GLB és `.dvrender` bemenettel. |
 | `js/view/photo1.js`, `webgpu-lab/full-photo.js`, `js/view/photo-clearcoat.js` | Két eltérő tracer adapter és Safari clearcoat-javítás. |
 | `js/view/webgl-environment.js`, `webgpu-lab/full-scene.js` | Normál előnézet HDRI-je/PMREM-je; r187 szempontjából érintett. |
 | `js/core/backend-handoff.js`, `session-runtime.js` | Backend-váltáskor egyszer használatos IndexedDB-handoff. |
@@ -141,13 +150,13 @@ A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je va
 1. `git status -sb`, szükség szerint pull; a felhasználó módosításait őrizzük meg.
 2. Node.js és pnpm helyi telepítése; `pnpm --dir webgpu-lab install` a lockfile alapján. Az előző gépen a `node` nem volt a shell PATH-ban; ne a gépspecifikus Codex-runtime abszolút útvonalát másoljuk át megoldásként.
 3. Helyi szerver a repó gyökeréből: `python3 -m http.server 8000`. Normál `http://127.0.0.1:8000/`; debug `http://127.0.0.1:8000/?rendererDebug=1`. Meglévő szervert ne állítsunk le találomra.
-4. `node --test` / `npm test`; `pnpm --dir webgpu-lab build:public` vagy `node webgpu-lab/build-unified.mjs --public`; végül `git diff --check`. A build mindkét `renderers/` csomagot frissíti; új hash-fájlokat és régi fájlok törlését együtt kell commitolni. Jelenlegi belépő/cache-jelölés: `render-queue-1` (`index.html`, worker URL).
+4. `node --test` / `npm test`; `pnpm --dir webgpu-lab build:public` vagy `node webgpu-lab/build-unified.mjs --public`; végül `git diff --check`. A build mindkét `renderers/` csomagot frissíti; új hash-fájlokat és régi fájlok törlését együtt kell commitolni. Jelenlegi belépő/cache-jelölés: `three-r187-3` (`index.html`, worker URL).
 5. Automatikus teszt nem helyettesíti a WebGL/WebGPU/Safari képi próbát. Az átadó frissítése dokumentációs módosítás, emiatt új renderer build nem készült.
 
 Publikus oldal: <https://hildgyorgy.github.io/drop-3d-view/>. A repó saját licencű, külső összetevők licencei a README-ben. A support oldal **külön `app-support` repó**, `drop-view/index.html`; a fő viewer commitja nem viszi át. A korábbi 2.0/Workbench támogatási leírás létezik, az új Export/sor/mérőszalag támogatási oldalon történő teljes bemutatását ebben a körben nem ellenőriztük/frissítettük.
 
 ## Következő chat indítása
 
-„Olvasd el a `PROJECT_HANDOFF.md` és `README.md` fájlt, ellenőrizd a `git status -sb` eredményét. A következő cél a Three.js r187-re frissítése a WebGL/WebGPU, Workbench és render queue regresszióinak ellenőrzésével. A Mini 5K/500 samples próbájának végső eredménye még nem ismert.”
+„Olvasd el a `PROJECT_HANDOFF.md` és `README.md` fájlt, ellenőrizd a `git status -sb` eredményét. A Three.js r187 frissítés elkészült; a valódi Safari LACQUERED/üveg/Workbench/render queue vizuális kontroll még szükséges. A Mini 5K/500 samples próbájának végső eredménye továbbra sem ismert.”
 
 Az átadó tájékozódási pont; a felhasználó frissebb döntéseit, méréseit és a tényleges kódot nem írja felül.

@@ -37,7 +37,8 @@ test("Draco support uses the pinned CDN decoder without bundled copies", async (
   for (const backend of ["webgl", "webgpu"]) {
     const bundle = await readFile(new URL(`renderers/${backend}/main.js`, root), "utf8");
     const assets = await readdir(new URL(`renderers/${backend}/assets/`, root));
-    assert.match(bundle, /https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.186\.0\/examples\/jsm\/libs\/draco\/draco_decoder\.wasm/);
+    assert.match(bundle, /https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.187\.0\/examples\/jsm\/libs\/draco\/draco_decoder\.wasm/);
+    assert.doesNotMatch(bundle, /three@0\.186\.0/);
     assert.match(bundle, /setDecoderPath/);
     assert.equal(assets.some(name => /draco|\.wasm$/.test(name)), false);
   }

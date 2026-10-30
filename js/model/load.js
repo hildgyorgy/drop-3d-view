@@ -74,7 +74,7 @@ const dracoLoader = new DRACOLoader();
 const modelOpenGate = createLatestRequestGate();
 
 dracoLoader.setDecoderPath(
-  "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/libs/draco/"
+  "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/libs/draco/"
 );
 
 function reportOpenFailure(startMessage, retainedMessage) {

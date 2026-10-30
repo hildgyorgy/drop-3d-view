@@ -4,7 +4,7 @@ import { APP_VERSION } from "./version.js";
 // when changing rendering behaviour without changing the public app version.
 export const RENDER_PRODUCER = Object.freeze({
   appVersion: APP_VERSION,
-  rendererRevision: "webgl-photo-1",
+  rendererRevision: "webgl-photo-3",
   hdriId: "sha256:e70bf97a44982db07fb952b1f74c07e818649c2bbdfeb6ad4f98af7b4431a38f"
 });
 
