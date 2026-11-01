@@ -24,7 +24,6 @@ import {
   openButton,
   demoButton,
   demo2Button,
-  openAgain,
   fileInput,
   sunAngle,
   sunHeight
@@ -104,7 +103,7 @@ function preserveGLTFGroupLabels(result) {
    OPEN
 ====================================================== */
 
-openButton.onclick = openAgain.onclick = () => {
+openButton.onclick = () => {
   fileInput.value = "";
 
   fileInput.click();

@@ -23,7 +23,7 @@ import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=glass-light-test";
 import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
 import { bindFocusCanvas } from "./view/focus.js";
-import { getPhoto1Stats, renderPhoto1, resizePhoto1, deactivatePhoto1 } from "./view/photo1.js";
+import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
 import { resolveComparisonModelUrl } from "./model/file-format.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
@@ -39,9 +39,7 @@ import { setStatus } from "./ui/status.js";
 import { applyImportedRenderFrame, clearImportedRenderFrame,
   resizeImportedRenderFrame } from "./view/render-frame.js";
 import { makeRenderJob, setRenderJob } from "./core/render-job.js";
-import { renderWorkerMode } from "./core/render-worker-mode.js";
-import { bindRenderStation } from "./ui/render-station.js";
-import { startRenderWorker } from "./view/render-worker.js";
+import { bindFilePanel } from "./ui/file-panel.js";
 import { captureRenderEnvironment, environmentIdentity, getPackagedEnvironment,
   validateRenderEnvironment } from "./core/environment-source.js";
 
@@ -84,10 +82,6 @@ const viewportObserver = globalThis.ResizeObserver
 viewportObserver?.observe(document.documentElement);
 
 function animate(time) {
-  if (renderWorkerMode) {
-    renderPhoto1();
-    return;
-  }
   updateNavigation(time);
 
   // OrbitControls damping changes the camera for several frames after the
@@ -163,7 +157,7 @@ function bindRenderSnapshotControls() {
       update();
     }
   });
-  bindRenderStation({ openPackage: async file => {
+  bindFilePanel({ openPackage: async file => {
     exporting = true;
     update();
     try {
@@ -223,13 +217,13 @@ function bindRenderSnapshotControls() {
   });
 }
 
-async function restoreRenderSnapshot(packageFile, { worker = false } = {}) {
+async function restoreRenderSnapshot(packageFile) {
   const snapshot = await decodeRenderSnapshot(packageFile);
   await validateRenderEnvironment(snapshot.environment, snapshot.producer);
   if (!await openFile(snapshot.file, { sourceKind: "user", environment: snapshot.environment }))
     throw new Error("Could not open the packaged GLB");
   restoreCurrentViewSession(snapshot.viewSession);
-  applyImportedRenderFrame(snapshot.renderSize ?? (worker ? { width: 1920, height: 1080 } : null));
+  applyImportedRenderFrame(snapshot.renderSize);
   const job = snapshot.renderJob ?? makeRenderJob(500);
   setRenderJob(job);
   return { width: renderer.domElement.width, height: renderer.domElement.height,
@@ -264,32 +258,11 @@ async function boot() {
   if (shouldLoadMaterialWorkbench(readEmbedConfiguration())) {
     materialWorkbench = await import("./ui/material-workbench.js");
     measurements = await import("./ui/measurements.js");
-    if (!renderWorkerMode) bindRenderSnapshotControls();
-  }
-  if (renderWorkerMode) {
-    // A timer keeps the offscreen document independent of display refresh.
-    let timer;
-    let stopped = false;
-    const tick = () => {
-      animate(performance.now());
-      timer = setTimeout(tick, 16);
-    };
-    const stop = () => {
-      if (stopped) return;
-      stopped = true;
-      clearTimeout(timer);
-      deactivatePhoto1({ restoreStatus: false });
-      renderer.dispose();
-      renderer.forceContextLoss();
-    };
-    window.addEventListener("pagehide", stop, { once: true });
-    tick();
-    startRenderWorker(restoreRenderSnapshot, stop);
-    return;
+    bindRenderSnapshotControls();
   }
   renderer.setAnimationLoop(animate);
 
-  // Optional local comparison fixture; regular users still choose OPEN/DEMO.
+  // Optional local comparison fixture; regular users still choose FILE/DEMO.
   const fixtureValue = new URLSearchParams(location.search).get("model");
   const fixture = resolveComparisonModelUrl(fixtureValue, location.href);
   if (fixtureValue && !fixture)

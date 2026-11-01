@@ -52,7 +52,7 @@
       <header id="topbar">
         <div class="brand">
           <div class="brand-primary">
-            <button id="openAgain" title="Open a 3D model">OPEN</button>
+            <button id="openAgain" title="Open file tools">FILE</button>
             <div class="about-dock">
               <button
                 id="aboutButton"
@@ -103,9 +103,6 @@
                     hidden
                   >
                     MEASUREMENTS
-                  </button>
-                  <button id="renderStationEntry" class="about-workbench" type="button" hidden>
-                    EXPORT
                   </button>
                 </div>
                 <div id="rendererPicker" class="renderer-picker" hidden>
@@ -505,24 +502,36 @@
         };
       }
     </script>
-    <dialog id="renderStation" class="render-station" aria-labelledby="renderStationTitle">
+    <dialog id="filePanel" class="file-panel" aria-labelledby="filePanelTitle">
       <header>
-        <h2 id="renderStationTitle">EXPORT</h2>
-        <button type="button" data-close aria-label="Close export">X</button>
+        <h2 id="filePanelTitle">FILE</h2>
+        <button type="button" data-close aria-label="Close file tools">X</button>
       </header>
-      <div class="export-tabs" role="tablist" aria-label="Export and render">
-        <button id="exportTab" type="button" role="tab" aria-selected="true" aria-controls="exportPanel" data-tab="export">EXPORT</button>
-        <button id="renderTab" type="button" role="tab" aria-selected="false" aria-controls="renderPanel" tabindex="-1" data-tab="render">RENDER</button>
+      <div class="file-tabs" role="tablist" aria-label="Import and export">
+        <button id="importTab" type="button" role="tab" aria-selected="true" aria-controls="importPanel" data-tab="import">IMPORT</button>
+        <button id="exportTab" type="button" role="tab" aria-selected="false" aria-controls="exportPanel" tabindex="-1" data-tab="export">EXPORT</button>
       </div>
-      <div id="exportPanel" class="export-panel" role="tabpanel" aria-labelledby="exportTab" data-pane="export">
-        <section class="export-section" aria-labelledby="exportModelTitle">
+      <div id="importPanel" class="file-pane" role="tabpanel" aria-labelledby="importTab" data-pane="import">
+        <section class="file-section" aria-labelledby="importModelTitle">
+          <h3 id="importModelTitle">MODEL</h3>
+          <button id="openModelFile" type="button">OPEN GLB</button>
+        </section>
+        <section class="file-section" aria-labelledby="importPackageTitle">
+          <h3 id="importPackageTitle">RENDER PACKAGE</h3>
+          <button id="openRenderPackage" type="button">OPEN .DVRENDER</button>
+          <input id="renderPackageInput" type="file" accept=".dvrender" hidden>
+          <p id="renderPackageStatus" role="status" aria-live="polite"></p>
+        </section>
+      </div>
+      <div id="exportPanel" class="file-pane" role="tabpanel" aria-labelledby="exportTab" data-pane="export" hidden>
+        <section class="file-section" aria-labelledby="exportModelTitle">
           <h3 id="exportModelTitle">MODEL</h3>
           <p id="exportModelName" class="export-model-name">—</p>
           <button id="exportGlb" type="button" disabled>SAVE GLB</button>
           <p id="exportGlbHint" class="render-snapshot-hint" hidden>VIEW-ONLY · ASK THE MODEL OWNER FOR AN EDITABLE GLB</p>
           <p id="exportGlbStatus" role="status" aria-live="polite"></p>
         </section>
-        <section class="export-section" aria-labelledby="renderExportTitle">
+        <section class="file-section" aria-labelledby="renderExportTitle">
           <h3 id="renderExportTitle">RENDER PACKAGE</h3>
           <div id="renderJobControls" class="render-job-controls" hidden>
             <div class="export-render-size"><span>IMAGE</span><output id="renderExportSize" aria-label="Export image size">—</output></div>
@@ -534,29 +543,6 @@
           <p id="renderSnapshotHint" class="render-snapshot-hint" hidden>Turn off SECTION before exporting a render package.</p>
           <p id="renderSnapshotStatus" role="status" aria-live="polite"></p>
         </section>
-      </div>
-      <div id="renderPanel" class="export-panel" role="tabpanel" aria-labelledby="renderTab" data-pane="render" hidden>
-        <h3>PACKAGES</h3>
-        <div class="render-package-drop" data-package-drop>
-          <button type="button" data-choose>CHOOSE PACKAGES</button>
-          <ul class="render-package-list" data-package-list aria-label="Render queue"></ul>
-        </div>
-        <input type="file" accept=".dvrender" multiple hidden>
-        <div class="render-station-actions">
-          <button type="button" data-open-package disabled>OPEN IN VIEWER</button>
-          <button type="button" data-render-package disabled>START QUEUE</button>
-        </div>
-        <p data-render-status role="status" aria-live="polite"></p>
-        <p data-details class="render-station-details"></p>
-        <p data-compatibility class="render-station-warning" aria-live="polite" hidden></p>
-        <progress hidden aria-label="Render progress"></progress>
-        <div class="render-station-actions">
-          <button type="button" data-pause hidden>PAUSE</button>
-          <button type="button" data-skip hidden>SKIP</button>
-          <button type="button" data-cancel hidden>CANCEL</button>
-        </div>
-        <p data-queue-warning class="render-station-warning" role="status" hidden></p>
-        <p data-keep-open class="render-station-note" hidden>Keep this tab open while rendering.</p>
       </div>
     </dialog>
     <script type="module" src="js/core/renderer-bootstrap.js?v=three-r187-3"></script>

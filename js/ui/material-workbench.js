@@ -1,7 +1,6 @@
 // Public standalone material editor. The opened GLB is never overwritten; download is
 // a copy with material records patched into the original binary container.
 import * as THREE from "three";
-import { renderWorkerMode } from "../core/render-worker-mode.js";
 import { State } from "../core/state.js";
 import { renderer } from "../core/scene.js";
 import { setViewMode } from "../view/view-modes.js";
@@ -416,7 +415,6 @@ function clearSpherePreview() {
 }
 
 async function refreshSpherePreview() {
-  if (renderWorkerMode) return;
   const generation = ++spherePreviewGeneration;
   const images = { ...packageImages };
   if (!Object.values(images).some(Boolean)) {

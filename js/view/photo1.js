@@ -34,8 +34,6 @@ import { getSunDirectionFromControls } from "./ground-sun.js";
 import { setStatus } from "../ui/status.js";
 import { PHOTO_BOUNCES, PHOTO_TRANSMISSIVE_BOUNCES,
   getRenderJob, setRenderJob } from "../core/render-job.js";
-import { configureRenderWorkerTracer } from "./render-worker-settings.js";
-import { renderWorkerMode } from "../core/render-worker-mode.js";
 import { getEnvironmentSource } from "../core/environment-source.js";
 
 // Dormant interior-lighting experiment. True restores the GLASS LIGHT button;
@@ -641,13 +639,8 @@ async function activatePhoto1() {
     pathTracer.minSamples = 2;
     pathTracer.fadeDuration = 240;
     pathTracer.tiles.set(2, 2);
-    if (renderWorkerMode) configureRenderWorkerTracer(pathTracer, {
-      width: renderer.domElement.width, height: renderer.domElement.height
-    });
-
     // Let the loading message reach the screen before the synchronous BVH build.
-    await new Promise(resolve => renderWorkerMode
-      ? setTimeout(resolve, 0) : requestAnimationFrame(resolve));
+    await new Promise(resolve => requestAnimationFrame(resolve));
     if (!active || currentActivation !== activation) return;
     prepareScene();
     updatePhotoSaveButtonState();
@@ -783,7 +776,7 @@ export function renderPhoto1() {
   if (!active) return false;
 
   if (!pathTracer || preparing) {
-    if (!renderWorkerMode) renderer.render(scene, State.camera);
+    renderer.render(scene, State.camera);
     return true;
   }
 

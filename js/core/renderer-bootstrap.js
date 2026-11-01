@@ -1,7 +1,6 @@
 /* One document/UI, with renderer-specific module graphs selected at startup. */
 import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js";
 import { saveBackendHandoff, takeBackendHandoff } from "./backend-handoff.js?v=embedded-hdri-1";
-import { renderWorkerMode } from "./render-worker-mode.js";
 import {
   enableEmbedBridge,
   readEmbedConfiguration,
@@ -11,7 +10,7 @@ import {
 const localComparison = location.hostname === "127.0.0.1" && location.port === "8001";
 const packagedRenderers = window.__DROP_VIEW_RENDERER_PACKAGES__ || null;
 const comparison = Boolean(packagedRenderers) || localComparison;
-const showPicker = !renderWorkerMode && comparison && new URLSearchParams(location.search).has("rendererDebug");
+const showPicker = comparison && new URLSearchParams(location.search).has("rendererDebug");
 const modeKey = "drop-view-renderer-mode";
 let mode = activeRendererMode(showPicker, showPicker ? localStorage.getItem(modeKey) : null);
 const backend = chooseRendererBackend(mode, Boolean(navigator.gpu));
