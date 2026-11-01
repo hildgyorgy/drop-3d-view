@@ -10,3 +10,7 @@ webgpu-lab/comparison.glb
 
 # Generated single-origin preview (not the published site)
 webgpu-lab/dist-unified/
+
+# Playwright browser-test output
+playwright-report/
+test-results/

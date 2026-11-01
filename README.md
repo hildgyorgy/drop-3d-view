@@ -135,11 +135,18 @@ Draco-compressed user GLBs remain supported. Their decoder is fetched on demand 
 
 The baked WebGPU preview calibration also applies outside debug mode. With `?rendererDebug=1` and WEBGPU selected, open the **WEBGPU TUNING** panel at the upper right to adjust it live, including separate glass transparency for WHITE/HIDDEN and B&W. SAVE keeps the values in this browser for later debug sessions; COPY JSON gives you the exact numbers to share or bake into the defaults. RESET restores the current code defaults. The controls are disabled while the path tracer is active.
 
-The model, camera, backend and section logic have automated tests. With Node.js installed, run:
+The model, camera, backend and section logic have automated tests. With Node.js and pnpm installed, run:
 
 ```sh
-npm test
+pnpm test
+pnpm exec playwright install webkit  # first browser-test run on a new machine
+pnpm test:smoke
 ```
+
+The WebKit smoke test opens a user GLB, verifies a visible rendered canvas,
+saves and reopens a `.dvrender` package, and checks the WebGPU backend handoff
+when the test browser exposes a usable GPU adapter. GitHub Actions runs the
+unit and WebKit smoke suites on every pull request and push to `main`.
 
 ## Project layout
 
