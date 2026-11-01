@@ -9,12 +9,21 @@
 import * as THREE from "three";
 import { State } from "../core/state.js";
 import { scene, renderer, sun } from "../core/scene.js";
+import { invalidateShadow } from "../core/shadow-update.js";
 import { sunAngle, sunHeight, shadowToggle } from "../core/dom.js";
 import { renaissanceMaterial } from "../model/materials.js";
 import {
   normalizeImportedSunDirection,
   sunControlAngles
 } from "../model/sun-metadata.js";
+
+export function invalidateSunShadow() {
+  invalidateShadow(sun.shadow);
+}
+
+// The sun and model are static between explicit UI changes. Both renderer
+// backends support per-light shadow invalidation through LightShadow.
+invalidateSunShadow();
 
 /* ======================================================
    GROUND
@@ -88,6 +97,7 @@ export function configureSun() {
   sun.shadow.camera.far = State.maxModelSize * 8;
 
   sun.shadow.camera.updateProjectionMatrix();
+  invalidateSunShadow();
 }
 
 export function applyImportedSun(sunData) {
@@ -125,6 +135,7 @@ shadowToggle.addEventListener("change", () => {
   sun.castShadow = shadowToggle.checked;
 
   if (State.ground) State.ground.visible = shadowToggle.checked;
+  if (shadowToggle.checked) invalidateSunShadow();
 
   /*
        Shadow define változhat,

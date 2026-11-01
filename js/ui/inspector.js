@@ -7,6 +7,7 @@
 */
 
 import { State } from "../core/state.js";
+import { invalidateSunShadow } from "../view/ground-sun.js";
 import { forEachMesh } from "../core/model-utils.js";
 import {
   retainedControls,
@@ -137,6 +138,7 @@ export function inspectModel(file) {
         meshes.forEach(mesh => {
           mesh.visible = toggle.checked;
         });
+        invalidateSunShadow();
       });
 
       const text = document.createElement("span");

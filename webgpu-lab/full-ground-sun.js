@@ -9,6 +9,7 @@
 import * as THREE from "three";
 import { State } from "../js/core/state.js";
 import { scene, sun, syncWebGpuEnvironmentToSun } from "../js/core/scene.js";
+import { invalidateShadow } from "../js/core/shadow-update.js";
 import { sunAngle, sunHeight, shadowToggle } from "../js/core/dom.js";
 import { renaissanceMaterial } from "../js/model/materials.js";
 import {
@@ -20,6 +21,12 @@ import {
 // the same opacity. Calibrate only the empty ground; model shadows still use
 // the shared sun and hemisphere lights.
 export const WEBGPU_GROUND_SHADOW_OPACITY = 0.65;
+
+export function invalidateSunShadow() {
+  invalidateShadow(sun.shadow);
+}
+
+invalidateSunShadow();
 
 /* ======================================================
    GROUND
@@ -93,6 +100,7 @@ export function configureSun() {
   sun.shadow.camera.far = State.maxModelSize * 8;
 
   sun.shadow.camera.updateProjectionMatrix();
+  invalidateSunShadow();
   syncWebGpuEnvironmentToSun(direction);
 }
 
@@ -133,6 +141,7 @@ shadowToggle.addEventListener("change", () => {
   sun.shadow.intensity = shadowToggle.checked ? 1 : 0;
 
   if (State.ground) State.ground.visible = shadowToggle.checked;
+  if (shadowToggle.checked) invalidateSunShadow();
 
   /*
        Shadow define változhat,

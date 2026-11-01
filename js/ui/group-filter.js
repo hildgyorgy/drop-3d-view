@@ -16,12 +16,14 @@ import {
 import { syncEdgeGroupVisibility } from "../view/edges.js";
 import { scheduleSectionCapRebuild } from "../section/section-cap.js";
 import { invalidatePhoto1Scene } from "../view/photo1.js";
+import { invalidateSunShadow } from "../view/ground-sun.js";
 
 let groups = [];
 
 function refreshDerivedGeometry() {
   syncEdgeGroupVisibility();
   if (State.sectionEnabled) scheduleSectionCapRebuild();
+  invalidateSunShadow();
   invalidatePhoto1Scene();
 }
 
@@ -78,6 +80,7 @@ export function clearGroupFilter() {
 export function applyGroupVisibility() {
   groups.forEach(group => setModelGroupVisible(group, group.visible));
   syncEdgeGroupVisibility();
+  invalidateSunShadow();
 }
 
 export function getGroupVisibilitySnapshot() {

@@ -24,10 +24,9 @@ Az r187-átállás ellenőrzésekor a teljes akkori tesztkészlet sikeres volt, 
 
 ## Gépváltási pillanatkép
 
-- A 2026-11-01-i kódfelülvizsgálat előtt a követett fájlok working tree-je **tiszta** volt: `main...origin/main`; csak az ellenőrzéshez átadott `drop&view.zip` volt untracked. Ez nem új hálózati fetch/push vagy élő GitHub Pages-ellenőrzés eredménye.
-- A jelenlegi javítások alapcommitja: **`4d50333` – menu**. A felülvizsgálati javítások e sor írásakor még nincsenek commitolva.
+- A 2026-11-01-i kódfelülvizsgálati javítások alapcommitja **`4d50333` – menu**, az első javításcsomag commitja pedig **`c299e57` – Harden render package import and cleanup**.
 - Előző fontos commitok: `dcdd17d` – render; `4ba3830` – Update PROJECT_HANDOFF.md; `17701f5` – render popup refine; `d712a1e` – render station bugfix.
-- **130/130 teszt sikeres** a 2026-11-01-i kódfelülvizsgálat javításai után. A `.dvrender` kódoló/dekódoló változatlan v1 bájtszerkezet mellett már nem készít szükségtelen teljes csomagméretű másolatot; az ablakra dobott `.dvrender` közvetlenül megnyílik. A publikus renderer buildet forrásváltozás után mindig újra kell készíteni. A nagy chunkokra vonatkozó buildfigyelmeztetés nem buildhiba.
+- **132/132 teszt sikeres** a 2026-11-01-i kódfelülvizsgálat javításai után. A `.dvrender` kódoló/dekódoló változatlan v1 bájtszerkezet mellett már nem készít szükségtelen teljes csomagméretű másolatot; az ablakra dobott `.dvrender` közvetlenül megnyílik. A nap árnyéktérképe mindkét backendben igény szerint frissül: kamera- vagy tétlen képkockák nem számolják újra, de nap-, modell-, csoport-, elem- és metszetváltozáskor érvénytelenítjük. A publikus renderer buildet forrásváltozás után mindig újra kell készíteni. A nagy chunkokra vonatkozó buildfigyelmeztetés nem buildhiba.
 - A felülvizsgálati kód-, teszt-, dokumentáció- és generált renderer-változásokat együtt kell commitolni/pusholni; a másik gépen pull szükséges. A jelen körben nem indítottunk GitHub Pages-publikálást.
 - A használt helyi tesztszervereket leállítottuk. A korábbi gép `/tmp`, Downloads, Desktop és Codex-runtime útvonalai nem hordozható tesztfüggőségek.
 

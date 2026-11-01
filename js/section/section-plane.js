@@ -20,6 +20,7 @@ import {
 import { scheduleSectionCapRebuild } from "./section-cap.js";
 import { sectionCapMaterial, sectionEdgeMaterial } from "../model/materials.js";
 import { deactivatePhoto1, updatePhoto1Availability } from "../view/photo1.js";
+import { invalidateSunShadow } from "../view/ground-sun.js";
 
 /* ======================================================
    SECTION
@@ -177,5 +178,6 @@ export function applyClipping() {
     });
   }
 
+  invalidateSunShadow();
   scheduleSectionCapRebuild();
 }
