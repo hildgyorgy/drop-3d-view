@@ -98,3 +98,17 @@ export function preparePreviewEnvironment() {
     });
   return previewEnvironmentReady;
 }
+
+// A lost WebGPU device cannot be restored on the existing renderer. The app
+// reloads this backend with a handoff, but keep the shared scene contract whole.
+export function rebuildPreviewEnvironment() {
+  return preparePreviewEnvironment();
+}
+
+const defaultDeviceLost = renderer.onDeviceLost.bind(renderer);
+renderer.onDeviceLost = info => {
+  defaultDeviceLost(info);
+  window.dispatchEvent(new CustomEvent("dropview:gpu-device-lost", {
+    detail: { ...info, scope: "viewer" }
+  }));
+};

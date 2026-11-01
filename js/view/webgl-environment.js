@@ -17,6 +17,7 @@ let loading = null;
 let loadedUrl = null;
 let loadingUrl = null;
 let environmentTarget = null;
+let environmentGeneration = 0;
 
 // Production always uses the calibrated HDRI. Keep the comparison switch only
 // in debug mode, starting enabled and without storing a browser preference.
@@ -44,9 +45,14 @@ async function loadEnvironment() {
   if (environment && loadedUrl === source.url) return;
   if (loading && loadingUrl === source.url) return loading;
   loadingUrl = source.url;
+  const generation = environmentGeneration;
   const request = loadEnvironmentTexture(source)
     .then(({ texture, sunDirection }) => {
-      if (getEnvironmentSource().url !== source.url) { texture.dispose(); return; }
+      if (generation !== environmentGeneration ||
+          getEnvironmentSource().url !== source.url) {
+        texture.dispose();
+        return;
+      }
       if (sunDirection) sourceSun.copy(sunDirection);
       const generator = new THREE.PMREMGenerator(renderer);
       try {
@@ -78,6 +84,19 @@ async function loadEnvironment() {
 
 export function preparePreviewEnvironment() {
   return toggle.checked ? loadEnvironment() : Promise.resolve();
+}
+
+export async function rebuildPreviewEnvironment() {
+  environmentGeneration += 1;
+  loading = null;
+  loadingUrl = null;
+  if (scene.environment === environment) scene.environment = null;
+  environmentTarget?.dispose();
+  environmentTarget = null;
+  environment = null;
+  loadedUrl = null;
+  if (toggle.checked) await loadEnvironment();
+  else applyEnvironment();
 }
 
 window.addEventListener("dropview:model-loaded", () => {

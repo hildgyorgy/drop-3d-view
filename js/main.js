@@ -17,13 +17,15 @@
 */
 
 import { State } from "./core/state.js";
-import { backendKind, scene, renderer, perspectiveCamera, preparePreviewEnvironment } from "./core/scene.js";
+import { backendKind, scene, renderer, perspectiveCamera, preparePreviewEnvironment,
+  rebuildPreviewEnvironment } from "./core/scene.js";
 import { updateOrthoFrustum } from "./view/camera.js";
 import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=glass-light-test";
 import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
 import { bindFocusCanvas } from "./view/focus.js";
-import { getPhoto1Stats, renderPhoto1, resizePhoto1, capturePhotoImage } from "./view/photo1.js";
+import { getPhoto1Stats, renderPhoto1, resizePhoto1, capturePhotoImage,
+  deactivatePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
 import { isRenderPackageFile, resolveComparisonModelUrl } from "./model/file-format.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
@@ -43,12 +45,12 @@ import { makeRenderJob, setRenderJob } from "./core/render-job.js";
 import { bindFilePanel } from "./ui/file-panel.js";
 import { captureRenderEnvironment, environmentIdentity, getPackagedEnvironment,
   validateRenderEnvironment } from "./core/environment-source.js";
+import { invalidateSunShadow } from "./view/ground-sun.js";
 
 // mellékhatás-importok: ezek a modulok maguktól
 // feliratkoznak a saját gombjaikra/eseményeikre
 import "./section/section-plane.js";
 import "./view/view-modes.js";
-import "./view/ground-sun.js";
 import "./view/show-all.js";
 import "./ui/group-filter.js";
 import "./ui/panel.js?v=about-sheet";
@@ -82,7 +84,10 @@ const viewportObserver = globalThis.ResizeObserver
   : null;
 viewportObserver?.observe(document.documentElement);
 
+let gpuContextRecovering = false;
+
 function animate(time) {
+  if (gpuContextRecovering) return;
   updateNavigation(time);
 
   // OrbitControls damping changes the camera for several frames after the
@@ -100,6 +105,42 @@ function animate(time) {
 let materialWorkbench = null;
 let measurements = null;
 let openingDroppedFile = false;
+
+function bindGpuRecovery() {
+  window.addEventListener("dropview:gpu-recovered", () => {
+    setStatus(`${State.currentFileName || "MODEL"} · GPU RECOVERED`);
+  });
+  if (backendKind !== "webgl") return;
+
+  renderer.domElement.addEventListener("webglcontextlost", event => {
+    event.preventDefault();
+    if (gpuContextRecovering) return;
+    gpuContextRecovering = true;
+    deactivatePhoto1({ restoreStatus: false });
+    setStatus("GPU CONTEXT LOST · WAITING FOR RESTORE…");
+    window.dispatchEvent(new CustomEvent("dropview:gpu-context-lost"));
+  });
+  renderer.domElement.addEventListener("webglcontextrestored", () => {
+    if (!gpuContextRecovering) return;
+    void (async () => {
+      setStatus("GPU CONTEXT RESTORED · REBUILDING LIGHTING…");
+      try {
+        await rebuildPreviewEnvironment();
+        invalidateSunShadow();
+        resizeViewport();
+        gpuContextRecovering = false;
+        renderer.render(scene, State.camera);
+        setStatus(`${State.currentFileName || "MODEL"} · GPU CONTEXT RESTORED`);
+        window.dispatchEvent(new CustomEvent("dropview:gpu-context-restored"));
+      } catch (error) {
+        console.error("WebGL context resources could not be restored", error);
+        window.dispatchEvent(new CustomEvent("dropview:gpu-device-lost", {
+          detail: { api: "WebGL", scope: "viewer", message: error.message }
+        }));
+      }
+    })();
+  });
+}
 
 window.addEventListener("dragover", event => {
   event.preventDefault();
@@ -284,6 +325,7 @@ async function boot() {
 
   bindNavigationCanvas(renderer.domElement);
   bindFocusCanvas(renderer.domElement);
+  bindGpuRecovery();
   window.addEventListener("dropview:model-loaded", () => {
       clearImportedRenderFrame();
       setRenderJob(null);
@@ -328,13 +370,18 @@ async function boot() {
 
 export { openFile };
 
-export async function getBackendHandoff() {
-  return State.currentFile
-    ? { file: State.currentFile, viewSession: captureCurrentViewSession(),
-        workbench: await materialWorkbench?.captureWorkbenchHandoff(),
-        environment: getPackagedEnvironment(),
-        sourceKind: State.currentFileSourceKind }
-    : null;
+export async function getBackendHandoff({ bestEffort = false } = {}) {
+  if (!State.currentFile) return null;
+  let workbench = null;
+  try {
+    workbench = await materialWorkbench?.captureWorkbenchHandoff() ?? null;
+  } catch (error) {
+    if (!bestEffort) throw error;
+    console.warn("Material edits could not be included in GPU recovery", error);
+  }
+  return { file: State.currentFile, viewSession: captureCurrentViewSession(),
+    workbench, environment: getPackagedEnvironment(),
+    sourceKind: State.currentFileSourceKind };
 }
 
 export async function openBackendHandoff(file, { viewSession, workbench, sourceKind, environment = null } = {}) {

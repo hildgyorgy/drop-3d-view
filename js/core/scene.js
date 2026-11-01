@@ -21,6 +21,11 @@ export async function preparePreviewEnvironment() {
   return environment.preparePreviewEnvironment();
 }
 
+export async function rebuildPreviewEnvironment() {
+  const environment = await import("../view/webgl-environment.js");
+  return environment.rebuildPreviewEnvironment();
+}
+
 /* ======================================================
    SCENE
 ====================================================== */

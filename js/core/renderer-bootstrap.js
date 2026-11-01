@@ -1,6 +1,7 @@
 /* One document/UI, with renderer-specific module graphs selected at startup. */
 import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js";
-import { saveBackendHandoff, takeBackendHandoff } from "./backend-handoff.js?v=embedded-hdri-1";
+import { clearBackendHandoff, saveBackendHandoff,
+  takeBackendHandoff } from "./backend-handoff.js?v=embedded-hdri-1";
 import {
   enableEmbedBridge,
   readEmbedConfiguration,
@@ -12,16 +13,52 @@ const packagedRenderers = window.__DROP_VIEW_RENDERER_PACKAGES__ || null;
 const comparison = Boolean(packagedRenderers) || localComparison;
 const showPicker = comparison && new URLSearchParams(location.search).has("rendererDebug");
 const modeKey = "drop-view-renderer-mode";
+const recoveryKey = "drop-view-gpu-recovery";
 let mode = activeRendererMode(showPicker, showPicker ? localStorage.getItem(modeKey) : null);
 const backend = chooseRendererBackend(mode, Boolean(navigator.gpu));
 const embedConfig = readEmbedConfiguration();
 
 async function start() {
+  const recoveryRequested = sessionStorage.getItem(recoveryKey) !== null;
+  if (recoveryRequested) sessionStorage.removeItem(recoveryKey);
+  let recoveryCompleted = !recoveryRequested;
   const picker = document.querySelector("#rendererPicker");
   if (picker) picker.hidden = !showPicker;
   document.querySelector("#aboutMenu")?.classList.toggle("has-renderer-picker", showPicker);
 
   let app = null;
+  let deviceRecoveryStarted = false;
+  window.addEventListener("dropview:gpu-device-lost", event => {
+    if (deviceRecoveryStarted || !app) return;
+    if (!recoveryCompleted) {
+      console.error("GPU device was lost again during recovery", event.detail);
+      window.alert("THE GPU WAS LOST AGAIN DURING RECOVERY. RELOAD THE PAGE AFTER CLOSING OTHER GPU-HEAVY APPLICATIONS.");
+      return;
+    }
+    deviceRecoveryStarted = true;
+    void (async () => {
+      try {
+        const current = await app.getBackendHandoff({ bestEffort: true });
+        if (current?.file) {
+          await saveBackendHandoff(
+            current.file,
+            current.viewSession,
+            current.workbench,
+            current.sourceKind,
+            current.environment
+          );
+        } else {
+          await clearBackendHandoff();
+        }
+        sessionStorage.setItem(recoveryKey, JSON.stringify(event.detail || {}));
+        location.reload();
+      } catch (error) {
+        deviceRecoveryStarted = false;
+        console.error("GPU recovery handoff could not be saved", error);
+        window.alert("THE GPU WAS LOST AND THE SCENE COULD NOT BE PREPARED FOR RELOAD. SAVE YOUR SOURCE FILE IF POSSIBLE, THEN RELOAD THE PAGE.");
+      }
+    })();
+  });
   let enablePicker = () => {};
   if (showPicker && picker) {
     const buttons = [...picker.querySelectorAll("[data-renderer-mode]")];
@@ -99,12 +136,15 @@ async function start() {
     await app.bootPromise;
     enableEmbedBridge(app, embedConfig);
 
-    const handoff = showPicker ? await takeBackendHandoff() : null;
+    const handoff = showPicker || recoveryRequested ? await takeBackendHandoff() : null;
     if (handoff?.fileBytes || handoff?.file) {
       const file = new File([handoff.fileBytes ?? handoff.file], handoff.fileName,
         { type: "model/gltf-binary" });
       await app.openBackendHandoff(file, handoff);
     }
+    recoveryCompleted = true;
+    if (recoveryRequested)
+      window.dispatchEvent(new CustomEvent("dropview:gpu-recovered"));
   } finally {
     enablePicker();
   }
