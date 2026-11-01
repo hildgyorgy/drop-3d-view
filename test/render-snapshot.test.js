@@ -27,6 +27,29 @@ const viewSession = {
   settings: {}
 };
 
+test("thumbnail stays in the v1 manifest without adding a binary resource", async () => {
+  const thumbnail = { mimeType: "image/jpeg", width: 640, height: 400, data: "/9j/2Q==" };
+  const blob = encodeRenderSnapshot({ fileName: "house.glb", fileBytes: glb.buffer,
+    viewSession, thumbnail });
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const length = new DataView(bytes.buffer).getUint32(8, true);
+  const manifest = JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + length)));
+  assert.deepEqual(manifest.lengths, [12]);
+  assert.deepEqual(bytes.subarray(12 + length), glb);
+  assert.deepEqual((await decodeRenderSnapshot(blob)).thumbnail, thumbnail);
+  const damaged = await changeManifest(blob, value => { value.thumbnail.data = "bad"; });
+  assert.equal((await decodeRenderSnapshot(damaged)).thumbnail, null);
+});
+
+test("thumbnail export rejects oversized dimensions and bytes", () => {
+  for (const thumbnail of [
+    { mimeType: "image/jpeg", width: 641, height: 400, data: "/9j/2Q==" },
+    { mimeType: "image/jpeg", width: 640, height: 400, data: "A".repeat(350_000) },
+    { mimeType: "image/svg+xml", width: 10, height: 10, data: "/9j/2Q==" }
+  ]) assert.throws(() => encodeRenderSnapshot({ fileName: "house.glb",
+    fileBytes: glb.buffer, viewSession, thumbnail }), /Invalid render thumbnail/);
+});
+
 test("render snapshot keeps the current GLB and scene state", async () => {
   const blob = encodeRenderSnapshot({
     fileName: "house.glb",

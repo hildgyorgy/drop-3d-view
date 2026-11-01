@@ -1,5 +1,10 @@
 # Drop & View
 
+SAVE PACKAGE includes a small scene thumbnail in the `.dvrender` v1 manifest
+(JPEG, at most 640 pixels on the longer side, preserving aspect ratio). Drop &
+View Render displays it beside the job. It does not start a preview render;
+older packages without a thumbnail remain supported.
+
 **Current version: 2.0**
 
 ![Drop & View – 3D model viewer](demo/drop-and-view.png)

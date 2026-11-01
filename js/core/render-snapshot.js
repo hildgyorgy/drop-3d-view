@@ -4,6 +4,7 @@ import { assertRenderSize } from "./render-size.js";
 import { assertRenderJob } from "./render-job.js";
 import { RENDER_PRODUCER, assertRenderProducer } from "./render-compatibility.js";
 import { assertRenderEnvironment } from "./render-environment.js";
+import { assertRenderThumbnail } from "./render-thumbnail.js";
 
 export const MAX_RENDER_RESOURCES = 2;
 
@@ -35,7 +36,7 @@ function bytesOf(value) {
 }
 
 export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
-  renderSize = null, renderJob = null, environment = null,
+  renderSize = null, renderJob = null, environment = null, thumbnail = null,
   producer = RENDER_PRODUCER }) {
   if (!validName(fileName) || !/\.glb$/i.test(fileName))
     throw new Error("Snapshot needs a named GLB file");
@@ -43,6 +44,7 @@ export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
   assertRenderProducer(producer);
   if (renderSize !== null) assertRenderSize(renderSize);
   if (renderJob !== null) assertRenderJob(renderJob);
+  if (thumbnail !== null) assertRenderThumbnail(thumbnail);
   const model = bytesOf(fileBytes);
   if (model.byteLength < 12 || decoder.decode(model.subarray(0, 4)) !== "glTF")
     throw new Error("Snapshot model is not a GLB");
@@ -57,6 +59,7 @@ export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
   const manifest = encoder.encode(JSON.stringify({
     version: 1, fileName, viewSession,
     renderSize, renderJob, producer, environment: savedEnvironment,
+    ...(thumbnail ? { thumbnail } : {}),
     lengths: resources.map(resource => resource.byteLength)
   }));
   if (manifest.byteLength > maxManifestBytes) throw new Error("Snapshot metadata is too large");
@@ -123,8 +126,13 @@ export async function decodeRenderSnapshot(file) {
       throw new Error("Invalid packaged HDRI resource");
     environment = assertRenderEnvironment({ name: saved.name, bytes: resources[saved.resource] });
   }
+  let thumbnail = null;
+  if (manifest.thumbnail != null) {
+    try { thumbnail = assertRenderThumbnail(manifest.thumbnail); }
+    catch { /* A damaged optional preview must not prevent opening the scene. */ }
+  }
   return { file: new File([resources[0]], manifest.fileName,
     { type: "model/gltf-binary" }), viewSession: manifest.viewSession,
     renderSize: manifest.renderSize ?? null,
-    renderJob: manifest.renderJob ?? null, producer: manifest.producer, environment };
+    renderJob: manifest.renderJob ?? null, producer: manifest.producer, environment, thumbnail };
 }

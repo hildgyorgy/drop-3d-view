@@ -23,7 +23,7 @@ import { updatePerformanceStats } from "./ui/performance.js?v=samples-label";
 import { updateAdaptiveContrast } from "./ui/adaptive-contrast.js?v=glass-light-test";
 import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
 import { bindFocusCanvas } from "./view/focus.js";
-import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
+import { getPhoto1Stats, renderPhoto1, resizePhoto1, capturePhotoImage } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
 import { isRenderPackageFile, resolveComparisonModelUrl } from "./model/file-format.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
@@ -34,6 +34,7 @@ import { resizeSectionRenderer } from "./section/section-resize.js";
 import { readEmbedConfiguration } from "./core/embed-bridge.js";
 import { shouldLoadMaterialWorkbench, getMaterialWorkbenchAccess } from "./model/material-workbench-policy.js";
 import { encodeRenderSnapshot, decodeRenderSnapshot, assertRenderSnapshotView } from "./core/render-snapshot.js";
+import { captureRenderThumbnail } from "./core/render-thumbnail.js";
 import { renderCompatibilityWarnings, RENDER_PRODUCER } from "./core/render-compatibility.js";
 import { setStatus } from "./ui/status.js";
 import { applyImportedRenderFrame, clearImportedRenderFrame,
@@ -207,6 +208,16 @@ function bindRenderSnapshotControls() {
     exportStatus.textContent = "";
     exportButton.textContent = "SAVING…";
     try {
+      const photo = getPhoto1Stats();
+      let thumbnail;
+      if (backendKind === "webgl" && photo && !photo.preparing && photo.samples >= 1) {
+        // Repaint an existing (possibly paused) path-traced image without
+        // adding samples or encoding a full-resolution PNG just for a thumbnail.
+        thumbnail = await capturePhotoImage(captureRenderThumbnail);
+      } else {
+        await renderer.render(scene, State.camera);
+        thumbnail = captureRenderThumbnail(renderer.domElement);
+      }
       const viewSession = captureCurrentViewSession();
       assertRenderSnapshotView(viewSession);
       const renderSize = {
@@ -221,7 +232,7 @@ function bindRenderSnapshotControls() {
       if (State.currentFile !== file) throw new Error("Model changed during export");
       const snapshot = encodeRenderSnapshot({
         fileName: file.name, fileBytes, viewSession, renderSize,
-        renderJob, environment, producer
+        renderJob, environment, producer, thumbnail
       });
       const url = URL.createObjectURL(snapshot);
       const link = document.createElement("a");

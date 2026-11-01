@@ -48,10 +48,15 @@ export async function validateRenderEnvironment(environment, producer) {
   if (producer?.hdriId?.startsWith("sha256:") &&
       await environmentIdentity(environment) !== producer.hdriId)
     throw new Error("The packaged HDRI does not match its recorded identity");
-  const [{ HDRLoader }, { FloatType }] = await Promise.all([
-    import("three/addons/loaders/HDRLoader.js"), import("three")
-  ]);
-  const parsed = new HDRLoader().setDataType(FloatType).parse(environment.bytes);
-  if (!parsed?.data?.length || parsed.data.length !== parsed.width * parsed.height * 4)
-    throw new Error("The packaged HDRI has incomplete pixel data");
+  const { HDRLoader } = await import("three/addons/loaders/HDRLoader.js");
+  // Validation needs a complete decode but not Float32 precision. The loader's
+  // half-float default halves this temporary allocation for large packages.
+  const texture = new HDRLoader().createDataTexture(environment.bytes);
+  try {
+    const { data, width, height } = texture.image ?? {};
+    if (!data?.length || data.length !== width * height * 4)
+      throw new Error("The packaged HDRI has incomplete pixel data");
+  } finally {
+    texture.dispose();
+  }
 }

@@ -29,12 +29,12 @@ import {
   isPhotoGlassFallbackCandidate,
   transmissionFromTransparencyControl
 } from "../model/material-policy.js";
-import { environmentSunDirectionFromPixel } from "../model/sun-metadata.js";
 import { getSunDirectionFromControls } from "./ground-sun.js";
 import { setStatus } from "../ui/status.js";
 import { PHOTO_BOUNCES, PHOTO_TRANSMISSIVE_BOUNCES,
   getRenderJob, setRenderJob } from "../core/render-job.js";
 import { getEnvironmentSource } from "../core/environment-source.js";
+import { loadEnvironmentTexture } from "../core/environment-texture.js";
 
 // Dormant interior-lighting experiment. True restores the GLASS LIGHT button;
 // false leaves the authored-glass emission code available but never uses it.
@@ -96,7 +96,7 @@ function updatePhotoSaveButtonState() {
   photoSaveButton.disabled = imageSaving || !pathTracer || preparing || pathTracer.samples < 1;
 }
 
-export async function capturePhotoImage() {
+export async function capturePhotoImage(captureCanvas = null) {
   if (!active || !pathTracer || preparing || pathTracer.samples < 1)
     throw new Error("No path-traced image is ready");
   const tracer = pathTracer;
@@ -123,6 +123,7 @@ export async function capturePhotoImage() {
     tracer.minSamples = 1;
     tracer.fadeDuration = 0;
     tracer.renderSample();
+    if (captureCanvas) return captureCanvas(renderer.domElement);
     const blob = await new Promise((resolve, reject) =>
       renderer.domElement.toBlob(value => value ? resolve(value) :
         reject(new Error("The browser could not encode the PNG")), "image/png"));
@@ -229,62 +230,15 @@ function createFallbackEnvironment(GradientEquirectTexture) {
   return environment;
 }
 
-function findEnvironmentSunDirection(environment) {
-  const { data, width, height } = environment.image ?? {};
-  if (!(data instanceof Float32Array) || !width || !height) {
-    return getSunDirectionFromControls();
-  }
-
-  const pixelCount = width * height;
-  const stride = Math.max(3, Math.floor(data.length / pixelCount));
-  let brightestPixel = 0;
-  let brightestLuminance = -Infinity;
-
-  for (let pixel = 0; pixel < pixelCount; pixel += 1) {
-    const offset = pixel * stride;
-    const luminance =
-      0.2126 * data[offset] +
-      0.7152 * data[offset + 1] +
-      0.0722 * data[offset + 2];
-    if (luminance > brightestLuminance) {
-      brightestLuminance = luminance;
-      brightestPixel = pixel;
-    }
-  }
-
-  const x = brightestPixel % width;
-  const y = Math.floor(brightestPixel / width);
-  return new THREE.Vector3(
-    ...environmentSunDirectionFromPixel(x, y, width, height)
-  ).normalize();
-}
-
-function clampEnvironmentForHalfFloat(environment) {
-  const data = environment.image?.data;
-  if (!(data instanceof Float32Array)) return;
-
-  // The path tracer stores its environment data as half floats internally.
-  // Preserve the HDR range while clipping rare solar pixels to that format's
-  // finite maximum so Three.js does not emit overflow warnings.
-  for (let i = 0; i < data.length; i += 1) {
-    data[i] = Math.min(65504, Math.max(-65504, data[i]));
-  }
-  environment.needsUpdate = true;
-}
-
-async function loadPhotoEnvironment(HDRLoader, GradientEquirectTexture) {
+async function loadPhotoEnvironment(GradientEquirectTexture) {
   const source = getEnvironmentSource();
   try {
-    const environment = await new HDRLoader()
-      .setDataType(THREE.FloatType)
-      .loadAsync(source.url);
-    photoEnvironmentSunDirection = findEnvironmentSunDirection(environment);
+    const { texture: environment, sunDirection } = await loadEnvironmentTexture(source);
+    photoEnvironmentSunDirection = sunDirection ?? getSunDirectionFromControls();
     photoEnvironmentSunAzimuth = Math.atan2(
       photoEnvironmentSunDirection.z,
       photoEnvironmentSunDirection.x
     );
-    clampEnvironmentForHalfFloat(environment);
-    environment.mapping = THREE.EquirectangularReflectionMapping;
     return environment;
   } catch (error) {
     if (source.embedded) throw error;
@@ -597,21 +551,16 @@ async function activatePhoto1() {
   try {
     const [
       { WebGLPathTracer },
-      { GradientEquirectTexture },
-      { HDRLoader }
+      { GradientEquirectTexture }
     ] = await Promise.all([
       import("three-gpu-pathtracer/src/core/WebGLPathTracer.js"),
-      import("three-gpu-pathtracer/src/textures/GradientEquirectTexture.js"),
-      import("three/addons/loaders/HDRLoader.js")
+      import("three-gpu-pathtracer/src/textures/GradientEquirectTexture.js")
     ]);
 
     if (!active || currentActivation !== activation || !State.model) return;
 
     setStatus("PATH TRACER · loading HDRI lighting…");
-    const loadedEnvironment = await loadPhotoEnvironment(
-      HDRLoader,
-      GradientEquirectTexture
-    );
+    const loadedEnvironment = await loadPhotoEnvironment(GradientEquirectTexture);
     if (!active || currentActivation !== activation || !State.model) {
       loadedEnvironment.dispose();
       return;

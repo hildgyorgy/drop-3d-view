@@ -1,15 +1,14 @@
 // Adapter for the full viewer's PATH TRACER control on the WebGPU branch.
 import * as THREE from "three";
-import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { WebGPUPathTracer } from "three-gpu-pathtracer/src/webgpu/WebGPUPathTracer.js";
 import { State } from "../js/core/state.js";
 import { scene, renderer, hemi, sun, getWebGpuPreviewEnvironment, syncWebGpuEnvironmentToSun } from "../js/core/scene.js";
 import { photo1Button, perspectiveButton, axonButton, orthoButton,
   cameraFov, showAllButton, sunAngle, sunHeight, transparency } from "../js/core/dom.js";
-import { environmentSunDirectionFromPixel } from "../js/model/sun-metadata.js";
 import { getSunDirectionFromControls } from "../js/view/ground-sun.js";
 import { setStatus } from "../js/ui/status.js";
 import { getEnvironmentSource } from "../js/core/environment-source.js";
+import { loadEnvironmentTexture } from "../js/core/environment-texture.js";
 
 let environmentUrl = null;
 // The WebGPU preview background is HDR-scaled above 1. The path tracer packs
@@ -62,37 +61,11 @@ function lockCamera(locked) {
   if (!locked) disabledBeforeTrace.clear();
 }
 
-function findHdrSun(texture) {
-  const { data, width, height } = texture.image ?? {};
-  if (!(data instanceof Float32Array) || !width || !height) return null;
-  let brightest = 0;
-  let max = -Infinity;
-  const stride = Math.floor(data.length / (width * height));
-  for (let i = 0; i < width * height; i++) {
-    const p = i * stride;
-    const luminance = 0.2126 * data[p] + 0.7152 * data[p + 1] + 0.0722 * data[p + 2];
-    if (luminance > max) { max = luminance; brightest = i; }
-  }
-  return new THREE.Vector3(...environmentSunDirectionFromPixel(
-    brightest % width, Math.floor(brightest / width), width, height
-  )).normalize();
-}
-
 async function getEnvironment() {
   const source = getEnvironmentSource();
   if (environment && environmentUrl === source.url) return environment;
-  const texture = await new HDRLoader().setDataType(THREE.FloatType).loadAsync(source.url);
-  if (getEnvironmentSource().url !== source.url) {
-    texture.dispose();
-    throw new Error("The scene environment changed while loading");
-  }
-  sourceSun = findHdrSun(texture);
-  const data = texture.image?.data;
-  if (data instanceof Float32Array) {
-    for (let i = 0; i < data.length; i++) data[i] = Math.min(65504, Math.max(-65504, data[i]));
-    texture.needsUpdate = true;
-  }
-  texture.mapping = THREE.EquirectangularReflectionMapping;
+  const { texture, sunDirection } = await loadEnvironmentTexture(source);
+  sourceSun = sunDirection;
   environment?.dispose();
   environment = texture;
   environmentUrl = source.url;

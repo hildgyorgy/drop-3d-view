@@ -2,6 +2,15 @@
 
 Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
+## Csomagbélyegkép
+
+A SAVE PACKAGE opcionális `thumbnail` mezőt ment a v1 manifestbe: JPEG MIME,
+pixelméret és base64 képadat, legfeljebb 640 pixel hosszabbik oldal és 256 KiB.
+A képarány megmarad, a GLB/HDRI erőforrástábla változatlan. A natív Drop & View
+Render ezt mutatja a feladat mellett; a régi csomagok továbbra is megnyithatók.
+A WebGL path tracer meglévő képe új sample és teljes méretű PNG-kódolás nélkül
+is másolható bélyegképnek; egyébként a normál viewport képe kerül mentésre.
+
 ## Three.js r187 frissítés – elkészült, Safari-vizuális kontroll még kell
 
 **A Three.js r186 → r187 frissítés 2026-10-30-án megtörtént.** A kiadást és a migrációs útmutatót ellenőriztük:
@@ -26,7 +35,7 @@ Az r187-átállás ellenőrzésekor a teljes akkori tesztkészlet sikeres volt, 
 
 - A 2026-11-01-i kódfelülvizsgálati javítások alapcommitja **`4d50333` – menu**, az első javításcsomag commitja pedig **`c299e57` – Harden render package import and cleanup**.
 - Előző fontos commitok: `dcdd17d` – render; `4ba3830` – Update PROJECT_HANDOFF.md; `17701f5` – render popup refine; `d712a1e` – render station bugfix.
-- **132/132 teszt sikeres** a 2026-11-01-i kódfelülvizsgálat javításai után. A `.dvrender` kódoló/dekódoló változatlan v1 bájtszerkezet mellett már nem készít szükségtelen teljes csomagméretű másolatot; az ablakra dobott `.dvrender` közvetlenül megnyílik. A nap árnyéktérképe mindkét backendben igény szerint frissül: kamera- vagy tétlen képkockák nem számolják újra, de nap-, modell-, csoport-, elem- és metszetváltozáskor érvénytelenítjük. A publikus renderer buildet forrásváltozás után mindig újra kell készíteni. A nagy chunkokra vonatkozó buildfigyelmeztetés nem buildhiba.
+- **135/135 teszt sikeres** a 2026-11-01-i kódfelülvizsgálat javításai után. A `.dvrender` kódoló/dekódoló változatlan v1 erőforrás-szerkezet mellett már nem készít szükségtelen teljes csomagméretű másolatot; az ablakra dobott `.dvrender` közvetlenül megnyílik, az opcionális manifest-bélyegkép pedig a natív renderapp előnézetét szolgálja. A nap árnyéktérképe mindkét backendben igény szerint frissül: kamera- vagy tétlen képkockák nem számolják újra, de nap-, modell-, csoport-, elem- és metszetváltozáskor érvénytelenítjük. A preview és az in-app path tracer backendenként közös, egyszer dekódolt HDRI CPU-adatot használ; a csomagvalidáció half-float ideiglenes dekódolással működik. A publikus renderer buildet forrásváltozás után mindig újra kell készíteni. A nagy chunkokra vonatkozó buildfigyelmeztetés nem buildhiba.
 - A felülvizsgálati kód-, teszt-, dokumentáció- és generált renderer-változásokat együtt kell commitolni/pusholni; a másik gépen pull szükséges. A jelen körben nem indítottunk GitHub Pages-publikálást.
 - A használt helyi tesztszervereket leállítottuk. A korábbi gép `/tmp`, Downloads, Desktop és Codex-runtime útvonalai nem hordozható tesztfüggőségek.
 

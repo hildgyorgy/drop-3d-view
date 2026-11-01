@@ -1,12 +1,11 @@
 // WebGPU implementation of the shared scene contract used by the full viewer.
 import * as THREE from "three";
 import { WebGPURenderer } from "three/webgpu";
-import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { DEFAULT_WEBGPU_TUNING } from "./full-tuning.js";
-import { environmentSunDirectionFromPixel } from "../js/model/sun-metadata.js";
 import { getSafeViewportSize } from "../js/view/viewport-size.js";
 
 import { getEnvironmentSource } from "../js/core/environment-source.js";
+import { loadEnvironmentTexture } from "../js/core/environment-texture.js";
 
 export const backendKind = "webgpu";
 
@@ -69,28 +68,11 @@ export function preparePreviewEnvironment() {
   if (previewEnvironmentReady && previewEnvironmentUrl === source.url)
     return previewEnvironmentReady;
   previewEnvironmentUrl = source.url;
-  previewEnvironmentReady = new HDRLoader().setDataType(THREE.FloatType).loadAsync(source.url)
-  .then(texture => {
+  previewEnvironmentReady = loadEnvironmentTexture(source)
+  .then(({ texture, sunDirection }) => {
       if (getEnvironmentSource().url !== source.url) { texture.dispose(); return; }
       const previous = previewHdriTexture;
-      const { data, width, height } = texture.image ?? {};
-      if (data instanceof Float32Array && width && height) {
-        let brightest = 0;
-        let maximum = -Infinity;
-        const stride = Math.floor(data.length / (width * height));
-        for (let i = 0; i < width * height; i++) {
-          const p = i * stride;
-          const luminance = 0.2126 * data[p] + 0.7152 * data[p + 1] + 0.0722 * data[p + 2];
-          if (luminance > maximum) { maximum = luminance; brightest = i; }
-        }
-        previewHdriSun = new THREE.Vector3(...environmentSunDirectionFromPixel(
-          brightest % width, Math.floor(brightest / width), width, height
-        )).normalize();
-        for (let i = 0; i < data.length; i++)
-          data[i] = Math.min(65504, Math.max(-65504, data[i]));
-        texture.needsUpdate = true;
-      }
-      texture.mapping = THREE.EquirectangularReflectionMapping;
+      previewHdriSun = sunDirection;
       previewHdriTexture = texture;
       previewHdriLoaded = true;
       // A path-tracer activation may have replaced the environment while the
