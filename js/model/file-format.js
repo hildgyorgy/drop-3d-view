@@ -2,6 +2,10 @@ export function isGlbFile(file) {
   return typeof file?.name === "string" && /\.glb$/i.test(file.name);
 }
 
+export function isRenderPackageFile(file) {
+  return typeof file?.name === "string" && /\.dvrender$/i.test(file.name);
+}
+
 export function resolveComparisonModelUrl(value, baseUrl) {
   if (typeof value !== "string" || !value) return null;
   try {

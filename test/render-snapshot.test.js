@@ -47,6 +47,39 @@ test("render snapshot keeps the current GLB and scene state", async () => {
   assert.deepEqual(decoded.producer, RENDER_PRODUCER);
 });
 
+test("render snapshot keeps its flat v1 byte layout when encoded as Blob parts", async () => {
+  const blob = encodeRenderSnapshot({
+    fileName: "house.glb",
+    fileBytes: glb.buffer,
+    viewSession
+  });
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  assert.equal(new TextDecoder().decode(bytes.subarray(0, 8)), "DVRENDER");
+  const manifestLength = new DataView(bytes.buffer).getUint32(8, true);
+  const manifest = JSON.parse(
+    new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength))
+  );
+  assert.deepEqual(manifest.lengths, [glb.byteLength]);
+  assert.deepEqual(bytes.subarray(12 + manifestLength), glb);
+});
+
+test("render snapshot decoder reads slices instead of the whole package", async () => {
+  const blob = encodeRenderSnapshot({
+    fileName: "house.glb",
+    fileBytes: glb.buffer,
+    viewSession
+  });
+  const slicedFile = {
+    size: blob.size,
+    slice: (...args) => blob.slice(...args),
+    arrayBuffer() {
+      throw new Error("whole-package read is forbidden");
+    }
+  };
+  const decoded = await decodeRenderSnapshot(slicedFile);
+  assert.deepEqual(new Uint8Array(await decoded.file.arrayBuffer()), glb);
+});
+
 test("older snapshots without a render size remain readable", async () => {
   const blob = encodeRenderSnapshot({
     fileName: "house.glb",

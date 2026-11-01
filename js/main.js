@@ -25,7 +25,7 @@ import { bindNavigationCanvas, updateNavigation } from "./view/navigation.js";
 import { bindFocusCanvas } from "./view/focus.js";
 import { getPhoto1Stats, renderPhoto1, resizePhoto1 } from "./view/photo1.js";
 import { openFile } from "./model/load.js";
-import { resolveComparisonModelUrl } from "./model/file-format.js";
+import { isRenderPackageFile, resolveComparisonModelUrl } from "./model/file-format.js";
 import { captureCurrentViewSession, restoreCurrentViewSession } from "./core/session-runtime.js";
 import { assertValidViewSession } from "./core/view-session.js";
 import { restoreBackendHandoff } from "./core/backend-restore.js";
@@ -98,6 +98,31 @@ function animate(time) {
 
 let materialWorkbench = null;
 let measurements = null;
+let openingDroppedFile = false;
+
+window.addEventListener("dragover", event => {
+  event.preventDefault();
+  document.body.classList.add("dragging");
+});
+
+window.addEventListener("dragleave", () => {
+  document.body.classList.remove("dragging");
+});
+
+window.addEventListener("drop", event => {
+  event.preventDefault();
+  document.body.classList.remove("dragging");
+  const file = event.dataTransfer.files?.[0];
+  if (!file || openingDroppedFile) return;
+
+  openingDroppedFile = true;
+  void (isRenderPackageFile(file) ? restoreRenderSnapshot(file) : openFile(file))
+    .catch(error => {
+      console.error("Dropped file could not be opened", error);
+      setStatus(`COULD NOT OPEN ${file.name}: ${error.message}`);
+    })
+    .finally(() => { openingDroppedFile = false; });
+});
 
 function bindRenderSnapshotControls() {
   const glbButton = document.querySelector("#exportGlb");
@@ -162,7 +187,6 @@ function bindRenderSnapshotControls() {
     update();
     try {
       const result = await restoreRenderSnapshot(file);
-      targetSamples.value = String(result.targetSamples);
       exportStatus.textContent = "";
       return result;
     } finally {
@@ -226,6 +250,8 @@ async function restoreRenderSnapshot(packageFile) {
   applyImportedRenderFrame(snapshot.renderSize);
   const job = snapshot.renderJob ?? makeRenderJob(500);
   setRenderJob(job);
+  const targetSamples = document.querySelector("#renderTargetSamples");
+  if (targetSamples) targetSamples.value = String(job.samples);
   return { width: renderer.domElement.width, height: renderer.domElement.height,
     targetSamples: job.samples,
     warnings: renderCompatibilityWarnings(snapshot.producer, RENDER_PRODUCER,

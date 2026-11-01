@@ -62,29 +62,27 @@ export function encodeRenderSnapshot({ fileName, fileBytes, viewSession,
   if (manifest.byteLength > maxManifestBytes) throw new Error("Snapshot metadata is too large");
   const total = 12 + manifest.byteLength + resources.reduce((sum, resource) => sum + resource.byteLength, 0);
   if (total > maxPackageBytes) throw new Error("Snapshot exceeds the 2 GB limit");
-  const output = new Uint8Array(total);
-  output.set(magic);
-  new DataView(output.buffer).setUint32(8, manifest.byteLength, true);
-  output.set(manifest, 12);
-  let offset = 12 + manifest.byteLength;
-  for (const resource of resources) {
-    output.set(resource, offset);
-    offset += resource.byteLength;
-  }
-  return new Blob([output], { type: "application/octet-stream" });
+  const manifestLength = new Uint8Array(4);
+  new DataView(manifestLength.buffer).setUint32(0, manifest.byteLength, true);
+  // Blob accepts independent parts, so a large package no longer needs a
+  // second, package-sized Uint8Array just to concatenate its resources.
+  return new Blob([magic, manifestLength, manifest, ...resources], {
+    type: "application/octet-stream"
+  });
 }
 
 export async function decodeRenderSnapshot(file) {
   if (file.size > maxPackageBytes || file.size < 24)
     throw new Error("Invalid render snapshot size");
-  const buffer = await file.arrayBuffer();
-  const data = new Uint8Array(buffer);
-  if (!magic.every((value, index) => data[index] === value))
+  const header = await file.slice(0, 12).arrayBuffer();
+  const headerBytes = new Uint8Array(header);
+  if (!magic.every((value, index) => headerBytes[index] === value))
     throw new Error("Not a Drop & View render snapshot");
-  const manifestLength = new DataView(buffer).getUint32(8, true);
-  if (!manifestLength || manifestLength > maxManifestBytes || 12 + manifestLength > data.length)
+  const manifestLength = new DataView(header).getUint32(8, true);
+  if (!manifestLength || manifestLength > maxManifestBytes || 12 + manifestLength > file.size)
     throw new Error("Invalid render snapshot manifest");
-  const manifest = JSON.parse(decoder.decode(data.subarray(12, 12 + manifestLength)));
+  const manifestBytes = await file.slice(12, 12 + manifestLength).arrayBuffer();
+  const manifest = JSON.parse(decoder.decode(manifestBytes));
   if (manifest.version !== 1 || !validName(manifest.fileName) ||
       !/\.glb$/i.test(manifest.fileName) ||
       !Array.isArray(manifest.lengths) || !manifest.lengths.length ||
@@ -101,13 +99,20 @@ export async function decodeRenderSnapshot(file) {
   if (manifest.renderJob !== undefined && manifest.renderJob !== null)
     assertRenderJob(manifest.renderJob);
   let offset = 12 + manifestLength;
-  const resources = manifest.lengths.map(length => {
-    if (offset + length > data.length) throw new Error("Truncated render snapshot");
-    const resource = buffer.slice(offset, offset + length);
+  const ranges = manifest.lengths.map(length => {
+    const start = offset;
     offset += length;
-    return resource;
+    if (!Number.isSafeInteger(offset) || offset > file.size)
+      throw new Error("Truncated render snapshot");
+    return [start, offset];
   });
-  if (offset !== data.length || resources[0].byteLength < 12 ||
+  if (offset !== file.size) throw new Error("Invalid render snapshot model");
+  // Read only the declared resources. This avoids retaining the whole package
+  // plus copied slices at the same time.
+  const resources = await Promise.all(
+    ranges.map(([start, end]) => file.slice(start, end).arrayBuffer())
+  );
+  if (resources[0].byteLength < 12 ||
       decoder.decode(new Uint8Array(resources[0], 0, 4)) !== "glTF")
     throw new Error("Invalid render snapshot model");
   let environment = null;

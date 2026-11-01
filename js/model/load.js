@@ -1,8 +1,8 @@
 /*
-   OPEN / DRAG & DROP / OPEN MODEL / PREPARE MODEL / DISPOSE MODEL
+   OPEN / OPEN MODEL / PREPARE MODEL / DISPOSE MODEL
 
    A fájl-megnyitás teljes életciklusa: fájl kiválasztása
-   (gombbal vagy drag&drop-pal), GLB betöltés,
+   (gombbal vagy a main.js közös drop-kezelőjén át), GLB betöltés,
    a modell előkészítése (középre igazítás, élek, talaj,
    nap, kamera ráállítás), majd - új fájl nyitásakor vagy
    bezáráskor - a korábbi modell rendes eltávolítása.
@@ -154,30 +154,6 @@ for (const [button, url] of [
 
 fileInput.addEventListener("change", event => {
   const file = event.target.files?.[0];
-
-  if (file) openFile(file);
-});
-
-/* ======================================================
-   DRAG & DROP
-====================================================== */
-
-window.addEventListener("dragover", event => {
-  event.preventDefault();
-
-  document.body.classList.add("dragging");
-});
-
-window.addEventListener("dragleave", () => {
-  document.body.classList.remove("dragging");
-});
-
-window.addEventListener("drop", event => {
-  event.preventDefault();
-
-  document.body.classList.remove("dragging");
-
-  const file = event.dataTransfer.files?.[0];
 
   if (file) openFile(file);
 });
@@ -377,10 +353,9 @@ export function prepareModel(object, file, gltf = null, metadata = {}) {
 export function disposeCurrentModel() {
   const workbenchMaterials = new Set();
   const workbenchGeometries = new Set();
-  if (new URLSearchParams(location.search).has("rendererDebug"))
-    window.dispatchEvent(new CustomEvent("dropview:model-cleared", {
-      detail: { materials: workbenchMaterials, geometries: workbenchGeometries }
-    }));
+  window.dispatchEvent(new CustomEvent("dropview:model-cleared", {
+    detail: { materials: workbenchMaterials, geometries: workbenchGeometries }
+  }));
   deactivatePhoto1({ restoreStatus: false });
   setEnvironmentSource(null);
   clearWindowLights();

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   isGlbFile,
+  isRenderPackageFile,
   resolveComparisonModelUrl
 } from "../js/model/file-format.js";
 
@@ -13,6 +14,14 @@ test("the viewer accepts only GLB filenames", () => {
   assert.equal(isGlbFile({ name: "house.glb.txt" }), false);
   assert.equal(isGlbFile({ name: "house" }), false);
   assert.equal(isGlbFile(null), false);
+});
+
+test("render packages are recognized independently of GLB files", () => {
+  assert.equal(isRenderPackageFile({ name: "house.dvrender" }), true);
+  assert.equal(isRenderPackageFile({ name: "house.DVRENDER" }), true);
+  assert.equal(isRenderPackageFile({ name: "house.glb" }), false);
+  assert.equal(isRenderPackageFile({ name: "house.dvrender.zip" }), false);
+  assert.equal(isRenderPackageFile(null), false);
 });
 
 test("comparison models must be same-origin HTTP GLB URLs", () => {

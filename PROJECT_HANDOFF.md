@@ -1,6 +1,6 @@
 # Drop & View – fejlesztői átadó
 
-Állapot: **2026-10-30**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
+Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
 ## Three.js r187 frissítés – elkészült, Safari-vizuális kontroll még kell
 
@@ -18,17 +18,17 @@ A nekünk fontos változások:
 
 Az npm-es `three-gpu-pathtracer` 0.0.27 WebGPU útvonala r187 alatt a storage-buffer változás miatt hibás compute pipeline-t készített. A tracer szerzőjének célzott, még kiadatlan r187-javítását egzakt commitra pineltük (`45919f326dded43b136f9fb08eb1de47878e4ad6`, upstream `webgpu/three-r187` ág), mellette a megkövetelt `three-mesh-bvh` 0.9.17 fut. Mozgó GitHub branch nincs használatban; a lockfile tarball-integritást is rögzít.
 
-Ellenőrizve: 135/135 teszt, mindkét publikus renderer buildje, DEMO 1 WebGL előnézet/path tracer, DEMO 2 WebGL előnézet, WebGPU előnézet és DEMO 2 WebGPU path tracer. A tiszta WebGPU-próbán a mintaszám nőtt, kép épült és nem volt konzolhiba. A cache-jelölés `three-r187-3`, a render producer revíziója `webgl-photo-3`, a Draco CDN pinje r187. A publikus AUTO továbbra is WebGL.
+Az r187-átállás ellenőrzésekor a teljes akkori tesztkészlet sikeres volt, mindkét publikus renderer felépült, és a DEMO 1/2 WebGL-, WebGPU- és path-tracer próbái is működtek. A tiszta WebGPU-próbán a mintaszám nőtt, kép épült és nem volt konzolhiba. A cache-jelölés `three-r187-3`, a render producer revíziója `webgl-photo-3`, a Draco CDN pinje r187. A publikus AUTO továbbra is WebGL.
 
 **Még szükséges valódi Safari-vizuális kontroll:** LACQUERED, üveg, HDRI/PMREM, Workbench-gömb, textúraátvétel, backend-handoff és fix/Retina felbontású csomag-visszanyitás. A `photo-clearcoat.js` illeszkedési tesztje sikeres, de GPU-képet nem igazol.
 
 ## Gépváltási pillanatkép
 
-- A dokumentum frissítése előtt a working tree **tiszta** volt: `main...origin/main`, helyben ismert eltérés nélkül. Ez nem új hálózati fetch/push vagy élő GitHub Pages-ellenőrzés eredménye.
-- A frissítés alapcommitja: **`4ba3830` – Update PROJECT_HANDOFF.md**. Az r187 módosításai e sor írásakor még nincsenek commitolva.
-- Előző fontos commitok: `d712a1e` – render station bugfix; `7672935` – texture import from glb; `2a5a5e2` – export popup; `042619a` – redesign popups.
-- **134/134 teszt sikeres**, a gépváltási átadó írásakor újra futtatva. A legutóbbi kódmódosítás után mindkét publikus renderer buildje is sikeres volt. A nagy chunkokra vonatkozó buildfigyelmeztetés nem buildhiba.
-- Csak ez az átadó lesz új helyi módosítás. Gépváltás előtt ezt is commitolni/pusholni kell; a másik gépen pull szükséges. A jelen körben nem indítottunk új publikálást.
+- A 2026-11-01-i kódfelülvizsgálat előtt a követett fájlok working tree-je **tiszta** volt: `main...origin/main`; csak az ellenőrzéshez átadott `drop&view.zip` volt untracked. Ez nem új hálózati fetch/push vagy élő GitHub Pages-ellenőrzés eredménye.
+- A jelenlegi javítások alapcommitja: **`4d50333` – menu**. A felülvizsgálati javítások e sor írásakor még nincsenek commitolva.
+- Előző fontos commitok: `dcdd17d` – render; `4ba3830` – Update PROJECT_HANDOFF.md; `17701f5` – render popup refine; `d712a1e` – render station bugfix.
+- **130/130 teszt sikeres** a 2026-11-01-i kódfelülvizsgálat javításai után. A `.dvrender` kódoló/dekódoló változatlan v1 bájtszerkezet mellett már nem készít szükségtelen teljes csomagméretű másolatot; az ablakra dobott `.dvrender` közvetlenül megnyílik. A publikus renderer buildet forrásváltozás után mindig újra kell készíteni. A nagy chunkokra vonatkozó buildfigyelmeztetés nem buildhiba.
+- A felülvizsgálati kód-, teszt-, dokumentáció- és generált renderer-változásokat együtt kell commitolni/pusholni; a másik gépen pull szükséges. A jelen körben nem indítottunk GitHub Pages-publikálást.
 - A használt helyi tesztszervereket leállítottuk. A korábbi gép `/tmp`, Downloads, Desktop és Codex-runtime útvonalai nem hordozható tesztfüggőségek.
 
 Rögzített függőségek a `webgpu-lab/package.json`-ban:
@@ -69,8 +69,8 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 - A `.dvrender` az **aktuális anyagozott GLB + nézet/kamera + világítás + csoportláthatóság + pixelméret + sample/bounce cél + aktív Radiance HDRI bájtjai** együttese. Az eredeti GLB és a Workbench-editek külön története nincs benne. Nem a korábban kiszámolt samples folytatása: render mindig nulláról indul.
 - Az appba alapból csomagolt HDRI-t a beolvasott csomag saját HDRI-je felülírja az adott modellhez. Normál új GLB-re váltás visszaállítja az app alap környezetét. Újraexport és backend-handoff az aktív környezetet megőrzi. Előnézet és path tracer ugyanazt az aktív forrást használja.
 - A HDRI érvényességének/azonosságának ellenőrzése a látható modell lecserélése előtt történik. A csomagban appverzió, renderer-revízió, HDRI SHA-256 azonosító is van. Régebbi, HDRI nélküli csomag az app saját környezetével nyílik meg, kompatibilitási jelzéssel.
-- A renderer programkódja nem utazik a csomagban. Producer-eltérés figyelmeztet, de a render engedélyezett. Aktuális renderer-revízió `webgl-photo-1`; képképzési változáskor frissítendő. Az alap HDRI azonosítóját fájlcsere esetén módosítani kell; teszt is ellenőrzi.
-- Alap exportcél **500 samples**, rögzített **6 bounces / 10 transmissive bounces**. A fogadó viewer vagy a Cycles bridge a csomagban mentett értéket használja.
+- A renderer programkódja nem utazik a csomagban. Producer-eltérés figyelmeztet, de a render engedélyezett. Aktuális renderer-revízió `webgl-photo-3`; képképzési változáskor frissítendő. Az alap HDRI azonosítóját fájlcsere esetén módosítani kell; teszt is ellenőrzi.
+- Alap exportcél **500 samples**, rögzített **6 bounces / 10 transmissive bounces**. A fogadó viewer vagy a Drop & View Render a csomagban mentett értéket használja.
 - SECTION mellett exporttiltás marad érdemi figyelmeztetéssel. A v1 csomag legfeljebb két erőforrása az aktuális GLB és az opcionális HDRI; a maximális csomagméret 2 GB.
 - OPEN .DVRENDER az egyetlen kiválasztott csomagot a látható viewerben állítja helyre, majd bezárja a FILE panelt. Nem indít automatikusan path tracert.
 - A SAVE IMAGE / PNG-mentés az éppen felhalmozott tracer képet kezeli, kezelőszervek nélkül; nincs külön, a viewert kitakaró renderelő réteg.
@@ -78,7 +78,7 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 ## Böngészős render station – kivezetve
 
 - A rejtett iframe-es többcsomagos render queue, IndexedDB-tárolás, worker-protokoll és automatikus PNG-letöltés kikerült a termékből és a kódbázisból.
-- A webes PATH TRACER megmarad interaktív, gombnyomásos előnézetnek és képkészítésnek. A `.dvrender` final render célja a külön Blender/Cycles droplet.
+- A webes PATH TRACER megmarad interaktív, gombnyomásos előnézetnek és képkészítésnek. A `.dvrender` final render célja a külön natív Drop & View Render alkalmazás.
 
 ## WebGPU path tracer: ellenőrzött tudás
 
@@ -91,10 +91,10 @@ A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je va
 
 ## Tervezett headless final render és figyelendő natív Metal-alternatíva
 
-- A kijelölt final-render irány egy **rádobós, headless Blender/Cycles segéd**: a Drop & View marad a Blender-ismeretet nem igénylő szerkesztő/komponáló felület, a `.dvrender` csomagot egy külön macOS-es indító adja át a háttérben futó Cyclesnek, Metal GPU-val. A webes path tracer megmarad gyors, integrált előnézetnek; a Cycles mellette, nem helyette készít nagy felbontású PNG/EXR finalt. Célnak a stabil Blender 5.2.3 LTS lett kiválasztva; a 5.3 Beta most nem része a támogatott útnak.
-- A terjeszthető kliens végleges iránya **nem localhost-szerver és nem böngésző-extension**. Elsőként natív SwiftUI macOS-app készül saját drag-and-drop ablakkal, valódi Cycles sample/progress kijelzéssel, Cancel és Show in Finder funkcióval, `.dvrender` fájltársítással, Blender-felderítéssel, Developer ID aláírással és notarizálással. A felhasználó nem lát Terminalt vagy Pythont; a Blender saját beépített Pythonja futtat egy vékony, az app bundle-be tett `bpy` adaptert, külön Python-runtime nélkül.
+- A kijelölt final-render megoldás a külön **Drop & View Render**: a Drop & View marad a Blender-ismeretet nem igénylő szerkesztő/komponáló felület, a natív macOS-app pedig a `.dvrender` csomagot a háttérben futó Cyclesnek adja át Metal GPU-val. A webes path tracer gyors, integrált előnézet marad; a Cycles mellette, nem helyette készít nagy felbontású finalt. Támogatott alap a stabil Blender 5.2.3 LTS; a béta Blender-verziók nem részei a támogatott útnak.
+- A terjeszthető kliens **nem localhost-szerver és nem böngésző-extension**. A natív SwiftUI macOS-app elkészült saját drag-and-drop ablakkal, Cycles sample/progress kijelzéssel, Cancel és Show in Finder funkcióval, Blender-felderítéssel és renderbeállításokkal. A felhasználó nem lát Terminalt vagy Pythont; a Blender saját beépített Pythonja futtatja az app bundle `bpy` adapterét. Aláírás, notarizálás és kiadási csomagolás még hátravan.
 - A Blender-adapter és a Swift kliens közti kommunikáció eleve platformfüggetlen JSON-soros protokoll legyen (`stage`, `sample`, `total`, `remaining`, `output`, strukturált hiba). A renderlogika közös marad; később egy vékony natív C#/WinUI Windows-kliens épül rá. A GPU-választást általánosítani kell: NVIDIA RTX → OptiX, régebbi NVIDIA → CUDA, AMD → HIP, Intel Arc → oneAPI, Apple Silicon → Metal, végül CPU fallback. Így a két platform csak a natív GUI-ban, Blender-felderítésben, fájltársításban és telepítő/aláírási folyamatban tér el.
-- A Cycles bridge elkészült a `tools/cycles/` alatt: a valódi macOS-dropletként fordított `Drop & View Cycles.app` fogad egy vagy több rádobott GLB-t vagy `.dvrender` csomagot, dupla kattintáskor pedig natív többfájlos választót nyit. Az app a naplóhoz Terminalt nyit, majd a `Render with Cycles.command` indítón át futtatja a `render_glb.py` fájlt; Blender UI nélkül importál, Cycles/Metalra áll, denoise-ol és PNG-t ír a bemenet mellé. A Terminal előkészítés közben mozgó aktivitássávot és eltelt időt, render közben pedig Blender-statisztikából származó valódi sample-százalékot és hátralévőidő-becslést mutat; siker után a Finder kijelöli a képet. Sima GLB-nél exporter-metaadat esetén az `asset.extras.dropView.initialView` kameráját és napirányát használja, különben automatikusan keretez. A valódi `demo_house.glb` próbán felismerte az **Apple M1 Max 32-core Metal GPU-t**, a GLB-import kb. 0,67 s volt; az első shaderes futás kb. 1:53, utána a 640 × 360 / 16 samples ellenőrzőkép teljes renderideje kb. 2,6 s. A kép érvényes, az épület, textúrák, üveg, vegetáció és exporter-kamera megjelent.
+- A korábbi `tools/cycles/` prototípus külön projektbe költözött: [Drop & View Render](https://github.com/hildgyorgy/drop-view-render). A jelenlegi változat natív SwiftUI macOS-app, amely GLB vagy `.dvrender` fájlokat fogad, Blender UI nélkül indítja a Cycles/Metal renderelést, saját jobfelületet, minőségbeállításokat, Cancelt és Show in Finder funkciót ad. A Blender-adapter a külön repó `DropViewRender/Resources/render_glb.py` fájlja; nincs Terminal-, AppleScript- vagy külön Python-runtime a felhasználói munkafolyamatban.
 - A `.dvrender` v1 szándékosan lapos és nem lossless projektarchívum: pontosan egy, az aktuális Workbench-anyagokat már tartalmazó GLB a 0. erőforrás, mellette opcionálisan az aktív HDRI. Nincs original GLB, külön Workbench-handoff vagy második resolved GLB; a kamera, láthatóság és renderbeállítás a manifestben marad. Ugyanaz a `patchGlbMaterials` út állítja elő az aktuális GLB-t, mint a bevált SAVE GLB funkció. A korábbi kísérleti v1 csomagokat sem a viewer, sem a Cycles bridge nem támogatja; újra kell exportálni őket. A döntés tudatos: a forrás GLB Archicadből újra előállítható, a mentett scene pedig a pillanatnyi anyagozott állapotból folytatható.
 - `.dvrender` esetén a bridge korlátozott méretekkel és erőforrásszámmal, streamelve bontja ki a GLB/HDRI erőforrást, majd visszaállítja a viewer aktuális perspektív vagy ortografikus kameráját, modellközpontosítását, felső szintű csoportláthatóságát, pixelméretét, sample/bounce célját és a csomagolt HDRI-t. A HDRI legfényesebb nappontját a mentett `sunAngle`/`sunHeight` irányhoz forgatja, külön Sun lámpa nélkül, így nem keletkezik kettős nap. Egy valódi GLB+HDRI tartalmú 37 MB-os tesztcsomag 320 × 180 / 4 samples beállítással 2,18 s alatt készült el. A generált csomag kódolási és Cycles-folyamata igazolt; következő vizuális kontrollként egy közvetlenül a böngészőből mentett, tényleges Workbench-edites csomagot kell összehasonlítani a webes nézettel.
 - Jövőbeni natív alternatívaként figyelendő: [dariopagliaricci/Metal-PathTracer-arm64](https://github.com/dariopagliaricci/Metal-PathTracer-arm64). MIT licencű C++/Objective-C++/Metal renderer, GLB/PBR betöltéssel, headless CLI-val, HDRI/MIS-szel és PNG/EXR kimenettel. A `v3.0.0` aktuális nyilvános checkoutja helyben felépült, és a `demo_house.glb` fájlból 58 mesht, 322 570 háromszöget és 6 textúrát beolvasott; a tényleges render azonban a jelenlegi Metal compilerrel shaderfordítási hibán (`thread Ray currentRay`) megállt. A publikus CI csak buildet és `--help` smoke-ot futtat, GPU-rendert nem.
@@ -120,7 +120,7 @@ A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je va
 | `js/model/glb-material-patch.js` | Eredeti GLB patch-elése, textúrák, UV-k és anyagrekordok mentése. |
 | `js/ui/file-panel.js`, `js/view/render-frame.js` | IMPORT/EXPORT panel, GLB és egy `.dvrender` megnyitása, rögzített pixelméret/képarány. |
 | `js/core/render-snapshot.js`, `render-job.js`, `render-environment.js`, `environment-source.js`, `render-compatibility.js` | Csomagformátum, célok, HDRI, producer/kompatibilitás. A rövidített nevek mind a `js/core/` alatt vannak. |
-| `tools/cycles/` | Rádobós macOS headless Blender/Cycles bridge GLB és `.dvrender` bemenettel. |
+| `tools/cycles/README.md` | Kompatibilitási hivatkozás a külön [Drop & View Render](https://github.com/hildgyorgy/drop-view-render) projektre. |
 | `js/view/photo1.js`, `webgpu-lab/full-photo.js`, `js/view/photo-clearcoat.js` | Két eltérő tracer adapter és Safari clearcoat-javítás. |
 | `js/view/webgl-environment.js`, `webgpu-lab/full-scene.js` | Normál előnézet HDRI-je/PMREM-je; r187 szempontjából érintett. |
 | `js/core/backend-handoff.js`, `session-runtime.js` | Backend-váltáskor egyszer használatos IndexedDB-handoff. |
@@ -140,6 +140,6 @@ Publikus oldal: <https://hildgyorgy.github.io/drop-3d-view/>. A repó saját lic
 
 ## Következő chat indítása
 
-„Olvasd el a `PROJECT_HANDOFF.md` és `README.md` fájlt, ellenőrizd a `git status -sb` eredményét. A Three.js r187 frissítés elkészült; a valódi Safari LACQUERED/üveg/Workbench és csomag-visszanyitási kontroll még szükséges. A böngészős render queue kivezetve; a final render célja a Cycles droplet.”
+„Olvasd el a `PROJECT_HANDOFF.md` és `README.md` fájlt, ellenőrizd a `git status -sb` eredményét. A Three.js r187 frissítés elkészült; a valódi Safari LACQUERED/üveg/Workbench kontroll még szükséges. A böngészős render queue kivezetve; a final render külön projektje a Drop & View Render.”
 
 Az átadó tájékozódási pont; a felhasználó frissebb döntéseit, méréseit és a tényleges kódot nem írja felül.
