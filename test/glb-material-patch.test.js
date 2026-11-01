@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { readGlb, patchGlbMaterials } from "../js/model/glb-material-patch.js";
+import { readGlb, patchGlbMaterials,
+  pruneGlbResources } from "../js/model/glb-material-patch.js";
 
 const pngBytes = value => new Uint8Array([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, value
@@ -200,4 +201,87 @@ test("shared image bytes can retain different source samplers", async () => {
   assert.equal(color.source, normal.source);
   assert.notEqual(color.sampler, normal.sampler);
   assert.equal(json.samplers[color.sampler].magFilter, 9728);
+});
+
+test("repeated material saves replace orphaned embedded textures instead of growing the GLB", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const edit = value => ({
+    materialIndex: 0,
+    images: { color: { bytes: pngBytes(value), mimeType: "image/png" } },
+    roughness: 0.5,
+    metalness: 0,
+    clearcoat: 0
+  });
+
+  const firstBuffer = patchGlbMaterials(source, [edit(21)]);
+  const first = readGlb(firstBuffer);
+  const secondBuffer = patchGlbMaterials(firstBuffer, [edit(22)]);
+  const second = readGlb(secondBuffer);
+  const thirdBuffer = patchGlbMaterials(secondBuffer, [edit(23)]);
+  const third = readGlb(thirdBuffer);
+
+  assert.equal(second.json.images.length, first.json.images.length);
+  assert.equal(third.json.images.length, first.json.images.length);
+  assert.equal(second.json.textures.length, first.json.textures.length);
+  assert.equal(third.json.textures.length, first.json.textures.length);
+  assert.equal(second.binary.length, first.binary.length);
+  assert.equal(third.binary.length, first.binary.length);
+  assert.ok(secondBuffer.byteLength <= firstBuffer.byteLength);
+  assert.ok(thirdBuffer.byteLength <= firstBuffer.byteLength);
+  for (const glb of [second, third]) {
+    for (const texture of glb.json.textures) {
+      assert.ok(texture.source < glb.json.images.length);
+      if (texture.sampler !== undefined)
+        assert.ok(texture.sampler < glb.json.samplers.length);
+    }
+    for (const image of glb.json.images) {
+      const view = glb.json.bufferViews[image.bufferView];
+      assert.ok(view.byteOffset + view.byteLength <= glb.binary.length);
+    }
+  }
+});
+
+test("switching an edited surface to a solid color removes its orphaned image bytes", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const texturedBuffer = patchGlbMaterials(source, [{
+    materialIndex: 0,
+    images: { color: { bytes: pngBytes(31), mimeType: "image/png" } },
+    roughness: 0.5,
+    metalness: 0,
+    clearcoat: 0
+  }]);
+  const textured = readGlb(texturedBuffer);
+  const solidBuffer = patchGlbMaterials(texturedBuffer, [{
+    materialIndex: 0,
+    images: {},
+    color: [0.2, 0.3, 0.4],
+    roughness: 0.5,
+    metalness: 0,
+    clearcoat: 0
+  }]);
+  const solid = readGlb(solidBuffer);
+
+  assert.equal(solid.json.images.length, textured.json.images.length - 1);
+  assert.equal(solid.json.textures.length, textured.json.textures.length - 1);
+  assert.ok(solid.binary.length < textured.binary.length);
+  assert.ok(solidBuffer.byteLength < texturedBuffer.byteLength);
+});
+
+test("unknown extensions conservatively disable resource pruning", () => {
+  const json = {
+    extensionsUsed: ["VENDOR_hidden_resource_indices"],
+    textures: [{ source: 0, sampler: 0 }],
+    images: [{ bufferView: 0, mimeType: "image/png" }],
+    samplers: [{}],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 4 }],
+    materials: []
+  };
+  const binaryParts = [new Uint8Array([1, 2, 3, 4])];
+
+  assert.equal(pruneGlbResources(json, binaryParts), binaryParts);
+  assert.equal(json.textures.length, 1);
+  assert.equal(json.images.length, 1);
+  assert.equal(json.bufferViews.length, 1);
 });

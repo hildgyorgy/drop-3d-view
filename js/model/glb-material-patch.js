@@ -8,6 +8,178 @@ const decoder = new TextDecoder();
 const JSON_CHUNK = 0x4e4f534a;
 const BIN_CHUNK = 0x004e4942;
 const pad4 = length => (length + 3) & ~3;
+const SAFE_RESOURCE_EXTENSIONS = new Set([
+  "KHR_animation_pointer",
+  "KHR_draco_mesh_compression",
+  "KHR_lights_punctual",
+  "KHR_mesh_quantization",
+  "KHR_node_hoverability",
+  "KHR_node_selectability",
+  "KHR_node_visibility",
+  "KHR_texture_basisu",
+  "KHR_texture_transform",
+  "KHR_xmp_json_ld",
+  "EXT_instance_features",
+  "EXT_mesh_features",
+  "EXT_mesh_gpu_instancing",
+  "EXT_meshopt_compression",
+  "EXT_texture_avif",
+  "EXT_texture_filter_anisotropic",
+  "EXT_texture_webp",
+  "CESIUM_primitive_outline"
+]);
+
+function hasOnlyUnderstoodResourceExtensions(json) {
+  return (json.extensionsUsed || []).every(name =>
+    name.startsWith("KHR_materials_") || SAFE_RESOURCE_EXTENSIONS.has(name)
+  );
+}
+
+function walkJson(value, visit) {
+  if (!value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    value.forEach(item => walkJson(item, visit));
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    visit(value, key, child);
+    walkJson(child, visit);
+  }
+}
+
+function compactRecords(records, used, label) {
+  const remap = new Map();
+  const compacted = [];
+  records.forEach((record, index) => {
+    if (!used.has(index)) return;
+    remap.set(index, compacted.length);
+    compacted.push(record);
+  });
+  for (const index of used) if (!remap.has(index))
+    throw new Error(`GLB ${label} ${index} is missing.`);
+  return { records: compacted, remap };
+}
+
+function remapIndex(remap, index, label) {
+  const mapped = remap.get(index);
+  if (mapped === undefined) throw new Error(`GLB ${label} ${index} is missing.`);
+  return mapped;
+}
+
+function textureInfoReferences(json) {
+  const references = [];
+  walkJson(json, (parent, key, value) => {
+    if (/texture$/i.test(key) && value && typeof value === "object" &&
+        Number.isInteger(value.index)) references.push(value);
+  });
+  return references;
+}
+
+function textureImageReferences(texture) {
+  const references = [];
+  if (Number.isInteger(texture?.source))
+    references.push({ parent: texture, key: "source", index: texture.source });
+  for (const extension of Object.values(texture?.extensions || {}))
+    if (Number.isInteger(extension?.source))
+      references.push({ parent: extension, key: "source", index: extension.source });
+  return references;
+}
+
+function binaryRange(parts, byteOffset, byteLength) {
+  const result = [];
+  let position = 0;
+  let remaining = byteLength;
+  let offset = byteOffset;
+  for (const part of parts) {
+    const end = position + part.length;
+    if (remaining > 0 && offset < end) {
+      const startInPart = Math.max(0, offset - position);
+      const count = Math.min(remaining, part.length - startInPart);
+      result.push(part.subarray(startInPart, startInPart + count));
+      remaining -= count;
+      offset += count;
+    }
+    position = end;
+  }
+  if (remaining !== 0) throw new Error("GLB bufferView exceeds the binary buffer.");
+  return result;
+}
+
+function compactImageBufferViews(json, binaryParts, candidates) {
+  if (!candidates.size || json.buffers?.length !== 1 ||
+      json.bufferViews?.some(view => (view.buffer ?? 0) !== 0) ||
+      json.extensionsUsed?.includes("EXT_meshopt_compression"))
+    return binaryParts;
+
+  const referenced = new Set();
+  walkJson(json, (_parent, key, value) => {
+    if (key === "bufferView" && Number.isInteger(value)) referenced.add(value);
+  });
+  const removable = new Set([...candidates].filter(index => !referenced.has(index)));
+  if (!removable.size) return binaryParts;
+
+  const kept = new Set(json.bufferViews.map((_view, index) => index)
+    .filter(index => !removable.has(index)));
+  const { records, remap } = compactRecords(json.bufferViews, kept, "bufferView");
+  const compactedParts = [];
+  let binaryLength = 0;
+  for (const view of records) {
+    const padding = pad4(binaryLength) - binaryLength;
+    if (padding) {
+      compactedParts.push(new Uint8Array(padding));
+      binaryLength += padding;
+    }
+    const oldOffset = view.byteOffset ?? 0;
+    view.byteOffset = binaryLength;
+    const slices = binaryRange(binaryParts, oldOffset, view.byteLength);
+    compactedParts.push(...slices);
+    binaryLength += view.byteLength;
+  }
+  const finalPadding = pad4(binaryLength) - binaryLength;
+  if (finalPadding) compactedParts.push(new Uint8Array(finalPadding));
+  json.bufferViews = records;
+  walkJson(json, (parent, key, value) => {
+    if (key === "bufferView" && Number.isInteger(value))
+      parent[key] = remapIndex(remap, value, "bufferView");
+  });
+  return compactedParts;
+}
+
+export function pruneGlbResources(json, binaryParts) {
+  // Unknown extensions may hide texture or bufferView indices under custom
+  // property names. Keep everything rather than risk corrupting such a model.
+  if (!hasOnlyUnderstoodResourceExtensions(json)) return binaryParts;
+
+  const textureReferences = textureInfoReferences(json);
+  const usedTextures = new Set(textureReferences.map(info => info.index));
+  const textureResult = compactRecords(json.textures || [], usedTextures, "texture");
+  json.textures = textureResult.records;
+  textureReferences.forEach(info => {
+    info.index = remapIndex(textureResult.remap, info.index, "texture");
+  });
+
+  const imageReferences = json.textures.flatMap(textureImageReferences);
+  const usedImages = new Set(imageReferences.map(reference => reference.index));
+  const removedImageViews = new Set((json.images || [])
+    .filter((_image, index) => !usedImages.has(index))
+    .map(image => image.bufferView).filter(Number.isInteger));
+  const imageResult = compactRecords(json.images || [], usedImages, "image");
+  json.images = imageResult.records;
+  imageReferences.forEach(reference => {
+    reference.parent[reference.key] = remapIndex(imageResult.remap, reference.index, "image");
+  });
+
+  const usedSamplers = new Set(json.textures.map(texture => texture.sampler)
+    .filter(Number.isInteger));
+  const samplerResult = compactRecords(json.samplers || [], usedSamplers, "sampler");
+  json.samplers = samplerResult.records;
+  json.textures.forEach(texture => {
+    if (Number.isInteger(texture.sampler))
+      texture.sampler = remapIndex(samplerResult.remap, texture.sampler, "sampler");
+  });
+
+  return compactImageBufferViews(json, binaryParts, removedImageViews);
+}
 
 export function readGlb(buffer) {
   const view = new DataView(buffer);
@@ -187,7 +359,8 @@ export function patchGlbMaterials(source, edits) {
     if (materials.some(index => meterMaterials.has(index)) && primitive.attributes?.TEXCOORD_1 === undefined)
       throw new Error("A material using meter UVs has a mesh part without TEXCOORD_1.");
   }
-  const binaryLength = binaryParts.reduce((length, part) => length + part.length, 0);
+  const outputParts = pruneGlbResources(json, binaryParts);
+  const binaryLength = outputParts.reduce((length, part) => length + part.length, 0);
   json.buffers[0].byteLength = binaryLength;
   const jsonBytes = encoder.encode(JSON.stringify(json));
   const jsonLength = pad4(jsonBytes.length);
@@ -207,7 +380,7 @@ export function patchGlbMaterials(source, edits) {
   view.setUint32(binHeader + 4, BIN_CHUNK, true);
   const binOut = new Uint8Array(output, binHeader + 8, binaryLength);
   let position = 0;
-  for (const part of binaryParts) {
+  for (const part of outputParts) {
     binOut.set(part, position);
     position += part.length;
   }
