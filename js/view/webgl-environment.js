@@ -70,7 +70,8 @@ async function loadEnvironment() {
       applyEnvironment();
     })
     .catch(error => {
-      if (getEnvironmentSource().url !== source.url) return;
+      if (generation !== environmentGeneration ||
+          getEnvironmentSource().url !== source.url) return;
       environmentTarget?.dispose();
       environmentTarget = environment = loadedUrl = null;
       applyEnvironment();
@@ -91,7 +92,9 @@ export async function rebuildPreviewEnvironment() {
   loading = null;
   loadingUrl = null;
   if (scene.environment === environment) scene.environment = null;
-  environmentTarget?.dispose();
+  // The old render target belongs to the lost WebGL context. Disposing it
+  // after restoration would ask the new context to delete foreign objects.
+  // Its GPU allocation vanished with the old context, so only drop references.
   environmentTarget = null;
   environment = null;
   loadedUrl = null;

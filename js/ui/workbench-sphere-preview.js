@@ -10,6 +10,8 @@ import { disposeTextureResources } from "../model/model-resource-disposal.js";
 export function createWorkbenchSpherePreview(element) {
   const canvas = element.querySelector("canvas");
   let renderer = null;
+  let PMREMGeneratorClass = null;
+  let environmentTarget = null;
   let initializing = null;
   let scene, camera, material, sphere;
   let ownedTextures = [];
@@ -88,9 +90,24 @@ export function createWorkbenchSpherePreview(element) {
     schedule();
   }
 
+  function rebuildEnvironment() {
+    const room = new RoomEnvironment();
+    const pmrem = new PMREMGeneratorClass(renderer);
+    try {
+      const previous = environmentTarget;
+      environmentTarget = pmrem.fromScene(room, .04);
+      scene.environment = environmentTarget.texture;
+      previous?.dispose();
+    } finally {
+      room.dispose();
+      pmrem.dispose();
+    }
+  }
+
   async function initialize() {
     const created = await createWorkbenchPreviewRenderer(canvas);
     renderer = created.renderer;
+    PMREMGeneratorClass = created.PMREMGenerator;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0xefefed, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -99,12 +116,7 @@ export function createWorkbenchSpherePreview(element) {
     scene = new THREE.Scene();
     camera = new THREE.OrthographicCamera(-1.02, 1.02, 1.02, -1.02, .1, 10);
     camera.position.z = 4;
-    const room = new RoomEnvironment();
-    const pmrem = new created.PMREMGenerator(renderer);
-    const environment = pmrem.fromScene(room, .04);
-    scene.environment = environment.texture;
-    room.dispose();
-    pmrem.dispose();
+    rebuildEnvironment();
     scene.add(new THREE.HemisphereLight(0xffffff, 0x747474, 1.7));
     const key = new THREE.DirectionalLight(0xffffff, 2.2);
     key.position.set(-2, 3, 4);
@@ -114,6 +126,31 @@ export function createWorkbenchSpherePreview(element) {
     scene.add(sphere);
     canvas.hidden = false;
     canvas.dataset.rendererBackend = renderer.isWebGPURenderer ? "webgpu" : "webgl";
+    if (!renderer.isWebGPURenderer) {
+      let contextLost = false;
+      canvas.addEventListener("webglcontextlost", event => {
+        event.preventDefault();
+        contextLost = true;
+        cancelAnimationFrame(frame);
+        frame = 0;
+      });
+      canvas.addEventListener("webglcontextrestored", () => {
+        if (!contextLost) return;
+        contextLost = false;
+        try {
+          // The old PMREM target belonged to the lost context. Do not dispose
+          // it through the newly restored context; only release its reference.
+          environmentTarget = null;
+          rebuildEnvironment();
+          schedule();
+        } catch (error) {
+          console.error("Material preview resources could not be restored", error);
+          window.dispatchEvent(new CustomEvent("dropview:gpu-device-lost", {
+            detail: { api: "WebGL", scope: "material-preview", message: error.message }
+          }));
+        }
+      });
+    }
     element.classList.add("has-renderer");
     updateMaterial();
   }

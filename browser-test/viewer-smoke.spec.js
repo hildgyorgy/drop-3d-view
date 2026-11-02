@@ -26,6 +26,18 @@ test("a user GLB saves and reopens as a visible render package", async ({ page }
   await expect(page.locator("#photo1Button")).toBeEnabled();
   await expectVisibleCanvas(page);
 
+  // WebGPU device loss cannot be repaired in place. Exercise the shared
+  // handoff/reload path without destroying the browser test runner's device.
+  const recovered = page.waitForEvent("load");
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent(
+    "dropview:gpu-device-lost",
+    { detail: { api: "test", scope: "viewer" } }
+  )));
+  await recovered;
+  await expect(page.locator("#startScreen")).toHaveClass(/hidden/);
+  await expect(page.locator("#photo1Button")).toBeEnabled();
+  await expectVisibleCanvas(page);
+
   await page.locator("#openAgain").click();
   await page.locator("#exportTab").click();
   await expect(page.locator("#renderSnapshotExport")).toBeEnabled();
@@ -65,5 +77,81 @@ test("a user GLB saves and reopens as a visible render package", async ({ page }
     });
   }
 
+  expect(errors).toEqual([]);
+});
+
+test("a lost WebGL context rebuilds the visible viewer", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("drop-view-renderer-mode", "webgl");
+  });
+
+  await page.goto("/?rendererDebug=1");
+  await page.setInputFiles("#fileInput", modelPath);
+  await expect(page.locator("#startScreen")).toHaveClass(/hidden/);
+  await expectVisibleCanvas(page);
+
+  const supported = await page.evaluate(() => {
+    window.__dropViewGpuRecoveryEvents = [];
+    window.addEventListener("dropview:gpu-context-lost", () => {
+      window.__dropViewGpuRecoveryEvents.push("lost");
+    });
+    window.addEventListener("dropview:gpu-context-restored", () => {
+      window.__dropViewGpuRecoveryEvents.push("restored");
+    });
+    const canvas = document.querySelector("body > canvas");
+    const context = canvas?.getContext("webgl2");
+    const extension = context?.getExtension("WEBGL_lose_context");
+    if (!extension) return false;
+    extension.loseContext();
+    setTimeout(() => extension.restoreContext(), 150);
+    return true;
+  });
+  if (!supported) {
+    test.info().annotations.push({
+      type: "WebGL",
+      description: "WEBGL_lose_context is unavailable in this WebKit runtime."
+    });
+    return;
+  }
+
+  await expect.poll(() => page.evaluate(
+    () => window.__dropViewGpuRecoveryEvents
+  )).toEqual(["lost", "restored"]);
+  await expectVisibleCanvas(page);
+  await page.locator("#openAgain").click();
+  await page.locator("#exportTab").click();
+  await expect(page.locator("#exportModelName")).toHaveText("demo_house_2.glb");
+
+  await page.locator("#filePanel [data-close]").click();
+  await page.locator("#aboutButton").click();
+  await page.locator("#materialWorkbenchEntry").click();
+  const materialPreview = page.locator("#workbenchSpherePreview canvas");
+  await expect(materialPreview).toBeVisible();
+  const previewRecovered = await materialPreview.evaluate(canvas => {
+    const context = canvas.getContext("webgl2");
+    const extension = context?.getExtension("WEBGL_lose_context");
+    if (!extension) return false;
+    return new Promise(resolve => {
+      canvas.addEventListener("webglcontextrestored", () => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
+      }, { once: true });
+      extension.loseContext();
+      setTimeout(() => extension.restoreContext(), 150);
+    });
+  });
+  if (previewRecovered) {
+    const previewScreenshot = await materialPreview.screenshot();
+    expect(previewScreenshot.byteLength).toBeGreaterThan(1_000);
+  } else {
+    test.info().annotations.push({
+      type: "WebGL",
+      description: "Material preview context-loss coverage is unavailable."
+    });
+  }
   expect(errors).toEqual([]);
 });
