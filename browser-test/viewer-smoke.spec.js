@@ -155,3 +155,26 @@ test("a lost WebGL context rebuilds the visible viewer", async ({ page }) => {
   }
   expect(errors).toEqual([]);
 });
+
+test("the WebGL path tracer builds its BVH in a worker", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("drop-view-renderer-mode", "webgl");
+  });
+
+  await page.goto("/?rendererDebug=1");
+  await page.setInputFiles("#fileInput", modelPath);
+  await expect(page.locator("#photo1Button")).toBeEnabled();
+  await page.locator("#photo1Button").click();
+  await expect(page.locator("#performanceStats")).toHaveText(
+    /SAMPLES • [1-9][0-9]*/,
+    { timeout: 60_000 }
+  );
+  await expect(page.locator("#photo1Button")).not.toHaveAttribute("aria-busy", "true");
+  await expectVisibleCanvas(page);
+  expect(errors).toEqual([]);
+});

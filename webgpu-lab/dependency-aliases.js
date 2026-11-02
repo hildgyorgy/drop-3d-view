@@ -29,6 +29,13 @@ export const dependencyAliases = [
     replacement: path.join(dependencies, "three/build/three.module.js")
   },
   {
+    find: /^three-mesh-bvh\/worker$/,
+    replacement: path.join(
+      dependencies,
+      "three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js"
+    )
+  },
+  {
     find: /^three-mesh-bvh$/,
     replacement: path.join(dependencies, "three-mesh-bvh/src/index.js")
   },

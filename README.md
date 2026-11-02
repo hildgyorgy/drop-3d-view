@@ -143,10 +143,12 @@ pnpm exec playwright install webkit  # first browser-test run on a new machine
 pnpm test:smoke
 ```
 
-The WebKit smoke test opens a user GLB, verifies a visible rendered canvas,
-saves and reopens a `.dvrender` package, and checks the WebGPU backend handoff
-when the test browser exposes a usable GPU adapter. GitHub Actions runs the
-unit and WebKit smoke suites on every pull request and push to `main`.
+The WebKit smoke suite opens a user GLB, verifies a visible rendered canvas,
+saves and reopens a `.dvrender` package, checks GPU-loss recovery and the
+WebGPU backend handoff when the test browser exposes a usable adapter, and
+confirms that the WebGL path tracer builds its BVH in a worker and produces
+samples. GitHub Actions runs the unit and WebKit smoke suites on every pull
+request and push to `main`.
 
 ## Project layout
 

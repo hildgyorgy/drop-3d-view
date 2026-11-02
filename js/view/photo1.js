@@ -35,6 +35,7 @@ import { PHOTO_BOUNCES, PHOTO_TRANSMISSIVE_BOUNCES,
   getRenderJob, setRenderJob } from "../core/render-job.js";
 import { getEnvironmentSource } from "../core/environment-source.js";
 import { loadEnvironmentTexture } from "../core/environment-texture.js";
+import { AbortableBvhWorker } from "./abortable-bvh-worker.js";
 
 // Dormant interior-lighting experiment. True restores the GLASS LIGHT button;
 // false leaves the authored-glass emission code available but never uses it.
@@ -51,6 +52,9 @@ let paused = false;
 let glassLightEnabled = false;
 let activation = 0;
 let pathTracer = null;
+let bvhWorker = null;
+let scenePreparation = null;
+let pendingPhotoSceneRestore = null;
 let imageSaving = false;
 let photoEnvironment = null;
 let photoGroundMaterial = null;
@@ -271,7 +275,7 @@ function getPhotoEnvironmentRotation() {
   return new THREE.Euler(0, photoEnvironmentSunAzimuth - desiredSunAzimuth, 0);
 }
 
-function withPhotoEnvironment(callback) {
+function applyPhotoEnvironment() {
   const previousEnvironment = scene.environment;
   const previousIntensity = scene.environmentIntensity;
   const previousRotation = scene.environmentRotation.clone();
@@ -283,13 +287,23 @@ function withPhotoEnvironment(callback) {
   // The HDRI already contains a real sun, so never add a second one.
   sun.visible = false;
 
-  try {
-    return callback();
-  } finally {
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
     scene.environment = previousEnvironment;
     scene.environmentIntensity = previousIntensity;
     scene.environmentRotation.copy(previousRotation);
     sun.visible = previousSunVisibility;
+  };
+}
+
+function withPhotoEnvironment(callback) {
+  const restore = applyPhotoEnvironment();
+  try {
+    return callback();
+  } finally {
+    restore();
   }
 }
 
@@ -427,48 +441,91 @@ function convertMaterial(material) {
   return converted;
 }
 
-function withPhotoMaterials(callback) {
+function applyPhotoSceneOverrides() {
   const swaps = [];
   const meterGeometryCache = new WeakMap();
 
-  try {
-    State.model?.traverse(object => {
-      if (!object.isMesh || !object.material) return;
-      swaps.push([object, object.material, object.geometry]);
-      object.material = Array.isArray(object.material)
-        ? object.material.map(convertMaterial)
-        : convertMaterial(object.material);
-      object.geometry = photoMeterGeometry(object.geometry, object.material, meterGeometryCache);
-    });
+  State.model?.traverse(object => {
+    if (!object.isMesh || !object.material) return;
+    swaps.push([object, object.material, object.geometry]);
+    object.material = Array.isArray(object.material)
+      ? object.material.map(convertMaterial)
+      : convertMaterial(object.material);
+    object.geometry = photoMeterGeometry(object.geometry, object.material, meterGeometryCache);
+  });
 
-    if (State.ground) {
-      swaps.push([State.ground, State.ground.material, State.ground.geometry]);
-      State.ground.material = photoGroundMaterial;
-    }
+  if (State.ground) {
+    swaps.push([State.ground, State.ground.material, State.ground.geometry]);
+    State.ground.material = photoGroundMaterial;
+  }
 
-    return withPhotoEnvironment(callback);
-  } finally {
+  const restoreEnvironment = applyPhotoEnvironment();
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
+    restoreEnvironment();
     swaps.forEach(([object, material, geometry]) => {
       object.material = material;
       object.geometry = geometry;
     });
+  };
+}
+
+async function buildPhotoScene() {
+  if (!pathTracer || !State.model) return false;
+
+  const tracer = pathTracer;
+  const model = State.model;
+  const currentActivation = activation;
+  let lastProgress = -1;
+  preparing = true;
+  sceneDirty = false;
+  setStatus("PATH TRACER · building scene…");
+  const restore = applyPhotoSceneOverrides();
+  pendingPhotoSceneRestore = restore;
+
+  try {
+    await tracer.setSceneAsync(scene, State.camera, {
+      onProgress(progress) {
+        if (currentActivation !== activation || pathTracer !== tracer) return;
+        const percentage = Math.max(0, Math.min(100, Math.floor(progress * 100)));
+        if (percentage === lastProgress) return;
+        lastProgress = percentage;
+        setStatus(`PATH TRACER · building BVH ${percentage}%…`);
+      }
+    });
+    if (!active || currentActivation !== activation || pathTracer !== tracer ||
+        State.model !== model) return false;
+    cameraSignature = getCameraSignature();
+    setStatus("PATH TRACER · refining image…");
+    return true;
+  } catch (error) {
+    if (error?.name === "AbortError" || currentActivation !== activation ||
+        pathTracer !== tracer) return false;
+    throw error;
+  } finally {
+    restore();
+    if (pendingPhotoSceneRestore === restore) pendingPhotoSceneRestore = null;
+    if (currentActivation === activation && pathTracer === tracer) {
+      preparing = false;
+      updateGlassLightButtonState();
+      updatePhotoSaveButtonState();
+    }
   }
 }
 
-function prepareScene() {
-  if (!pathTracer || !State.model) return;
-
-  preparing = true;
-  setStatus("PATH TRACER · preparing scene…");
-
+async function prepareScene() {
+  if (scenePreparation) {
+    sceneDirty = true;
+    return scenePreparation;
+  }
+  const preparation = buildPhotoScene();
+  scenePreparation = preparation;
   try {
-    withPhotoMaterials(() => pathTracer.setScene(scene, State.camera));
-    cameraSignature = getCameraSignature();
-    sceneDirty = false;
-    setStatus("PATH TRACER · refining image…");
+    return await preparation;
   } finally {
-    preparing = false;
-    updateGlassLightButtonState();
+    if (scenePreparation === preparation) scenePreparation = null;
   }
 }
 
@@ -496,6 +553,11 @@ function restoreViewerStatus() {
 }
 
 function disposePhotoResources() {
+  pendingPhotoSceneRestore?.();
+  pendingPhotoSceneRestore = null;
+  bvhWorker?.dispose();
+  bvhWorker = null;
+  scenePreparation = null;
   pathTracer?.dispose();
   pathTracer = null;
   photoEnvironment?.dispose();
@@ -551,10 +613,12 @@ async function activatePhoto1() {
   try {
     const [
       { WebGLPathTracer },
-      { GradientEquirectTexture }
+      { GradientEquirectTexture },
+      { GenerateMeshBVHWorker }
     ] = await Promise.all([
       import("three-gpu-pathtracer/src/core/WebGLPathTracer.js"),
-      import("three-gpu-pathtracer/src/textures/GradientEquirectTexture.js")
+      import("three-gpu-pathtracer/src/textures/GradientEquirectTexture.js"),
+      import("three-mesh-bvh/worker")
     ]);
 
     if (!active || currentActivation !== activation || !State.model) return;
@@ -575,6 +639,8 @@ async function activatePhoto1() {
     });
 
     pathTracer = new WebGLPathTracer(renderer);
+    bvhWorker = new AbortableBvhWorker(GenerateMeshBVHWorker);
+    pathTracer.setBVHWorker(bvhWorker);
     installPhotoClearcoatFix(pathTracer);
     pathTracer.bounces = getRenderJob()?.bounces ?? PHOTO_BOUNCES;
     pathTracer.transmissiveBounces = getRenderJob()?.transmissiveBounces ?? PHOTO_TRANSMISSIVE_BOUNCES;
@@ -588,10 +654,7 @@ async function activatePhoto1() {
     pathTracer.minSamples = 2;
     pathTracer.fadeDuration = 240;
     pathTracer.tiles.set(2, 2);
-    // Let the loading message reach the screen before the synchronous BVH build.
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    if (!active || currentActivation !== activation) return;
-    prepareScene();
+    if (!await prepareScene()) return;
     updatePhotoSaveButtonState();
   } catch (error) {
     if (currentActivation !== activation) return;
@@ -635,7 +698,11 @@ glassLightButton?.addEventListener("click", () => {
   setPhotoPaused(false);
   // Rebuild the path-traced material snapshot; switching off returns to the
   // authored glass or the same unlit fallback used before this experiment.
-  prepareScene();
+  void prepareScene().catch(error => {
+    console.error("PATH TRACER scene rebuild failed", error);
+    deactivatePhoto1({ restoreStatus: false });
+    setStatus("PATH TRACER IS NOT AVAILABLE ON THIS DEVICE.");
+  });
 });
 
 sunAngle?.addEventListener("input", () => {
@@ -729,7 +796,15 @@ export function renderPhoto1() {
     return true;
   }
 
-  if (sceneDirty) prepareScene();
+  if (sceneDirty) {
+    void prepareScene().catch(error => {
+      console.error("PATH TRACER scene rebuild failed", error);
+      deactivatePhoto1({ restoreStatus: false });
+      setStatus("PATH TRACER IS NOT AVAILABLE ON THIS DEVICE.");
+    });
+    renderer.render(scene, State.camera);
+    return true;
+  }
 
   const nextCameraSignature = getCameraSignature();
   if (nextCameraSignature !== cameraSignature) {
