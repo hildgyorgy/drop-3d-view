@@ -2,6 +2,14 @@
 
 Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
+## Ortogonális renderkivágás (2026-11-03)
+
+A kamera snapshot az `axon` és `ortho` nézeteknél opcionális
+`camera.orthographic: { left, right, top, bottom }` mezőben menti a tényleges,
+zoom előtti látómezőt. Visszaállításkor ezt is használja; a Cycles-adapter így
+nem a modell befoglaló méretéből találgatja a kivágást. V1-kompatibilis bővítés,
+a régi csomagok továbbra is olvashatók, de pontos kivágáshoz újraexport kell.
+
 ## Natív render bridge – első mérföldkő (2026-11-02)
 
 A FILE → EXPORT → DROP & VIEW RENDER CONNECT gomb a natív app

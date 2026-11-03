@@ -23,7 +23,13 @@ export function captureViewSession(
       up: camera.up.toArray(),
       target: state.controls.target.toArray(),
       zoom: camera.zoom,
-      fov: camera.isPerspectiveCamera ? camera.fov : null
+      fov: camera.isPerspectiveCamera ? camera.fov : null,
+      ...(camera.isOrthographicCamera ? {
+        orthographic: {
+          left: camera.left, right: camera.right,
+          top: camera.top, bottom: camera.bottom
+        }
+      } : {})
     },
     displayMode: state.currentMode,
     navigationMode: state.navigationMode,
@@ -69,6 +75,13 @@ export function assertValidCameraSnapshot(camera) {
     throw new Error("Invalid view session camera");
 
   const quaternionLength = Math.hypot(...camera.quaternion);
+  if (camera.orthographic !== undefined) {
+    const frame = camera.orthographic;
+    if (!plainObject(frame) ||
+        ![frame.left, frame.right, frame.top, frame.bottom].every(Number.isFinite) ||
+        frame.right <= frame.left || frame.top <= frame.bottom)
+      throw new Error("Invalid orthographic camera frame");
+  }
   const upLength = Math.hypot(...camera.up);
   if (!Number.isFinite(quaternionLength) || quaternionLength < 1e-6 ||
       !Number.isFinite(upLength) || upLength < 1e-6)
@@ -120,6 +133,13 @@ export function restoreCameraPose(snapshot, camera, controls) {
   camera.quaternion.fromArray(saved.quaternion);
   camera.up.fromArray(saved.up);
   camera.zoom = saved.zoom;
+  if (camera.isOrthographicCamera && saved.orthographic) {
+    const frame = saved.orthographic;
+    camera.left = frame.left;
+    camera.right = frame.right;
+    camera.top = frame.top;
+    camera.bottom = frame.bottom;
+  }
   if (camera.isPerspectiveCamera && saved.fov !== null) camera.fov = saved.fov;
   camera.updateProjectionMatrix();
   controls.target.fromArray(saved.target);

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const modelPath = fileURLToPath(new URL("../demo/demo_house_2.glb", import.meta.url));
@@ -78,6 +78,44 @@ test("a user GLB saves and reopens as a visible render package", async ({ page }
   }
 
   expect(errors).toEqual([]);
+});
+
+test("orthographic package preserves the zoomed portrait camera frame on reopen", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1000 });
+  await page.goto("/?rendererDebug=1");
+  await page.setInputFiles("#fileInput", modelPath);
+  await expect(page.locator("#startScreen")).toHaveClass(/hidden/);
+  await page.locator("#orthoButton").click();
+  const canvas = page.locator("body > canvas");
+  await canvas.hover();
+  await page.mouse.wheel(0, -200);
+  // OrbitControls handles the wheel synchronously; await a displayed frame.
+  await expectVisibleCanvas(page);
+
+  async function exportPackage() {
+    await page.locator("#openAgain").click();
+    await page.locator("#exportTab").click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.locator("#renderSnapshotExport").click();
+    const path = await (await downloadPromise).path();
+    const bytes = await readFile(path);
+    return { path, manifest: JSON.parse(bytes.subarray(12, 12 + bytes.readUInt32LE(8))) };
+  }
+
+  const first = await exportPackage();
+  const camera = first.manifest.viewSession.camera;
+  expect(camera.projection).toBe("ortho");
+  expect(camera.zoom).toBeGreaterThan(1);
+  const frame = camera.orthographic;
+  expect((frame.right - frame.left) / (frame.top - frame.bottom))
+    .toBeCloseTo(first.manifest.renderSize.width / first.manifest.renderSize.height, 6);
+  await page.locator("#importTab").click();
+  await page.setInputFiles("#renderPackageInput", first.path);
+  await expect(page.locator("#filePanel")).not.toHaveAttribute("open", "");
+  await expectVisibleCanvas(page);
+  const second = await exportPackage();
+  expect(second.manifest.viewSession.camera.orthographic).toEqual(frame);
+  expect(second.manifest.viewSession.camera.zoom).toBeCloseTo(camera.zoom, 6);
 });
 
 test("a lost WebGL context rebuilds the visible viewer", async ({ page }) => {

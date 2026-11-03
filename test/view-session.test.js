@@ -139,3 +139,27 @@ test("view session validation rejects malformed groups, section and settings", (
     settings: { sectionSlider: "not-a-number" }
   }), /sectionSlider/);
 });
+
+test("orthographic snapshot preserves the actual frustum and restores it before projection update", () => {
+  const camera = {
+    position: vector([5, 6, 7]), quaternion: vector([0, 0, 0, 1]),
+    up: vector([0, 1, 0]), zoom: 2.5, isOrthographicCamera: true,
+    left: -8, right: 12, top: 9, bottom: -3
+  };
+  const snapshot = captureViewSession({
+    camera, cameraProjection: "axon", controls: { target: vector([0, 0, 0]) },
+    sectionPlane: { normal: vector([0, 1, 0]), constant: 0 }
+  });
+  camera.left = -100;
+  assert.deepEqual(snapshot.camera.orthographic, { left: -8, right: 12, top: 9, bottom: -3 });
+  camera.updateProjectionMatrix = () => {
+    assert.equal(camera.left, -8);
+    assert.equal(camera.zoom, 2.5);
+  };
+  restoreCameraPose(snapshot, camera, { target: vector([0, 0, 0]), update() {} });
+  for (const frame of [null, {}, { left: 0, right: 0, top: 1, bottom: -1 },
+    { left: -1, right: Infinity, top: 1, bottom: -1 }]) {
+    assert.throws(() => restoreCameraPose({ camera: { ...snapshot.camera, orthographic: frame } },
+      camera, { target: vector([0, 0, 0]), update() {} }), /orthographic camera frame/);
+  }
+});

@@ -257,6 +257,9 @@ export function restoreCameraView(snapshot) {
   if (saved.preset && presetDirections[saved.preset]) preset = saved.preset;
 
   ++State.cameraAnimation;
+  if (saved.projection !== "perspective" && saved.orthographic) {
+    initialOrthoHalfHeight = (saved.orthographic.top - saved.orthographic.bottom) / 2;
+  }
   setProjection(saved.projection);
   restoreCameraPose(snapshot, State.camera, State.controls);
   if (State.camera.isPerspectiveCamera && Number.isFinite(saved.fov)) {
