@@ -1,6 +1,8 @@
 import { RenderBridgeClient } from "../core/render-bridge.js";
+import { bindSafariRenderBridgeControls } from "./safari-render-bridge.js";
 
 export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
+  bindSafariRenderBridgeControls();
   const connect = document.querySelector("#renderBridgeConnect");
   const disconnect = document.querySelector("#renderBridgeDisconnect");
   const render = document.querySelector("#renderBridgeRender");

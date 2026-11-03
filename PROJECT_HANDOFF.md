@@ -2,6 +2,20 @@
 
 Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
+## Safari Native Messaging prototípus (2026-11-03)
+
+Safari Native Messaging prototípus (2026-11-03): az exportpanelen külön
+SAFARI EXTENSION PROTOTYPE / TEST NATIVE CONNECTION gomb van. A kis ping/pong
+üzenet isolated content scripten és Safari Native Messagingen át a natív appba
+csomagolt Swift extension-handlerhez megy. A normál CONNECT/RENDER HTTP útja
+változatlan. Fájlátvitel és queue-integráció még nincs; tényleges Safari-próbához
+aláírt natív build, extension-engedélyezés és webhely-hozzáférés kell. Részletek
+a natív repo `docs/SAFARI_NATIVE_MESSAGING.md` fájljában.
+Valódi Safariban igazolt: helyi 127.0.0.1 webapp → extension → natív Swift
+handler → webapp, két külön UUID-s PONG 947/313 ms alatt, az OS-ben ellenőrzött
+29000-es natív folyamattal. A felhasználó jóváhagyásával a helyi webhelyengedély
+egy napra érvényes. 149 unit és négy WebKit smoke teszt sikeres.
+
 ## Ortogonális renderkivágás (2026-11-03)
 
 A kamera snapshot az `axon` és `ortho` nézeteknél opcionális
