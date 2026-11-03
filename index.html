@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=three-r187-3" />
+    <link rel="stylesheet" href="css/style.css?v=blender-panel-1" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -103,6 +103,9 @@
                     hidden
                   >
                     MEASUREMENTS
+                  </button>
+                  <button id="blenderRenderEntry" class="about-workbench" type="button" aria-pressed="false" aria-controls="blenderRenderPanel" hidden>
+                    RENDER WITH BLENDER
                   </button>
                 </div>
                 <div id="rendererPicker" class="renderer-picker" hidden>
@@ -497,8 +500,8 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=async-bvh-1",
-          webgl: "renderers/webgl/main.js?v=async-bvh-1"
+          webgpu: "renderers/webgpu/main.js?v=blender-panel-1",
+          webgl: "renderers/webgl/main.js?v=blender-panel-1"
         };
       }
     </script>
@@ -507,15 +510,30 @@
         <h2 id="filePanelTitle">FILE</h2>
         <button type="button" data-close aria-label="Close file tools">X</button>
       </header>
-      <div class="file-tabs" role="tablist" aria-label="Import and export">
+      <div class="file-pane">
+        <section class="file-section" aria-labelledby="importModelTitle">
+          <h3 id="importModelTitle">IMPORT GLB FILE FROM YOUR COMPUTER</h3>
+          <button id="openModelFile" type="button">OPEN GLB</button>
+        </section>
+        <section class="file-section" aria-labelledby="exportModelTitle">
+          <h3 id="exportModelTitle">EXPORT EDITED MODEL AS A NEW GLB</h3>
+          <p id="exportModelName" class="export-model-name">—</p>
+          <button id="exportGlb" type="button" disabled>SAVE GLB</button>
+          <p id="exportGlbHint" class="render-snapshot-hint" hidden>VIEW-ONLY · ASK THE MODEL OWNER FOR AN EDITABLE GLB</p>
+          <p id="exportGlbStatus" role="status" aria-live="polite"></p>
+        </section>
+      </div>
+    </dialog>
+    <dialog id="blenderRenderPanel" class="file-panel" aria-labelledby="blenderRenderPanelTitle">
+      <header>
+        <h2 id="blenderRenderPanelTitle">RENDER WITH BLENDER</h2>
+        <button type="button" data-close aria-label="Close Blender render tools">X</button>
+      </header>
+      <div class="file-tabs" role="tablist" aria-label="Render package import and export">
         <button id="importTab" type="button" role="tab" aria-selected="true" aria-controls="importPanel" data-tab="import">IMPORT</button>
         <button id="exportTab" type="button" role="tab" aria-selected="false" aria-controls="exportPanel" tabindex="-1" data-tab="export">EXPORT</button>
       </div>
       <div id="importPanel" class="file-pane" role="tabpanel" aria-labelledby="importTab" data-pane="import">
-        <section class="file-section" aria-labelledby="importModelTitle">
-          <h3 id="importModelTitle">MODEL</h3>
-          <button id="openModelFile" type="button">OPEN GLB</button>
-        </section>
         <section class="file-section" aria-labelledby="importPackageTitle">
           <h3 id="importPackageTitle">RENDER PACKAGE</h3>
           <button id="openRenderPackage" type="button">OPEN .DVRENDER</button>
@@ -537,13 +555,6 @@
           <select id="renderBridgeJobs" aria-label="Submitted renders" hidden></select>
           <p id="renderBridgeStatus" role="status" aria-live="polite"></p>
         </section>
-        <section class="file-section" aria-labelledby="exportModelTitle">
-          <h3 id="exportModelTitle">MODEL</h3>
-          <p id="exportModelName" class="export-model-name">—</p>
-          <button id="exportGlb" type="button" disabled>SAVE GLB</button>
-          <p id="exportGlbHint" class="render-snapshot-hint" hidden>VIEW-ONLY · ASK THE MODEL OWNER FOR AN EDITABLE GLB</p>
-          <p id="exportGlbStatus" role="status" aria-live="polite"></p>
-        </section>
         <section class="file-section" aria-labelledby="renderExportTitle">
           <h3 id="renderExportTitle">RENDER PACKAGE</h3>
           <div id="renderJobControls" class="render-job-controls" hidden>
@@ -558,6 +569,6 @@
         </section>
       </div>
     </dialog>
-    <script type="module" src="js/core/renderer-bootstrap.js?v=async-bvh-1"></script>
+    <script type="module" src="js/core/renderer-bootstrap.js?v=blender-panel-1"></script>
   </body>
 </html>

@@ -1,11 +1,13 @@
-/* Shared import/export entry point. Rendering stays interactive or goes to Cycles. */
+/* GLB file tools and the separate experimental Blender render tools. */
 
 export function bindFilePanel({ openPackage }) {
   const entry = document.querySelector("#openAgain");
   const dialog = document.querySelector("#filePanel");
-  const $ = selector => dialog.querySelector(selector);
-  const tabs = [...dialog.querySelectorAll("[role=tab]")];
-  const panes = [...dialog.querySelectorAll("[role=tabpanel]")];
+  const renderEntry = document.querySelector("#blenderRenderEntry");
+  const renderDialog = document.querySelector("#blenderRenderPanel");
+  const $ = selector => document.querySelector(selector);
+  const tabs = [...renderDialog.querySelectorAll("[role=tab]")];
+  const panes = [...renderDialog.querySelectorAll("[role=tabpanel]")];
   const modelInput = document.querySelector("#fileInput");
   const packageInput = $("#renderPackageInput");
   const packageStatus = $("#renderPackageStatus");
@@ -36,14 +38,29 @@ export function bindFilePanel({ openPackage }) {
   });
 
   entry.addEventListener("click", () => {
+    renderDialog.close();
     if (!dialog.open) dialog.show();
   });
-  dialog.addEventListener("keydown", event => {
-    if (event.key !== "Escape") return;
-    event.stopPropagation();
+  renderEntry.hidden = false;
+  renderEntry.addEventListener("click", () => {
     dialog.close();
+    if (renderDialog.open) renderDialog.close();
+    else {
+      renderDialog.show();
+      renderEntry.setAttribute("aria-pressed", "true");
+    }
   });
-  $("[data-close]").addEventListener("click", () => dialog.close());
+  renderDialog.addEventListener("close", () => {
+    renderEntry.setAttribute("aria-pressed", "false");
+  });
+  for (const panel of [dialog, renderDialog]) {
+    panel.addEventListener("keydown", event => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      panel.close();
+    });
+    panel.querySelector("[data-close]").addEventListener("click", () => panel.close());
+  }
 
   $("#openModelFile").addEventListener("click", () => {
     modelInput.value = "";
@@ -66,7 +83,7 @@ export function bindFilePanel({ openPackage }) {
     try {
       await openPackage(file);
       packageStatus.textContent = "";
-      dialog.close();
+      renderDialog.close();
     } catch (error) {
       packageStatus.textContent = `COULD NOT OPEN PACKAGE: ${error.message}`;
     } finally {

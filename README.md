@@ -15,7 +15,7 @@ A lightweight browser-based 3D model viewer by **György Hild**. Open a model, e
 
 ## Render with the native companion
 
-Run the updated Drop & View Render app, then choose **FILE → EXPORT → CONNECT**
+Run the updated Drop & View Render app, then choose **i → RENDER WITH BLENDER → EXPORT → CONNECT**
 and approve the connection. **RENDER** sends the current scene directly to Cycles
 using Recommended quality, with the displayed image size and sample maximum.
 The browser shows progress/time and **CANCEL**. After completion, **SHOW IN FOLDER**
@@ -122,9 +122,9 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 ### Experimental render snapshot transfer
 
-The FILE window is a nonmodal panel with the same dimensions and dashed, translucent styling as the Material Workbench. It does not dim or block the viewer. Close it with the × button, or Escape while focus is inside it.
+The FILE window is a compact nonmodal panel with the dashed, translucent styling of the Material Workbench. Blender tools use a separate panel with the same styling. Neither blocks the viewer. Close either with the × button, or Escape while focus is inside it.
 
-Choose **FILE** in the top bar to open the file tools. The tabs are **IMPORT / EXPORT**. In IMPORT, **OPEN GLB** selects a new model and **OPEN .DVRENDER** restores one render package in the visible viewer. In EXPORT, **SAVE GLB** downloads the applied Material Workbench changes as a modified GLB for an editable, user-opened model. The Workbench itself contains only APPLY, UNDO and RESET. In **RENDER PACKAGE**, set **SAMPLES** and use **SAVE PACKAGE**. This sample count is saved for Cycles or a later viewer session; it does not change the currently visible path tracer. The `.dvrender` package includes one current GLB with all applied Material Workbench changes, plus camera, lighting, group visibility, canvas pixel dimensions, target samples, fixed bounce settings (6 regular, 10 transmissive), and the active Radiance HDRI bytes. It is a snapshot of the current scene, not a lossless archive of the originally opened GLB.
+Choose **FILE** in the top bar to import a GLB from your computer or export the edited model as a new GLB. **SAVE GLB** includes applied Material Workbench changes for an editable, user-opened model. The Workbench itself contains only APPLY, UNDO and RESET. Open **i → Experimental features → RENDER WITH BLENDER** for render tools. Its **IMPORT** tab opens a `.dvrender` package in the viewer; **EXPORT** contains the native render connection and render controls, image pixel dimensions, **SAMPLES**, and **SAVE PACKAGE**. This sample count is saved for Cycles or a later viewer session; it does not change the currently visible path tracer. The `.dvrender` package includes one current GLB with all applied Material Workbench changes, plus camera, lighting, group visibility, canvas pixel dimensions, target samples, fixed bounce settings (6 regular, 10 transmissive), and the active Radiance HDRI bytes. It is a snapshot of the current scene, not a lossless archive of the originally opened GLB.
 
 **OPEN .DVRENDER** replaces the visible model with the package's current materialized GLB and restores its camera, lighting, group visibility, image frame and render target. The dialog closes and path tracing stays off. Continue editing the model or view, start **PATH TRACER** manually, save the model as GLB through the EXPORT tab, or export another render package. The saved pixel resolution and aspect ratio stay fixed across browser resizing and camera projection changes until a different model is opened. The export's TARGET SAMPLES field is restored from the package.
 

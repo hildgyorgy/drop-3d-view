@@ -12,7 +12,7 @@ a régi csomagok továbbra is olvashatók, de pontos kivágáshoz újraexport ke
 
 ## Natív render bridge – első mérföldkő (2026-11-02)
 
-A FILE → EXPORT → DROP & VIEW RENDER CONNECT gomb a natív app
+Az i → RENDER WITH BLENDER → EXPORT → DROP & VIEW RENDER CONNECT gomb a natív app
 `127.0.0.1:43127` HTTP-hídjához kapcsolódik. Böngészőengedély és natív
 jóváhagyás után originhez kötött, csak memóriában tárolt tokennel kérdez
 állapotot; DISCONNECT bontja. A RENDER már ugyanazzal az exporterrel készíti a pillanatképet, mint a SAVE
@@ -83,10 +83,10 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 - A Drop & View építészek ügyfeleinek szánt, egyszerű, helyben futó GLB-nézegető. Nem modellhosting szolgáltatás. Egyetlen közös app/UI van, két rendererrel.
 - A normál publikus **AUTO WebGL-t választ**. A WebGPU kézzel a `?rendererDebug=1` infópaneljén választható összehasonlításhoz. A WebGPU path tracer nincs a WebGL vizuális referenciájával egyenértékűnek nyilvánítva.
 - A **MATERIAL WORKBENCH és FILE a normál standalone nézetben elérhető**, nem debug-only funkciók. Embedben nem töltődnek be a szerkesztőeszközök.
-- A Workbench és FILE közös mérete: asztali szélesség **342 px**, magasság `min(600px, reszponzív magasságkeret)`. Kis ablakban automatikusan kisebbek és görgethetők. Nem modálisak; nincs viewert kitakaró háttérréteg.
+- A Workbench és a Blender-panel asztali szélessége **342 px**, magassága `min(600px, reszponzív magasságkeret)`; a FILE tartalomhoz igazodó magasságú. Kis ablakban automatikusan kisebbek és görgethetők. Nem modálisak; nincs viewert kitakaró háttérréteg.
 - A felhasználó a szűkszavú, nyugodt UI-t kedveli. A rutin magyarázó/sikerfeliratokat eltávolítottuk; az owner/policy figyelmeztetés, hibák és érdemi kompatibilitási jelzések maradjanak. A bezárás X, az akciók keret nélküli piros szövegek.
-- A Workbench gombsora **APPLY / UNDO / RESET**. Nincs SAVE AS; a GLB-mentés a **FILE → EXPORT → SAVE GLB** helyen van.
-- A FILE panel két füle sorrendben **IMPORT / EXPORT**. IMPORT alatt egy GLB vagy egy `.dvrender` nyitható meg. EXPORT alatt SAVE GLB és SAVE PACKAGE található; utóbbinál IMAGE pixelméret, SAMPLES és BOUNCES 6 · GLASS 10.
+- A Workbench gombsora **APPLY / UNDO / RESET**. Nincs SAVE AS; a GLB-mentés a **FILE → SAVE GLB** helyen van.
+- A FILE panel csak GLB importot és exportot tartalmaz. Az **i → Experimental features → RENDER WITH BLENDER** a harmadik kísérleti funkció: külön, azonos stílusú popup IMPORT / EXPORT fülekkel. IMPORT alatt `.dvrender` nyitható; EXPORT alatt CONNECT, renderindítás/feladatkezelés és SAVE PACKAGE található, IMAGE pixelmérettel, SAMPLES és BOUNCES 6 · GLASS 10 adatokkal.
 - Az IMAGE kijelzés a tényleges rendercanvas fizikai pixelméretét mutatja, és resize esetén azonnal frissül. Retina alatt ez eltérhet a CSS-ablakmérettől. Pontosan ez a méret kerül a csomagba. Importált fix renderkeret esetén annak méretét mutatja.
 - A felhasználó bevált munkamódszere az ablak átméretezésével egyszerre komponálni és felbontást választani. A hétköznapi képekhez az aktuális app-ablak tartalma megfelelő; az 5K path tracer render éjszakára is maradhat.
 
@@ -110,7 +110,7 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 - A renderer programkódja nem utazik a csomagban. Producer-eltérés figyelmeztet, de a render engedélyezett. Aktuális renderer-revízió `webgl-photo-3`; képképzési változáskor frissítendő. Az alap HDRI azonosítóját fájlcsere esetén módosítani kell; teszt is ellenőrzi.
 - Alap exportcél **500 samples**, rögzített **6 bounces / 10 transmissive bounces**. A fogadó viewer vagy a Drop & View Render a csomagban mentett értéket használja.
 - SECTION mellett exporttiltás marad érdemi figyelmeztetéssel. A v1 csomag legfeljebb két erőforrása az aktuális GLB és az opcionális HDRI; a maximális csomagméret 2 GB.
-- OPEN .DVRENDER az egyetlen kiválasztott csomagot a látható viewerben állítja helyre, majd bezárja a FILE panelt. Nem indít automatikusan path tracert.
+- OPEN .DVRENDER az egyetlen kiválasztott csomagot a látható viewerben állítja helyre, majd bezárja a Blender-panelt. Nem indít automatikusan path tracert.
 - A SAVE IMAGE / PNG-mentés az éppen felhalmozott tracer képet kezeli, kezelőszervek nélkül; nincs külön, a viewert kitakaró renderelő réteg.
 
 ## Böngészős render station – kivezetve

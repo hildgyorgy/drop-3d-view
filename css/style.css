@@ -1111,6 +1111,7 @@ body.dragging .drop-title {
   -webkit-backdrop-filter: blur(12px);
 }
 .file-panel header { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+#filePanel { height: auto; }
 .file-panel h2 { margin: 0; font: 13px var(--mono); letter-spacing: .16em; }
 .file-panel h3 { margin: 0 0 12px; color: #999; font: 10px var(--mono); letter-spacing: .14em; }
 .file-panel p { margin: 8px 0; }

@@ -4,6 +4,14 @@ import { fileURLToPath } from "node:url";
 
 const modelPath = fileURLToPath(new URL("../demo/demo_house_2.glb", import.meta.url));
 
+async function openBlenderTools(page) {
+  if (!await page.locator("#blenderRenderPanel").evaluate(panel => panel.open)) {
+    if (!await page.locator("#aboutMenu").isVisible())
+      await page.locator("#aboutButton").click();
+    await page.locator("#blenderRenderEntry").click();
+  }
+}
+
 async function expectVisibleCanvas(page) {
   const canvas = page.locator("body > canvas");
   await expect(canvas).toBeVisible();
@@ -39,6 +47,14 @@ test("a user GLB saves and reopens as a visible render package", async ({ page }
   await expectVisibleCanvas(page);
 
   await page.locator("#openAgain").click();
+  await expect(page.locator("#filePanel #openModelFile")).toBeVisible();
+  await expect(page.locator("#filePanel #exportGlb")).toBeVisible();
+  await expect(page.locator("#filePanel #renderSnapshotExport")).toHaveCount(0);
+  await expect(page.locator("#filePanel #renderPackageInput")).toHaveCount(0);
+  await expect(page.locator("#filePanel #renderBridgeRender")).toHaveCount(0);
+  await page.locator("#filePanel [data-close]").click();
+
+  await openBlenderTools(page);
   await page.locator("#exportTab").click();
   await expect(page.locator("#renderSnapshotExport")).toBeEnabled();
   const downloadPromise = page.waitForEvent("download");
@@ -51,7 +67,7 @@ test("a user GLB saves and reopens as a visible render package", async ({ page }
 
   await page.locator("#importTab").click();
   await page.setInputFiles("#renderPackageInput", packagePath);
-  await expect(page.locator("#filePanel")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#blenderRenderPanel")).not.toHaveAttribute("open", "");
   await expect(page.locator("#photo1Button")).toBeEnabled();
   await expectVisibleCanvas(page);
 
@@ -93,7 +109,7 @@ test("orthographic package preserves the zoomed portrait camera frame on reopen"
   await expectVisibleCanvas(page);
 
   async function exportPackage() {
-    await page.locator("#openAgain").click();
+    await openBlenderTools(page);
     await page.locator("#exportTab").click();
     const downloadPromise = page.waitForEvent("download");
     await page.locator("#renderSnapshotExport").click();
@@ -111,7 +127,7 @@ test("orthographic package preserves the zoomed portrait camera frame on reopen"
     .toBeCloseTo(first.manifest.renderSize.width / first.manifest.renderSize.height, 6);
   await page.locator("#importTab").click();
   await page.setInputFiles("#renderPackageInput", first.path);
-  await expect(page.locator("#filePanel")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#blenderRenderPanel")).not.toHaveAttribute("open", "");
   await expectVisibleCanvas(page);
   const second = await exportPackage();
   expect(second.manifest.viewSession.camera.orthographic).toEqual(frame);
@@ -162,7 +178,6 @@ test("a lost WebGL context rebuilds the visible viewer", async ({ page }) => {
   )).toEqual(["lost", "restored"]);
   await expectVisibleCanvas(page);
   await page.locator("#openAgain").click();
-  await page.locator("#exportTab").click();
   await expect(page.locator("#exportModelName")).toHaveText("demo_house_2.glb");
 
   await page.locator("#filePanel [data-close]").click();
