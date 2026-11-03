@@ -2,6 +2,28 @@
 
 Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
+## Natív render bridge – első mérföldkő (2026-11-02)
+
+A FILE → EXPORT → DROP & VIEW RENDER CONNECT gomb a natív app
+`127.0.0.1:43127` HTTP-hídjához kapcsolódik. Böngészőengedély és natív
+jóváhagyás után originhez kötött, csak memóriában tárolt tokennel kérdez
+állapotot; DISCONNECT bontja. A RENDER már ugyanazzal az exporterrel készíti a pillanatképet, mint a SAVE
+PACKAGE, és közvetlenül a natív appnak küldi. Ajánlott minőség, eredeti felbontás,
+sample plafon és bounce limitek; kimenet Downloads / Drop & View Render, ütközésnél
+index. A weben előrehaladás/idő, CANCEL és kész képnél SHOW IN FOLDER van.
+A megszakadt válasz RETRY SEND-je ugyanazt a Blobot/azonosítót használja, nem
+indít dupla feladatot. Render közben új kameraállás is beküldhető: a natív app sorban futtatja a
+pillanatképeket, az elfogadott beállítások rögzítve maradnak. A webes
+feladatválasztóval korábbi render is kijelölhető; a CANCEL a kijelölt futó vagy
+várakozó feladatot kezeli. A natív várólista más feladatait ez nem indítja el.
+SHOW IN FOLDER explicit előtérbe hozza a Findert.
+A SAVE PACKAGE és a natív fájlkezelés továbbra is használható. Ellenőrizve: valódi
+Edge viewer → exporter → bridge → Cycles → FINISHED és RENDER → CANCELLED;
+146 unit teszt és 3 WebKit viewer smoke sikeres, mindkét bundle újraépítve.
+Közös protokoll: `docs/RENDER_BROWSER_BRIDGE.md`. A korábbi localhost-tiltás
+ezzel az új, jóváhagyott termékdöntéssel felülírva; böngészős render queue nincs.
+A natív bridge macOS-on készül, Windows tray app még nincs.
+
 ## Csomagbélyegkép
 
 A SAVE PACKAGE opcionális `thumbnail` mezőt ment a v1 manifestbe: JPEG MIME,
@@ -100,8 +122,8 @@ A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je va
 ## Tervezett headless final render és figyelendő natív Metal-alternatíva
 
 - A kijelölt final-render megoldás a külön **Drop & View Render**: a Drop & View marad a Blender-ismeretet nem igénylő szerkesztő/komponáló felület, a natív macOS-app pedig a `.dvrender` csomagot a háttérben futó Cyclesnek adja át Metal GPU-val. A webes path tracer gyors, integrált előnézet marad; a Cycles mellette, nem helyette készít nagy felbontású finalt. Támogatott alap a stabil Blender 5.2.3 LTS; a béta Blender-verziók nem részei a támogatott útnak.
-- A terjeszthető kliens **nem localhost-szerver és nem böngésző-extension**. A natív SwiftUI macOS-app elkészült saját drag-and-drop ablakkal, Cycles sample/progress kijelzéssel, Cancel és Show in Finder funkcióval, Blender-felderítéssel és renderbeállításokkal. A felhasználó nem lát Terminalt vagy Pythont; a Blender saját beépített Pythonja futtatja az app bundle `bpy` adapterét. Aláírás, notarizálás és kiadási csomagolás még hátravan.
-- A Blender-adapter és a Swift kliens közti kommunikáció eleve platformfüggetlen JSON-soros protokoll legyen (`stage`, `sample`, `total`, `remaining`, `output`, strukturált hiba). A renderlogika közös marad; később egy vékony natív C#/WinUI Windows-kliens épül rá. A GPU-választást általánosítani kell: NVIDIA RTX → OptiX, régebbi NVIDIA → CUDA, AMD → HIP, Intel Arc → oneAPI, Apple Silicon → Metal, végül CPU fallback. Így a két platform csak a natív GUI-ban, Blender-felderítésben, fájltársításban és telepítő/aláírási folyamatban tér el.
+- A terjeszthető kliens **natív app, saját loopback HTTP-híddal; nem böngésző-extension**. A natív SwiftUI macOS-app elkészült saját drag-and-drop ablakkal, Cycles sample/progress kijelzéssel, Cancel és Show in Finder funkcióval, Blender-felderítéssel és renderbeállításokkal. A felhasználó nem lát Terminalt vagy Pythont; a Blender saját beépített Pythonja futtatja az app bundle `bpy` adapterét. Aláírás, notarizálás és kiadási csomagolás még hátravan.
+- A Blender-adapter és a Swift kliens közti kommunikáció eleve platformfüggetlen JSON-soros protokoll legyen (`stage`, `sample`, `total`, `remaining`, `output`, strukturált hiba). A renderlogika közös marad; később egy egyszerű Windows tray kliens épülhet rá, a böngészővel mint fő felülettel. A GPU-választást általánosítani kell: NVIDIA RTX → OptiX, régebbi NVIDIA → CUDA, AMD → HIP, Intel Arc → oneAPI, Apple Silicon → Metal, végül CPU fallback. Így a két platform csak a natív GUI-ban, Blender-felderítésben, fájltársításban és telepítő/aláírási folyamatban tér el.
 - A korábbi `tools/cycles/` prototípus külön projektbe költözött: [Drop & View Render](https://github.com/hildgyorgy/drop-view-render). A jelenlegi változat natív SwiftUI macOS-app, amely GLB vagy `.dvrender` fájlokat fogad, Blender UI nélkül indítja a Cycles/Metal renderelést, saját jobfelületet, minőségbeállításokat, Cancelt és Show in Finder funkciót ad. A Blender-adapter a külön repó `DropViewRender/Resources/render_glb.py` fájlja; nincs Terminal-, AppleScript- vagy külön Python-runtime a felhasználói munkafolyamatban.
 - A `.dvrender` v1 szándékosan lapos és nem lossless projektarchívum: pontosan egy, az aktuális Workbench-anyagokat már tartalmazó GLB a 0. erőforrás, mellette opcionálisan az aktív HDRI. Nincs original GLB, külön Workbench-handoff vagy második resolved GLB; a kamera, láthatóság és renderbeállítás a manifestben marad. Ugyanaz a `patchGlbMaterials` út állítja elő az aktuális GLB-t, mint a bevált SAVE GLB funkció. A korábbi kísérleti v1 csomagokat sem a viewer, sem a Cycles bridge nem támogatja; újra kell exportálni őket. A döntés tudatos: a forrás GLB Archicadből újra előállítható, a mentett scene pedig a pillanatnyi anyagozott állapotból folytatható.
 - `.dvrender` esetén a bridge korlátozott méretekkel és erőforrásszámmal, streamelve bontja ki a GLB/HDRI erőforrást, majd visszaállítja a viewer aktuális perspektív vagy ortografikus kameráját, modellközpontosítását, felső szintű csoportláthatóságát, pixelméretét, sample/bounce célját és a csomagolt HDRI-t. A HDRI legfényesebb nappontját a mentett `sunAngle`/`sunHeight` irányhoz forgatja, külön Sun lámpa nélkül, így nem keletkezik kettős nap. Egy valódi GLB+HDRI tartalmú 37 MB-os tesztcsomag 320 × 180 / 4 samples beállítással 2,18 s alatt készült el. A generált csomag kódolási és Cycles-folyamata igazolt; következő vizuális kontrollként egy közvetlenül a böngészőből mentett, tényleges Workbench-edites csomagot kell összehasonlítani a webes nézettel.

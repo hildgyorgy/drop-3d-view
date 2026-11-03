@@ -1144,6 +1144,9 @@ body.dragging .drop-title {
 .file-panel .file-section + .file-section { margin-top: 36px; }
 .file-panel .export-model-name { margin: 0 0 12px; overflow-wrap: anywhere; letter-spacing: 0; }
 .file-panel .file-section [role="status"], .file-panel .render-snapshot-hint { font-size: 10px; letter-spacing: .03em; line-height: 1.5; }
+.file-panel #renderBridgeConnect { margin-right: 12px; }
+.file-panel .render-bridge-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.file-panel #renderBridgeJobs { width: 100%; margin: 8px 0; font: inherit; font-size: 10px; }
 @media (max-height: 780px) and (min-width: 601px) {
   :root { --tool-panel-top: 175px; --tool-panel-height: calc(100dvh - 350px); }
   .file-panel { padding: 14px 18px 16px; }

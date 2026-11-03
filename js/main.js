@@ -43,6 +43,7 @@ import { applyImportedRenderFrame, clearImportedRenderFrame,
   resizeImportedRenderFrame } from "./view/render-frame.js";
 import { makeRenderJob, setRenderJob } from "./core/render-job.js";
 import { bindFilePanel } from "./ui/file-panel.js";
+import { bindRenderBridgeControls } from "./ui/render-bridge.js";
 import { captureRenderEnvironment, environmentIdentity, getPackagedEnvironment,
   validateRenderEnvironment } from "./core/environment-source.js";
 import { invalidateSunShadow } from "./view/ground-sun.js";
@@ -183,6 +184,7 @@ function bindRenderSnapshotControls() {
   exportButton.hidden = false;
   jobControls.hidden = false;
   let exporting = false;
+  let bridgeControls;
   const update = () => {
     exportSize.textContent = `${renderer.domElement.width} × ${renderer.domElement.height} px`;
     const access = getMaterialWorkbenchAccess({ policy: State.materialWorkbenchPolicy,
@@ -192,6 +194,7 @@ function bindRenderSnapshotControls() {
     document.querySelector("#exportModelName").textContent = State.currentFile?.name ?? "—";
     exportButton.disabled = exporting || materialWorkbench.isWorkbenchBusy() || !State.currentFile || State.sectionEnabled;
     exportHint.hidden = !State.sectionEnabled;
+    bridgeControls?.update();
     exportButton.title = State.sectionEnabled
       ? "Turn off SECTION before exporting a render package."
       : "";
@@ -236,18 +239,14 @@ function bindRenderSnapshotControls() {
       update();
     }
   } });
-  exportButton.addEventListener("click", async () => {
+  async function captureSnapshot() {
     const file = State.currentFile;
-    if (!file) return;
-    if (State.sectionEnabled) {
-      setStatus("Turn off SECTION before exporting a render package.");
-      return;
-    }
-    if (!targetSamples.reportValidity()) return;
+    if (exporting || materialWorkbench.isWorkbenchBusy() || !file)
+      throw new Error("The scene is busy or no model is open.");
+    if (State.sectionEnabled) throw new Error("Turn off SECTION before rendering.");
+    if (!targetSamples.reportValidity()) throw new Error("Enter a valid sample count.");
     exporting = true;
     update();
-    exportStatus.textContent = "";
-    exportButton.textContent = "SAVING…";
     try {
       const photo = getPhoto1Stats();
       let thumbnail;
@@ -275,18 +274,32 @@ function bindRenderSnapshotControls() {
         fileName: file.name, fileBytes, viewSession, renderSize,
         renderJob, environment, producer, thumbnail
       });
+      return { snapshot, name: file.name.replace(/\.glb$/i, "") + ".dvrender" };
+    } finally {
+      exporting = false;
+      update();
+    }
+  }
+  bridgeControls = bindRenderBridgeControls({
+    captureSnapshot,
+    canCapture: () => !exporting && !materialWorkbench.isWorkbenchBusy() && !!State.currentFile && !State.sectionEnabled
+  });
+  update();
+  exportButton.addEventListener("click", async () => {
+    exportStatus.textContent = "";
+    exportButton.textContent = "SAVING…";
+    try {
+      const { snapshot, name } = await captureSnapshot();
       const url = URL.createObjectURL(snapshot);
       const link = document.createElement("a");
       link.href = url;
-      link.download = file.name.replace(/\.glb$/i, "") + ".dvrender";
+      link.download = name;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      exportStatus.textContent = "";
     } catch (error) {
       console.error("Render snapshot export failed", error);
       reportExport(`PACKAGE SAVE FAILED: ${error.message}`);
     } finally {
-      exporting = false;
       exportButton.textContent = "SAVE PACKAGE";
       update();
     }

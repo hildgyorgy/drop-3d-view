@@ -13,6 +13,24 @@ A lightweight browser-based 3D model viewer by **György Hild**. Open a model, e
 
 **[Open the viewer](https://hildgyorgy.github.io/drop-3d-view/)** · **[Usage guide and support](https://hildgyorgy.github.io/app-support/drop-view/)**
 
+## Render with the native companion
+
+Run the updated Drop & View Render app, then choose **FILE → EXPORT → CONNECT**
+and approve the connection. **RENDER** sends the current scene directly to Cycles
+using Recommended quality, with the displayed image size and sample maximum.
+The browser shows progress/time and **CANCEL**. After completion, **SHOW IN FOLDER**
+reveals the PNG in **Downloads / Drop & View Render**. Existing files get numbered
+siblings. No model is uploaded to a developer-operated server.
+
+While one render runs, compose another camera and press **RENDER** again.
+It queues a separate snapshot and starts it after the current render. Use the job
+selector to revisit earlier submissions or cancel a waiting job. An uncertain upload response offers
+**RETRY SEND** for the same saved scene without creating duplicates. Accepted
+renders continue if the browser disconnects. **SAVE PACKAGE** remains available
+when browser permissions prevent local access. See the
+[bridge contract](docs/RENDER_BROWSER_BRIDGE.md). Rebuild/restart the native app
+and update the webapp together; this is not a Windows implementation.
+
 ## Getting started
 
 1. Drop a **GLB** file onto the page, or choose **OPEN**. You can also try **DEMO 1** or **DEMO 2** on the start screen; both renderers use the same two files.
