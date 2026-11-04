@@ -1,5 +1,6 @@
 import { RenderBridgeClient } from "../core/render-bridge.js";
 import { bindSafariRenderBridgeControls } from "./safari-render-bridge.js";
+import { SafariRenderBridgeClient } from "../core/safari-render-bridge.js";
 
 export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   bindSafariRenderBridgeControls();
@@ -12,7 +13,11 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   const jobOutput = document.querySelector("#renderBridgeJob");
   const jobSelect = document.querySelector("#renderBridgeJobs");
   const jobs = new Map();
-  const client = new RenderBridgeClient();
+  const transport = document.querySelector("#renderBridgeTransport");
+  const abort = document.querySelector("#renderBridgeAbort");
+  let transportKind = "http";
+  let client = new RenderBridgeClient();
+  let sending = false;
   let busy = false;
   let polling = false;
   let status = null;
@@ -36,7 +41,20 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
     connect.textContent = client.token ? "CHECK CONNECTION" : "CONNECT";
     disconnect.hidden = !client.token;
     disconnect.disabled = busy;
+    transport.disabled = busy || Boolean(client.token) || Boolean(pending);
+    abort.hidden = !sending;
+    abort.disabled = !sending;
   }
+
+  transport.addEventListener("change", () => {
+    if (busy || client.token || pending) { transport.value = transportKind; return; }
+    transportKind = transport.value === "safari" ? "safari" : "http";
+    client = transportKind === "safari" ? new SafariRenderBridgeClient() : new RenderBridgeClient();
+    jobs.clear(); job = status = null;
+    jobSelect.replaceChildren(); jobSelect.hidden = true;
+    output.textContent = jobOutput.textContent = "";
+    update();
+  });
 
   function showStatus(value) {
     status = value;
@@ -46,7 +64,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
         ? "CONNECTED · Choose Blender in Drop & View Render."
         : value.rendering
           ? "CONNECTED · RENDERING"
-          : "CONNECTED · READY";
+          : `CONNECTED · READY · ${transportKind === "safari" ? "SAFARI EXTENSION" : "HTTP"}`;
     update();
     if (!value.capabilities?.includes("jobs")) render.disabled = true;
   }
@@ -97,7 +115,12 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
       session_job_limit:
         "This app session has reached its job limit. Restart after rendering.",
       job_removed: "This job was removed in the native app.",
-      idempotency_conflict: "This submission ID was already used for another scene."
+      idempotency_conflict: "This submission ID was already used for another scene.",
+      native_app_unavailable: "Open Drop & View Render, then try again.",
+      upload_committing: "Submission is still being processed. Wait briefly, then retry the same scene.",
+      invalid_chunk: "A transfer chunk failed its checksum. Retry sending the scene.",
+      chunk_conflict: "This transfer ID contains different scene bytes. Cancel the transfer and export again.",
+      upload_storage_full: "Safari's temporary transfer storage is full. Cancel an unfinished transfer or wait for cleanup."
     };
     output.textContent =
       messages[error.code || error.message] ??
@@ -107,8 +130,8 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
     update();
   }
 
-  async function refresh() {
-    if (polling || busy || !client.token || document.hidden) return;
+  async function refresh(force = false) {
+    if (polling || busy || !client.token || (!force && document.hidden)) return;
     polling = true;
     const token = client.token;
     const jobID = job?.id;
@@ -157,7 +180,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
     } finally {
       busy = false;
       update();
-      void refresh();
+      void refresh(true);
     }
   });
 
@@ -195,7 +218,15 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
         pending = { snapshot, key: crypto.randomUUID() };
       }
       jobOutput.textContent = "SENDING SCENE…";
-      const result = await client.submit(pending.snapshot, pending.key);
+      const result = await client.submit(pending.snapshot, pending.key, {
+        onProgress: ({ sent, total, phase }) => {
+          sending = phase === "upload";
+          jobOutput.textContent = phase === "upload"
+            ? `SENDING SCENE · ${Math.round(sent / total * 100)}%`
+            : "VALIDATING AND SUBMITTING…";
+          update();
+        }
+      });
       // Keep the same immutable scene and ID after an ambiguous network failure.
       // Only an accepted response changes the UI to rendering.
       pending = null;
@@ -203,6 +234,11 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
       showJob({ id: result.id, state: "queued", elapsed: 0 });
       showJob(await client.job(result.id));
     } catch (error) {
+      if (error.name === "AbortError") {
+        pending = null;
+        jobOutput.textContent = "TRANSFER CANCELLED";
+        return;
+      }
       if (pending)
         jobOutput.textContent =
           "Send not confirmed. RETRY SEND resends the same scene safely.";
@@ -210,9 +246,18 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
       else jobOutput.textContent = "Could not prepare the scene.";
       showError(error);
     } finally {
+      sending = false;
       busy = false;
       update();
     }
+  });
+
+  abort.addEventListener("click", async () => {
+    if (!sending || !(client instanceof SafariRenderBridgeClient)) return;
+    sending = false;
+    update();
+    try { await client.abortUpload(); }
+    catch (error) { showError(error); }
   });
 
   cancel.addEventListener("click", async () => {
@@ -244,6 +289,10 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
     }
   });
 
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) void refresh();
+  });
+  window.addEventListener("focus", () => void refresh());
   setInterval(() => void refresh(), 2000);
   update();
   return { update };

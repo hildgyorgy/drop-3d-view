@@ -544,12 +544,18 @@
       <div id="exportPanel" class="file-pane" role="tabpanel" aria-labelledby="exportTab" data-pane="export" hidden>
         <section class="file-section" aria-labelledby="renderBridgeTitle">
           <h3 id="renderBridgeTitle">DROP &amp; VIEW RENDER</h3>
+          <label for="renderBridgeTransport">CONNECTION</label>
+          <select id="renderBridgeTransport" aria-label="Render connection">
+            <option value="http">HTTP</option>
+            <option value="safari">SAFARI EXTENSION</option>
+          </select>
           <button id="renderBridgeConnect" type="button">CONNECT</button>
           <button id="renderBridgeDisconnect" type="button" hidden>DISCONNECT</button>
           <div class="render-bridge-actions">
             <button id="renderBridgeRender" type="button" disabled>RENDER</button>
             <button id="renderBridgeCancel" type="button" hidden>CANCEL</button>
             <button id="renderBridgeReveal" type="button" hidden>SHOW IN FOLDER</button>
+            <button id="renderBridgeAbort" type="button" hidden>STOP SENDING</button>
           </div>
           <p id="renderBridgeJob" role="status" aria-live="polite"></p>
           <select id="renderBridgeJobs" aria-label="Submitted renders" hidden></select>

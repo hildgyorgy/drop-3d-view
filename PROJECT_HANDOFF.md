@@ -2,19 +2,26 @@
 
 Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
-## Safari Native Messaging prototípus (2026-11-03)
+## Safari Native Messaging csomagátvitel (2026-11-04)
 
-Safari Native Messaging prototípus (2026-11-03): az exportpanelen külön
-SAFARI EXTENSION PROTOTYPE / TEST NATIVE CONNECTION gomb van. A kis ping/pong
-üzenet isolated content scripten és Safari Native Messagingen át a natív appba
-csomagolt Swift extension-handlerhez megy. A normál CONNECT/RENDER HTTP útja
-változatlan. Fájlátvitel és queue-integráció még nincs; tényleges Safari-próbához
-aláírt natív build, extension-engedélyezés és webhely-hozzáférés kell. Részletek
-a natív repo `docs/SAFARI_NATIVE_MESSAGING.md` fájljában.
-Valódi Safariban igazolt: helyi 127.0.0.1 webapp → extension → natív Swift
-handler → webapp, két külön UUID-s PONG 947/313 ms alatt, az OS-ben ellenőrzött
-29000-es natív folyamattal. A felhasználó jóváhagyásával a helyi webhelyengedély
-egy napra érvényes. 149 unit és négy WebKit smoke teszt sikeres.
+Az exportpanelen CONNECTION: HTTP (alapértelmezés) / SAFARI EXTENSION választható.
+CONNECT után a szokásos RENDER, állapot, CANCEL és SHOW IN FOLDER az adott úton
+működik. A Safari kliens 64 KiB-os, SHA-256-tal ellenőrzött, egyenként nyugtázott
+Blob-szeleteket küld Native Messagingen át. A Swift extension lemezre ír, majd
+natív URLSession fájlfeltöltéssel a meglévő loopback HTTP szolgáltatásnak és
+render queue-nak adja át. A Safari weboldal ezen az úton nem fetch-el localhostot;
+a natív appnak futnia kell. Nincs automatikus HTTP fallback. A régi HTTP út megmarad.
+
+Retry ugyanazt a pillanatképet/UUID-t használja; STOP SENDING megszakítja a még
+nem beadott átvitelt. A natív oldal ellenőrzi a prefixet, jogosultságot, méretet,
+idempotenciát. Részletek: natív repo `docs/SAFARI_NATIVE_MESSAGING.md`.
+153 unit, négy WebKit smoke, natív handler/store/queue/Cycles és retry teszt sikeres.
+Valódi helyi Safariból az extensionös csomagátadás 3456×2168-as, kifejezetten
+1 sample-re állított próbája 7 másodperc alatt Finished lett a natív appban;
+a sample mező 500-ra visszaállítva. A háttérben maradt webes állapot miatt a kézi
+ellenőrzés kényszerített frissítést kapott, továbbá visibility/focus eseménykor is
+frissítünk. Ennek élő Safari-újrapróbája, az élő CANCEL és a publikus HTTPS
+telepítés még ellenőrzendő. A friss renderer bundle-ök elkészültek, nincs push/deploy.
 
 ## Ortogonális renderkivágás (2026-11-03)
 
