@@ -3,7 +3,8 @@ const requestChannel = "drop-view-render:safari:request";
 const responseChannel = "drop-view-render:safari:response";
 
 export class SafariRenderBridgeClient {
-  constructor(target = globalThis.window, timeout = 10000) {
+  constructor(target = globalThis.window, timeout = 10000, transport = "safari-native-messaging") {
+    this.transport = transport;
     this.target = target;
     this.timeout = timeout;
     this.busy = false;
@@ -25,7 +26,7 @@ export class SafariRenderBridgeClient {
         cleanup();
         const result = event.data.message;
         if (result.protocolVersion !== 1 || typeof result.ok !== "boolean") {
-          reject(new Error("Invalid Safari native response.")); return;
+          reject(new Error("Invalid native response.")); return;
         }
         if (!result.ok) {
           if (result.status === 401) this.token = null;
@@ -33,13 +34,16 @@ export class SafariRenderBridgeClient {
           error.code = result.error; error.status = result.status;
           reject(error); return;
         }
-        if (result.transport !== "safari-native-messaging" || !result.data || typeof result.data !== "object") {
-          reject(new Error("Invalid Safari native response.")); return;
+        const discovered = operation === "discover" && this.transport === null &&
+          ["safari-native-messaging", "chromium-native-messaging"].includes(result.transport) &&
+          result.data?.transport === result.transport;
+        if ((!discovered && result.transport !== this.transport) || !result.data || typeof result.data !== "object") {
+          reject(new Error("Invalid native response.")); return;
         }
         resolve(result.data);
       };
       target.addEventListener("message", receive);
-      timer = setTimeout(() => { cleanup(); reject(new Error("Safari Native Messaging timed out. Check the extension and open Drop & View Render.")); }, timeout);
+      timer = setTimeout(() => { cleanup(); reject(new Error("Native Messaging timed out. Check the extension and open Drop & View Render.")); }, timeout);
       try {
         target.postMessage({ channel: requestChannel, message: {
           protocolVersion: 1, id, operation, ...fields,
@@ -85,7 +89,7 @@ export class SafariRenderBridgeClient {
 
   async submit(snapshot, key, { onProgress = () => {} } = {}) {
     if (!this.token) throw new Error("Connect to Drop & View Render first.");
-    if (this.transfer || this.beginning) throw new Error("Another Safari transfer is active.");
+    if (this.transfer || this.beginning) throw new Error("Another native transfer is active.");
     if (!Number.isSafeInteger(snapshot.size) || snapshot.size < 24 || snapshot.size > 2 ** 31)
       throw new Error("The render package must be between 24 bytes and 2 GiB.");
     let begin;
@@ -134,7 +138,7 @@ export class SafariRenderBridgeClient {
   }
 
   async ping(text = "Hello from Drop & View") {
-    if (this.busy) throw new Error("A Safari connection test is already running.");
+    if (this.busy) throw new Error("A native connection test is already running.");
     if (typeof text !== "string" || new TextEncoder().encode(text).length > 1024)
       throw new Error("The diagnostic message must be at most 1024 bytes.");
     const target = this.target;
@@ -158,19 +162,19 @@ export class SafariRenderBridgeClient {
           if (response.protocolVersion !== 1 || response.ok !== true ||
               response.operation !== "pong" || response.text !== text ||
               response.app !== "Drop & View Render" ||
-              response.transport !== "safari-native-messaging" ||
-              response.responder !== "SafariWebExtensionHandler" ||
+              response.transport !== this.transport ||
+              response.responder !== (this.transport === "chromium-native-messaging" ? "ChromiumNativeHost" : "SafariWebExtensionHandler") ||
               !Number.isInteger(response.nativeProcessID) || response.nativeProcessID <= 0 ||
               !Array.isArray(response.capabilities) || !response.capabilities.includes("ping")) {
             reject(new Error(response.ok === false
-              ? `Safari connection test failed: ${response.error ?? "unknown_error"}`
-              : "Invalid Safari native response."));
+              ? `Native connection test failed: ${response.error ?? "unknown_error"}`
+              : "Invalid native response."));
           } else resolve(response);
         };
         target.addEventListener("message", receive);
         timer = setTimeout(() => {
           cleanup();
-          reject(new Error("No Safari extension response. Enable Drop & View Render in Safari Extensions, allow this website, then reload the page."));
+          reject(new Error("No browser extension response. Enable Drop & View Render in browser extensions, allow this website, then reload the page."));
         }, this.timeout);
         try {
           target.postMessage({ channel: requestChannel,

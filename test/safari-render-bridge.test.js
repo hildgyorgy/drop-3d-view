@@ -19,7 +19,7 @@ test("Safari diagnostic with no extension times out and cleans up without touchi
       assert.equal(message.message.operation, "ping");
     }
   }, 10);
-  await assert.rejects(client.ping(), /No Safari extension response/);
+  await assert.rejects(client.ping(), /No browser extension response/);
   assert.equal(listeners.size, 0);
   assert.equal(client.busy, false);
 });

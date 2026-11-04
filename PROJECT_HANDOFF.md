@@ -2,9 +2,39 @@
 
 Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
+## Egységes extensionös kapcsolat (2026-11-04)
+
+A felhasználó megerősítette a Safari extensionös kapcsolat működését, és kérte
+az explicit webes HTTP út eltávolítását. A CONNECTION választó és a közvetlen
+HTTP kliens kikerült. CONNECT mindig felismeri és használja a böngésző
+bővítményét; hiányakor telepítés/engedélyezés és SAVE PACKAGE az útmutatás.
+A natív app belső loopback szolgáltatása megmaradt az extensionök és queue között.
+Az alábbi korábbi mérföldkövek kézi HTTP választásai történeti leírások.
+
+## Közös böngésző-extension és automatikus felismerés (2026-11-04)
+
+A CONNECT alapértelmezése AUTOMATIC (EXTENSION): helyi discovery üzenettel
+felismeri a Safari vagy közös Chrome/Edge extensiont, majd natív párosítást kér.
+A kézi HTTP választást a fenti későbbi döntés megszüntette. A CONNECTION
+DIAGNOSTICS szintén a felismert extensiont használja. A darabolás/ACK/SHA-256,
+retry, hitelesítés és queue klienskód közös maradt.
+
+A natív app Chrome/Edge MV3 bővítményt és Swift stdio kapcsolóprogramot csomagol.
+Browser Bridge → Set Up Chrome / Edge csak a telepített böngészőkhöz regisztrál,
+majd a Finderben megmutatja a Load unpacked mappáját. Fejlesztői prototípus;
+a store-terjesztés és kiadási telepítő nincs kész. Dokumentáció a natív repo
+`docs/CHROMIUM_NATIVE_MESSAGING.md` fájljában.
+
+Élő Edge-próba sikeres: AUTOMATIC → CHROME / EDGE EXTENSION → natív jóváhagyás →
+1512×1774 / 4 sample FINISHED 6 mp; 500-as plafonnal indexelt újrarenderek 10 mp;
+következő feladat CANCELLED; kész korábbi kép SHOW IN FOLDER-rel kijelölve a
+Finderben. Sample mező visszaállítva 500-ra. Chrome nincs a gépen, saját élő
+próbája még hátravan. A web bundle-ök helyben elkészültek; nincs push/deploy.
+
 ## Safari Native Messaging csomagátvitel (2026-11-04)
 
-Az exportpanelen CONNECTION: HTTP (alapértelmezés) / SAFARI EXTENSION választható.
+Az exportpanelen A korábbi kézi Safari/HTTP választást az AUTOMATIC (EXTENSION) és HTTP (MANUAL)
+váltotta fel; lásd a fenti aktuális mérföldkövet.
 CONNECT után a szokásos RENDER, állapot, CANCEL és SHOW IN FOLDER az adott úton
 működik. A Safari kliens 64 KiB-os, SHA-256-tal ellenőrzött, egyenként nyugtázott
 Blob-szeleteket küld Native Messagingen át. A Swift extension lemezre ír, majd
@@ -151,7 +181,7 @@ A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je va
 ## Tervezett headless final render és figyelendő natív Metal-alternatíva
 
 - A kijelölt final-render megoldás a külön **Drop & View Render**: a Drop & View marad a Blender-ismeretet nem igénylő szerkesztő/komponáló felület, a natív macOS-app pedig a `.dvrender` csomagot a háttérben futó Cyclesnek adja át Metal GPU-val. A webes path tracer gyors, integrált előnézet marad; a Cycles mellette, nem helyette készít nagy felbontású finalt. Támogatott alap a stabil Blender 5.2.3 LTS; a béta Blender-verziók nem részei a támogatott útnak.
-- A terjeszthető kliens **natív app, saját loopback HTTP-híddal; nem böngésző-extension**. A natív SwiftUI macOS-app elkészült saját drag-and-drop ablakkal, Cycles sample/progress kijelzéssel, Cancel és Show in Finder funkcióval, Blender-felderítéssel és renderbeállításokkal. A felhasználó nem lát Terminalt vagy Pythont; a Blender saját beépített Pythonja futtatja az app bundle `bpy` adapterét. Aláírás, notarizálás és kiadási csomagolás még hátravan.
+- A terjeszthető kliens **natív app, saját loopback HTTP-híddal és böngésző-extension kapcsolattal**. A natív SwiftUI macOS-app elkészült saját drag-and-drop ablakkal, Cycles sample/progress kijelzéssel, Cancel és Show in Finder funkcióval, Blender-felderítéssel és renderbeállításokkal. A felhasználó nem lát Terminalt vagy Pythont; a Blender saját beépített Pythonja futtatja az app bundle `bpy` adapterét. Aláírás, notarizálás és kiadási csomagolás még hátravan.
 - A Blender-adapter és a Swift kliens közti kommunikáció eleve platformfüggetlen JSON-soros protokoll legyen (`stage`, `sample`, `total`, `remaining`, `output`, strukturált hiba). A renderlogika közös marad; később egy egyszerű Windows tray kliens épülhet rá, a böngészővel mint fő felülettel. A GPU-választást általánosítani kell: NVIDIA RTX → OptiX, régebbi NVIDIA → CUDA, AMD → HIP, Intel Arc → oneAPI, Apple Silicon → Metal, végül CPU fallback. Így a két platform csak a natív GUI-ban, Blender-felderítésben, fájltársításban és telepítő/aláírási folyamatban tér el.
 - A korábbi `tools/cycles/` prototípus külön projektbe költözött: [Drop & View Render](https://github.com/hildgyorgy/drop-view-render). A jelenlegi változat natív SwiftUI macOS-app, amely GLB vagy `.dvrender` fájlokat fogad, Blender UI nélkül indítja a Cycles/Metal renderelést, saját jobfelületet, minőségbeállításokat, Cancelt és Show in Finder funkciót ad. A Blender-adapter a külön repó `DropViewRender/Resources/render_glb.py` fájlja; nincs Terminal-, AppleScript- vagy külön Python-runtime a felhasználói munkafolyamatban.
 - A `.dvrender` v1 szándékosan lapos és nem lossless projektarchívum: pontosan egy, az aktuális Workbench-anyagokat már tartalmazó GLB a 0. erőforrás, mellette opcionálisan az aktív HDRI. Nincs original GLB, külön Workbench-handoff vagy második resolved GLB; a kamera, láthatóság és renderbeállítás a manifestben marad. Ugyanaz a `patchGlbMaterials` út állítja elő az aktuális GLB-t, mint a bevált SAVE GLB funkció. A korábbi kísérleti v1 csomagokat sem a viewer, sem a Cycles bridge nem támogatja; újra kell exportálni őket. A döntés tudatos: a forrás GLB Archicadből újra előállítható, a mentett scene pedig a pillanatnyi anyagozott állapotból folytatható.

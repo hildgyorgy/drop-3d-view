@@ -1,6 +1,5 @@
-import { RenderBridgeClient } from "../core/render-bridge.js";
 import { bindSafariRenderBridgeControls } from "./safari-render-bridge.js";
-import { SafariRenderBridgeClient } from "../core/safari-render-bridge.js";
+import { ExtensionRenderBridgeClient } from "../core/extension-render-bridge.js";
 
 export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   bindSafariRenderBridgeControls();
@@ -13,10 +12,8 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   const jobOutput = document.querySelector("#renderBridgeJob");
   const jobSelect = document.querySelector("#renderBridgeJobs");
   const jobs = new Map();
-  const transport = document.querySelector("#renderBridgeTransport");
   const abort = document.querySelector("#renderBridgeAbort");
-  let transportKind = "http";
-  let client = new RenderBridgeClient();
+  let client = new ExtensionRenderBridgeClient();
   let sending = false;
   let busy = false;
   let polling = false;
@@ -41,20 +38,9 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
     connect.textContent = client.token ? "CHECK CONNECTION" : "CONNECT";
     disconnect.hidden = !client.token;
     disconnect.disabled = busy;
-    transport.disabled = busy || Boolean(client.token) || Boolean(pending);
     abort.hidden = !sending;
     abort.disabled = !sending;
   }
-
-  transport.addEventListener("change", () => {
-    if (busy || client.token || pending) { transport.value = transportKind; return; }
-    transportKind = transport.value === "safari" ? "safari" : "http";
-    client = transportKind === "safari" ? new SafariRenderBridgeClient() : new RenderBridgeClient();
-    jobs.clear(); job = status = null;
-    jobSelect.replaceChildren(); jobSelect.hidden = true;
-    output.textContent = jobOutput.textContent = "";
-    update();
-  });
 
   function showStatus(value) {
     status = value;
@@ -64,7 +50,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
         ? "CONNECTED · Choose Blender in Drop & View Render."
         : value.rendering
           ? "CONNECTED · RENDERING"
-          : `CONNECTED · READY · ${transportKind === "safari" ? "SAFARI EXTENSION" : "HTTP"}`;
+          : "CONNECTED · READY";
     update();
     if (!value.capabilities?.includes("jobs")) render.disabled = true;
   }
@@ -104,6 +90,9 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
 
   function showError(error) {
     const messages = {
+      extension_not_found: "Install or enable the Drop & View Render extension for this website, then reload. SAVE PACKAGE is also available.",
+      native_unavailable: "Open Drop & View Render. For Chrome / Edge, use Browser Bridge → Set Up Chrome / Edge in the app first.",
+      extension_unavailable: "Enable the Drop & View Render extension for this website, then reload.",
       pairing_denied: "Connection declined in Drop & View Render.",
       pairing_busy: "A connection request is already pending. Try again shortly.",
       pairing_required: "Connection expired. Connect again and approve in the app.",
@@ -120,13 +109,13 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
       upload_committing: "Submission is still being processed. Wait briefly, then retry the same scene.",
       invalid_chunk: "A transfer chunk failed its checksum. Retry sending the scene.",
       chunk_conflict: "This transfer ID contains different scene bytes. Cancel the transfer and export again.",
-      upload_storage_full: "Safari's temporary transfer storage is full. Cancel an unfinished transfer or wait for cleanup."
+      upload_storage_full: "Temporary transfer storage is full. Cancel an unfinished transfer or wait for cleanup."
     };
     output.textContent =
       messages[error.code || error.message] ??
       (error.status
         ? error.message
-        : "Local connection unavailable or blocked by the browser. Open Drop & View Render and allow local network access. If HTTPS access is blocked, try Edge or use SAVE PACKAGE.");
+        : "Connection unavailable. Check the browser extension and open Drop & View Render, or use SAVE PACKAGE.");
     update();
   }
 
@@ -174,6 +163,13 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
       : "Approve the connection in Drop & View Render…";
     update();
     try {
+      if (!client.token) {
+        output.textContent = "Detecting browser extension…";
+        const nextClient = new ExtensionRenderBridgeClient();
+        await nextClient.discover();
+        client = nextClient;
+        output.textContent = "Approve the connection in Drop & View Render…";
+      }
       showStatus(await client.connect());
     } catch (error) {
       showError(error);
@@ -253,7 +249,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   });
 
   abort.addEventListener("click", async () => {
-    if (!sending || !(client instanceof SafariRenderBridgeClient)) return;
+    if (!sending) return;
     sending = false;
     update();
     try { await client.abortUpload(); }

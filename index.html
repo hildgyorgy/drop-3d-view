@@ -544,11 +544,6 @@
       <div id="exportPanel" class="file-pane" role="tabpanel" aria-labelledby="exportTab" data-pane="export" hidden>
         <section class="file-section" aria-labelledby="renderBridgeTitle">
           <h3 id="renderBridgeTitle">DROP &amp; VIEW RENDER</h3>
-          <label for="renderBridgeTransport">CONNECTION</label>
-          <select id="renderBridgeTransport" aria-label="Render connection">
-            <option value="http">HTTP</option>
-            <option value="safari">SAFARI EXTENSION</option>
-          </select>
           <button id="renderBridgeConnect" type="button">CONNECT</button>
           <button id="renderBridgeDisconnect" type="button" hidden>DISCONNECT</button>
           <div class="render-bridge-actions">
@@ -561,7 +556,7 @@
           <select id="renderBridgeJobs" aria-label="Submitted renders" hidden></select>
           <p id="renderBridgeStatus" role="status" aria-live="polite"></p>
           <details>
-            <summary>SAFARI EXTENSION PROTOTYPE</summary>
+            <summary>CONNECTION DIAGNOSTICS</summary>
             <button id="safariRenderBridgeTest" type="button">TEST NATIVE CONNECTION</button>
             <p>Connection test only. No render will start.</p>
             <p id="safariRenderBridgeStatus" role="status" aria-live="polite"></p>

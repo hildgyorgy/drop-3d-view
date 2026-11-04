@@ -11,37 +11,49 @@ test("manual checks and returning to the page refresh accepted jobs", async () =
     click() { this.dispatchEvent(new Event("click")); }
   }
   const elements = new Map();
-  for (const name of ["Connect", "Disconnect", "Render", "Cancel", "Reveal", "Status", "Job", "Jobs", "Transport", "Abort"])
+  for (const name of ["Connect", "Disconnect", "Render", "Cancel", "Reveal", "Status", "Job", "Jobs", "Abort"])
     elements.set(`#renderBridge${name}`, new Element());
   const page = new EventTarget();
   page.hidden = true;
   page.querySelector = selector => elements.get(selector) ?? null;
   page.createElement = () => new Element();
   const windowTarget = new EventTarget();
+  windowTarget.location = { origin: "http://127.0.0.1:4173" };
   const originals = Object.fromEntries(["document", "window", "fetch", "setInterval"].map(key => [key, globalThis[key]]));
   let poll;
   let state = "rendering";
   let jobReads = 0;
-  const jobID = "job-one";
+  const jobID = crypto.randomUUID();
   try {
     globalThis.document = page;
     globalThis.window = windowTarget;
     globalThis.setInterval = callback => { poll = callback; };
-    globalThis.fetch = async (url, options) => {
+    globalThis.fetch = () => assert.fail("The web page must never fetch the native HTTP bridge");
+    windowTarget.postMessage = ({ message }, origin) => {
       let data;
-      if (url.endsWith("/pair")) data = { token: "a".repeat(72), protocolVersion: 1 };
-      else if (url.endsWith("/status")) data = { app: "Drop & View Render", protocolVersion: 1, blenderAvailable: true, capabilities: ["jobs"] };
-      else if (url.endsWith("/jobs") && options.method === "POST") data = { id: jobID };
-      else if (url.endsWith(`/jobs/${jobID}`)) { jobReads++; data = { id: jobID, state, elapsed: 7, outputName: "demo.png" }; }
-      else throw new Error(`Unexpected request: ${url}`);
-      return { ok: true, json: async () => data };
+      if (message.operation === "discover") data = { transport: "chromium-native-messaging", capabilities: ["chunked-upload", "jobs"] };
+      else if (message.operation === "pair") data = { token: "a".repeat(72), protocolVersion: 1 };
+      else if (message.operation === "status") data = { app: "Drop & View Render", protocolVersion: 1, blenderAvailable: true, capabilities: ["jobs"] };
+      else if (message.operation === "uploadBegin") data = { uploadID: jobID, offset: 0, chunkBytes: 65536 };
+      else if (message.operation === "uploadChunk") data = { uploadID: jobID, offset: message.offset + atob(message.base64).length };
+      else if (message.operation === "uploadFinish") data = { id: jobID };
+      else if (message.operation === "job") { jobReads++; data = { id: jobID, state, elapsed: 7, outputName: "demo.png" }; }
+      else throw new Error(`Unexpected request: ${message.operation}`);
+      queueMicrotask(() => {
+        const event = new Event("message");
+        Object.assign(event, { source: windowTarget, origin, data: {
+          channel: "drop-view-render:safari:response",
+          message: { protocolVersion: 1, id: message.id, ok: true, transport: "chromium-native-messaging", data }
+        } });
+        windowTarget.dispatchEvent(event);
+      });
     };
     const settle = () => new Promise(resolve => setImmediate(resolve));
-    bindRenderBridgeControls({ captureSnapshot: async () => ({ snapshot: new Blob(["scene"]) }), canCapture: () => true });
+    bindRenderBridgeControls({ captureSnapshot: async () => ({ snapshot: new Blob(["test scene with 24 bytes!"]) }), canCapture: () => true });
     elements.get("#renderBridgeConnect").click();
     await settle();
     elements.get("#renderBridgeRender").click();
-    await settle();
+    for (let attempt = 0; attempt < 100 && !/RENDERING/.test(elements.get("#renderBridgeJob").textContent); attempt++) await settle();
     assert.match(elements.get("#renderBridgeJob").textContent, /RENDERING/);
     state = "finished";
     const before = jobReads;

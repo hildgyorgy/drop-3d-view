@@ -16,7 +16,10 @@ A lightweight browser-based 3D model viewer by **György Hild**. Open a model, e
 ## Render with the native companion
 
 Run the updated Drop & View Render app, then choose **i → RENDER WITH BLENDER → EXPORT → CONNECT**
-and approve the connection. **RENDER** sends the current scene directly to Cycles
+and approve the connection. CONNECT automatically detects the companion
+extension in Safari, Chrome or Edge. Install/enable it first; Chrome/Edge's local
+prototype setup is in the native app's **Browser Bridge → Set Up Chrome / Edge…**
+menu. **RENDER** sends the current scene directly to Cycles
 using Recommended quality, with the displayed image size and sample maximum.
 The browser shows progress/time and **CANCEL**. After completion, **SHOW IN FOLDER**
 reveals the PNG in **Downloads / Drop & View Render**. Existing files get numbered
