@@ -91,7 +91,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   function showError(error) {
     const messages = {
       extension_not_found: "Install or enable the Drop & View Render extension for this website, then reload. SAVE PACKAGE is also available.",
-      native_unavailable: "Open Drop & View Render. For Chrome / Edge, use Browser Bridge → Set Up Chrome / Edge in the app first.",
+      native_unavailable: "Open Drop & View Render and complete the browser extension setup, then reconnect.",
       extension_unavailable: "Enable the Drop & View Render extension for this website, then reload.",
       pairing_denied: "Connection declined in Drop & View Render.",
       pairing_busy: "A connection request is already pending. Try again shortly.",
