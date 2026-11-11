@@ -24,6 +24,7 @@ import { disposeUnusedWorkbenchEdit } from "./workbench-resource-lifecycle.js";
 import { readSourceMaterialMaps, sourceMapSettings } from "./workbench-source-maps.js";
 import { createWorkbenchSpherePreview } from "./workbench-sphere-preview.js";
 import { getMaterialWorkbenchAccess } from "../model/material-workbench-policy.js";
+import { CLEAR_GLASS, glassProfileExtras } from "../model/clear-glass-profile.js";
 
 const variantName = "Maxon / Redshift PBR";
 const raycaster = new THREE.Raycaster();
@@ -189,10 +190,6 @@ function updateModeControls() {
   const glass = $("workbenchType").value === "glass";
   const usesMaps =
     $("workbenchType").value === "surface" || $("workbenchType").value === "lacquered";
-  const clearGlass = selectedGlassMaterial();
-  for (const option of $("workbenchType").options) {
-    option.disabled = option.value === "glass" ? !clearGlass : clearGlass;
-  }
   $("workbenchGlassTransparencyRow").hidden = !glass;
   $("workbenchGlassTransparency").disabled = !glass;
   $("workbenchFiles").disabled = !usesMaps;
@@ -204,8 +201,7 @@ function selectedGlassMaterial(index = selectedIndex, sourceGltf = gltf) {
   if (index === null || !sourceGltf) return false;
   const material = sourceGltf.parser.json.materials?.[index];
   return (
-    material?.extras?.archicad?.clearGlassOverride === true &&
-    Number(material.extensions?.KHR_materials_transmission?.transmissionFactor) > 0
+    Number(material?.extensions?.KHR_materials_transmission?.transmissionFactor) > 0
   );
 }
 
@@ -658,11 +654,11 @@ function editableMaterial(original) {
   ])
     if (original[key] !== undefined) material[key] = original[key];
   material.color.copy(original.color);
-  material.emissive.copy(original.emissive);
-  material.normalScale.copy(original.normalScale);
+  if (original.emissive) material.emissive.copy(original.emissive);
+  if (original.normalScale) material.normalScale.copy(original.normalScale);
   material.userData = { ...original.userData };
-  material.roughness = original.roughness;
-  material.metalness = original.metalness;
+  material.roughness = original.roughness ?? 0.75;
+  material.metalness = original.metalness ?? 0;
   return material;
 }
 
@@ -686,16 +682,10 @@ async function apply() {
     const inputs = Object.fromEntries(
       [...controls, "workbenchType", "workbenchColor"].map(id => [id, $(id).value])
     );
-    if (sourceMaps) inputs.workbenchSourceMaps = JSON.stringify(sourceMaps);
     const type = inputs.workbenchType;
     const glass = type === "glass";
-    if (glass !== selectedGlassMaterial(materialIndex, operation.gltf))
-      throw new Error(
-        glass
-          ? "GLASS is only available for exporter-selected clear glass."
-          : "Clear glass must use GLASS mode."
-      );
     const usesMaps = type === "surface" || type === "lacquered";
+    if (sourceMaps && usesMaps) inputs.workbenchSourceMaps = JSON.stringify(sourceMaps);
     const metalness = type === "metal" ? 1 : sourceMaps?.metalness ?? 0;
     const clearcoat = type === "lacquered" ? 1 : 0;
     const images = usesMaps ? { ...packageImages } : {};
@@ -752,11 +742,29 @@ async function apply() {
       if (!original) throw new Error("The original material is no longer available.");
       let material = applied.get(original);
       if (!material) {
-        material = editableMaterial(original);
+        material = glass ? new THREE.MeshPhysicalMaterial({
+          ior: CLEAR_GLASS.ior, side: THREE.DoubleSide
+        }) : editableMaterial(original);
         material.name = `${original.name} · workbench`;
+        material.userData = glassProfileExtras(original.userData, glass);
         if (!glass) material.metalness = metalness;
         material.roughness = Number(inputs.workbenchRoughness);
         if (!glass) {
+          material.transmission = 0;
+          material.transmissionMap = null;
+          material.thickness = 0;
+          material.thicknessMap = null;
+          material.attenuationDistance = Infinity;
+          material.attenuationColor.set(0xffffff);
+          material.ior = CLEAR_GLASS.ior;
+          material.dispersion = 0;
+          if (Number(original.transmission) > 0) {
+            material.opacity = 1;
+            material.transparent = false;
+            material.alphaTest = 0;
+            material.alphaMap = null;
+            material.depthWrite = true;
+          }
           material.clearcoat = clearcoat;
           material.clearcoatRoughness = clearcoat ? 0.08 : 0;
           material.clearcoatMap = null;
@@ -809,16 +817,7 @@ async function apply() {
       packed,
       resources,
       meterUvs: deduplicateMeterUvs(meterUvs),
-      materialIndices: materialTargets(materialIndex).filter(
-        index =>
-          !glass ||
-          (operation.gltf.parser.json.materials[index]?.extras?.archicad
-            ?.clearGlassOverride === true &&
-            Number(
-              operation.gltf.parser.json.materials[index]?.extensions
-                ?.KHR_materials_transmission?.transmissionFactor
-            ) > 0)
-      )
+      materialIndices: materialTargets(materialIndex)
     });
     setViewMode("original");
     lastAction = before;
@@ -1091,10 +1090,20 @@ panel.addEventListener("drop", event => {
 for (const id of controls) $(id).addEventListener("input", showValues);
 $("workbenchColor").addEventListener("input", showValues);
 $("workbenchType").addEventListener("change", event => {
-  if (selectedGlassMaterial() && event.target.value !== "glass")
-    event.target.value = "glass";
-  if (!selectedGlassMaterial() && event.target.value === "glass")
-    event.target.value = "surface";
+  if (event.target.value === "glass") {
+    // Discard any in-flight source-map/upload result as well as loaded maps.
+    ++selectionGeneration;
+    ++fileAcceptGeneration;
+    loadingMaps = false;
+    mapLoadFailed = false;
+    $("workbenchColor").value = "#ffffff";
+    $("workbenchGlassTransparency").value = String(CLEAR_GLASS.transmission);
+    sourceMaps = null;
+    packageImages = {};
+    $("workbenchFiles").value = "";
+    clearSpherePreview();
+    showMaps();
+  }
   $("workbenchRoughness").value =
     event.target.value === "metal"
       ? "0.25"
@@ -1105,6 +1114,7 @@ $("workbenchType").addEventListener("change", event => {
           : "0.75";
   showValues();
   updateModeControls();
+  updateButtons();
 });
 $("workbenchApply").addEventListener("click", apply);
 $("workbenchUndo").addEventListener("click", undo);

@@ -53,17 +53,17 @@ export function createWorkbenchSpherePreview(element) {
     const usesMaps = ["surface", "lacquered"].includes(settings.type);
     material.color.set(settings.color);
     material.roughness = settings.roughness;
-    material.metalness = settings.type === "metal" ? 1 : settings.sourceMaps?.metalness ?? 0;
+    material.metalness = settings.type === "glass" ? 0 : settings.type === "metal" ? 1 : settings.sourceMaps?.metalness ?? 0;
     material.clearcoat = settings.type === "lacquered" ? 1 : 0;
     material.clearcoatRoughness = .08;
     material.transmission = settings.type === "glass" ? settings.transparency : 0;
-    material.thickness = settings.type === "glass" ? .5 : 0;
+    material.thickness = 0;
     material.map = usesMaps ? ownedTextures[0] ?? null : null;
     material.roughnessMap = material.metalnessMap = usesMaps ? ownedTextures[1] ?? null : null;
     material.normalMap = usesMaps ? ownedTextures[2] ?? null : null;
     material.aoMap = usesMaps ? ownedTextures[3] ?? null : null;
     material.emissiveMap = usesMaps ? ownedTextures[4] ?? null : null;
-    material.emissive.fromArray(settings.sourceMaps?.emissive ?? [0, 0, 0]);
+    material.emissive.fromArray(usesMaps ? settings.sourceMaps?.emissive ?? [0, 0, 0] : [0, 0, 0]);
     material.normalScale.setScalar(settings.sourceMaps?.normalScale ?? 1);
     material.aoMapIntensity = settings.sourceMaps?.occlusionStrength ?? 1;
     for (const [index, texture] of ownedTextures.entries()) {

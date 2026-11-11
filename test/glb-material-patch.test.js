@@ -123,7 +123,7 @@ test("lacquered texture retains a tinted base map under the clear coat", async (
   });
 });
 
-test("glass edits only exporter-selected clear glass and retain its IOR", async () => {
+test("any material can become clean exporter-equivalent physical glass", async () => {
   const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
   const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
   const original = readGlb(source);
@@ -141,20 +141,95 @@ test("glass edits only exporter-selected clear glass and retain its IOR", async 
     color: [0.4, 0.7, 0.9],
     roughness: 0.4
   }]));
-  const before = original.json.materials[clearIndex];
   const after = edited.json.materials[clearIndex];
   assert.equal(after.extensions.KHR_materials_transmission.transmissionFactor, 0.65);
   assert.deepEqual(after.pbrMetallicRoughness.baseColorFactor, [0.4, 0.7, 0.9, 1]);
   assert.equal(after.pbrMetallicRoughness.roughnessFactor, 0.4);
-  assert.equal(after.pbrMetallicRoughness.metallicFactor, before.pbrMetallicRoughness.metallicFactor);
-  assert.deepEqual(after.extensions.KHR_materials_ior, before.extensions.KHR_materials_ior);
-  assert.deepEqual(after.extras, before.extras);
+  assert.equal(after.pbrMetallicRoughness.metallicFactor, 0);
+  assert.deepEqual(after.extensions.KHR_materials_ior, { ior: 1.5 });
+  assert.equal(after.extras.archicad.clearGlassOverride, true);
   assert.deepEqual(edited.json.materials[nonClearIndex], original.json.materials[nonClearIndex]);
   assert.deepEqual(edited.binary, original.binary);
   assert.equal(original.json.materials[clearIndex].extensions.KHR_materials_transmission.transmissionFactor, 0.98);
-  assert.throws(() => patchGlbMaterials(source, [{
-    materialIndex: nonClearIndex, glassTransmission: 0.5, color: [1, 1, 1], roughness: 0.2
-  }]), /not exporter-selected clear glass/);
+  for (const index of [nonClearIndex, 0]) {
+    const converted = readGlb(patchGlbMaterials(source, [{
+      materialIndex: index, glassTransmission: 0.98
+    }])).json.materials[index];
+    assert.deepEqual(converted.pbrMetallicRoughness, {
+      baseColorFactor: [1, 1, 1, 1], metallicFactor: 0, roughnessFactor: 0.03
+    });
+    assert.deepEqual(converted.extensions, {
+      KHR_materials_transmission: { transmissionFactor: 0.98 },
+      KHR_materials_ior: { ior: 1.5 }
+    });
+    assert.equal(converted.doubleSided, true);
+    for (const field of ["normalTexture", "occlusionTexture", "emissiveTexture", "emissiveFactor", "alphaMode", "alphaCutoff"])
+      assert.equal(converted[field], undefined);
+  }
+});
+
+test("physical glass converts back into each opaque workbench type", async () => {
+  const file = await readFile(new URL("../demo/demo_house_2.glb", import.meta.url));
+  const source = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  const glass = patchGlbMaterials(source, [{ materialIndex: 0, glassTransmission: 0.98 }]);
+  for (const type of ["surface", "metal", "lacquered"]) {
+    const converted = readGlb(patchGlbMaterials(glass, [{
+      materialIndex: 0, images: {}, color: [0.2, 0.3, 0.4],
+      roughness: 0.4, metalness: type === "metal" ? 1 : 0,
+      clearcoat: type === "lacquered" ? 1 : 0, clearcoatRoughness: 0.08
+    }])).json.materials[0];
+    for (const extension of ["KHR_materials_transmission", "KHR_materials_ior", "KHR_materials_volume", "KHR_materials_dispersion"])
+      assert.equal(converted.extensions[extension], undefined);
+    assert.equal(converted.extras.archicad.clearGlassOverride, false);
+    assert.equal(converted.pbrMetallicRoughness.metallicFactor, type === "metal" ? 1 : 0);
+    assert.equal(converted.pbrMetallicRoughness.baseColorFactor[3], 1);
+    assert.equal(converted.alphaMode, "OPAQUE");
+    assert.equal(converted.extensions.KHR_materials_clearcoat?.clearcoatFactor ?? 0, type === "lacquered" ? 1 : 0);
+  }
+});
+
+test("glass replacement drops foreign shading, textures, emission, alpha and volume", () => {
+  const material = {
+    name: "Foreign glass", extras: { owner: "test" },
+    pbrMetallicRoughness: {
+      baseColorFactor: [0.1, 0.2, 0.3, 0.2], metallicFactor: 1,
+      roughnessFactor: 0.9, baseColorTexture: { index: 0 }
+    },
+    normalTexture: { index: 0 }, emissiveFactor: [4, 3, 2],
+    alphaMode: "BLEND", alphaCutoff: 0.5, doubleSided: false,
+    extensions: {
+      KHR_materials_transmission: { transmissionFactor: 0.5, transmissionTexture: { index: 0 } },
+      KHR_materials_volume: { thicknessFactor: 2, attenuationColor: [0.2, 0.5, 0.9] },
+      KHR_materials_ior: { ior: 2.4 }, KHR_materials_unlit: {},
+      KHR_materials_clearcoat: { clearcoatFactor: 1 },
+      KHR_materials_dispersion: { dispersion: 0.8 }
+    }
+  };
+  const json = { asset: { version: "2.0" }, buffers: [{ byteLength: 4 }], materials: [material] };
+  const encoded = new TextEncoder().encode(JSON.stringify(json));
+  const length = (encoded.length + 3) & ~3;
+  const buffer = new ArrayBuffer(32 + length);
+  const view = new DataView(buffer);
+  for (const [offset, value] of [[0, 0x46546c67], [4, 2], [8, buffer.byteLength],
+    [12, length], [16, 0x4e4f534a], [20 + length, 4], [24 + length, 0x004e4942]])
+    view.setUint32(offset, value, true);
+  const bytes = new Uint8Array(buffer);
+  bytes.fill(0x20, 20, 20 + length);
+  bytes.set(encoded, 20);
+  const converted = readGlb(patchGlbMaterials(buffer, [{ materialIndex: 0, glassTransmission: 0.98 }])).json.materials[0];
+  assert.deepEqual(Object.keys(converted).sort(), ["doubleSided", "extensions", "extras", "name", "pbrMetallicRoughness"]);
+  assert.deepEqual(converted.extensions, {
+    KHR_materials_transmission: { transmissionFactor: 0.98 }, KHR_materials_ior: { ior: 1.5 }
+  });
+  assert.equal(converted.extras.owner, "test");
+  assert.equal(converted.extras.archicad.clearGlassOverride, true);
+  const opaque = readGlb(patchGlbMaterials(buffer, [{
+    materialIndex: 0, images: {}, color: [1, 1, 1], roughness: 0.75, metalness: 0, clearcoat: 0
+  }])).json.materials[0];
+  assert.equal(opaque.extensions.KHR_materials_volume, undefined);
+  assert.equal(opaque.extensions.KHR_materials_dispersion, undefined);
+  assert.equal(opaque.alphaMode, "OPAQUE");
+  assert.equal(opaque.pbrMetallicRoughness.baseColorFactor[3], 1);
 });
 
 test("imported source maps keep separate UV transforms, sampler wrapping and strengths", async () => {

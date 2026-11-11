@@ -1,6 +1,6 @@
 # Drop & View
 
-SAVE PACKAGE includes a small scene thumbnail in the `.dvrender` v1 manifest
+SAVE SCENE PACKAGE includes a small scene thumbnail in the `.dvrender` v1 manifest
 (JPEG, at most 640 pixels on the longer side, preserving aspect ratio). Drop &
 View Render displays it beside the job. It does not start a preview render;
 older packages without a thumbnail remain supported.
@@ -29,7 +29,7 @@ While one render runs, compose another camera and press **RENDER** again.
 It queues a separate snapshot and starts it after the current render. Use the job
 selector to revisit earlier submissions or cancel a waiting job. An uncertain upload response offers
 **RETRY SEND** for the same saved scene without creating duplicates. Accepted
-renders continue if the browser disconnects. **SAVE PACKAGE** remains available
+renders continue if the browser disconnects. **SAVE SCENE PACKAGE** remains available
 when browser permissions prevent local access. See the
 [bridge contract](docs/RENDER_BROWSER_BRIDGE.md). Rebuild/restart the native app
 and update the webapp together; this is not a Windows implementation.
@@ -57,13 +57,13 @@ Use a modern browser with JavaScript. The viewer uses WebGL by default; WebGPU i
 
 ## Material Workbench
 
-The standalone viewer's red **i** panel opens the optional **MATERIAL WORKBENCH**. Select a visible surface to preview SURFACE, POLISHED METAL, LACQUERED or exporter-selected clear GLASS changes. JPEG/PNG base-colour, roughness, OpenGL normal and ARM maps are supported. APPLY changes only the live preview; the source file is never overwritten. For a user-opened editable GLB, **EXPORT → SAVE GLB** downloads a modified copy after APPLY.
+The standalone viewer's red **i** panel opens the optional **MATERIAL WORKBENCH**. Any selected material can become SURFACE, POLISHED METAL, LACQUERED or GLASS, including models from other applications. Choosing GLASS resets its color to white and replaces all shading and maps with the Archicad exporter's thin physical-glass preset: transmission 0.98, roughness 0.03, IOR 1.5, zero metalness and no volume. Tint, transmission and roughness can then be adjusted. Glass can also be converted back into any other type; UNDO and RESET remain available. JPEG/PNG base-colour, roughness, OpenGL normal and ARM maps are supported in surface modes. APPLY changes only the live preview; the source file is never overwritten. For a user-opened editable GLB, **FILE → SAVE GLB** downloads a modified copy after APPLY; `.dvrender` export includes the same applied materials.
 
 The built-in demos are fully editable for experimentation but cannot be saved. A GLB exported with `asset.extras.dropView.materialWorkbench.policy` set to `disabled` remains view-only and asks the user to request an editable version from its owner. Older files and GLBs without that explicit policy remain editable. The Material Workbench and its code are not loaded in embedded viewers.
 
 ## Measurements (experimental)
 
-Toggle **MEASUREMENTS** in the red **i** panel, then drag each black endpoint onto a model surface. The red ruler shows the straight-line 3D distance in metres and adapts its subdivisions to the current view. Endpoints remain attached while orbiting or zooming; only dragging a handle temporarily suspends the camera. Empty-space drops retain the last valid point. Hidden groups and section-clipped surfaces cannot receive endpoints.
+Toggle **TAPE MEASURE** in the red **i** panel, then drag each black endpoint onto a model surface. The red ruler shows the straight-line 3D distance in metres and adapts its subdivisions to the current view. Endpoints remain attached while orbiting or zooming; only dragging a handle temporarily suspends the camera. Empty-space drops retain the last valid point. Hidden groups and section-clipped surfaces cannot receive endpoints.
 
 The first version provides one measurement, without edge/vertex snapping. Accuracy depends on the GLB's scale and endpoint placement. Switching the tool off preserves the current measurement; opening another model or switching renderers clears it. Measurements are a viewer overlay, are not saved into exported GLBs, and are unavailable in embedded viewers.
 
@@ -127,7 +127,7 @@ See [LICENSE](LICENSE) for the full terms. For permission requests, contact [hil
 
 The FILE window is a compact nonmodal panel with the dashed, translucent styling of the Material Workbench. Blender tools use a separate panel with the same styling. Neither blocks the viewer. Close either with the × button, or Escape while focus is inside it.
 
-Choose **FILE** in the top bar to import a GLB from your computer or export the edited model as a new GLB. **SAVE GLB** includes applied Material Workbench changes for an editable, user-opened model. The Workbench itself contains only APPLY, UNDO and RESET. Open **i → Experimental features → RENDER WITH BLENDER** for render tools. Its **IMPORT** tab opens a `.dvrender` package in the viewer; **EXPORT** contains the native render connection and render controls, image pixel dimensions, **SAMPLES**, and **SAVE PACKAGE**. This sample count is saved for Cycles or a later viewer session; it does not change the currently visible path tracer. The `.dvrender` package includes one current GLB with all applied Material Workbench changes, plus camera, lighting, group visibility, canvas pixel dimensions, target samples, fixed bounce settings (6 regular, 10 transmissive), and the active Radiance HDRI bytes. It is a snapshot of the current scene, not a lossless archive of the originally opened GLB.
+Choose **FILE** in the top bar to import a GLB from your computer or export the edited model as a new GLB. **SAVE GLB** includes applied Material Workbench changes for an editable, user-opened model. The Workbench itself contains only APPLY, UNDO and RESET. Open **i → Experimental features → RENDER WITH BLENDER** for render tools. Its **IMPORT** tab opens a `.dvrender` package in the viewer; **EXPORT** contains the native render connection and render controls, image pixel dimensions, **SAMPLES**, and **SAVE SCENE PACKAGE**. This sample count is saved for Cycles or a later viewer session; it does not change the currently visible path tracer. The `.dvrender` package includes one current GLB with all applied Material Workbench changes, plus camera, lighting, group visibility, canvas pixel dimensions, target samples, fixed bounce settings (6 regular, 10 transmissive), and the active Radiance HDRI bytes. It is a snapshot of the current scene, not a lossless archive of the originally opened GLB.
 
 **OPEN .DVRENDER** replaces the visible model with the package's current materialized GLB and restores its camera, lighting, group visibility, image frame and render target. The dialog closes and path tracing stays off. Continue editing the model or view, start **PATH TRACER** manually, save the model as GLB through the EXPORT tab, or export another render package. The saved pixel resolution and aspect ratio stay fixed across browser resizing and camera projection changes until a different model is opened. The export's TARGET SAMPLES field is restored from the package.
 

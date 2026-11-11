@@ -16,7 +16,7 @@ export class ExtensionRenderBridgeClient extends SafariRenderBridgeClient {
     let result;
     try { result = await this.request("discover", {}, this.timeout); }
     catch (cause) {
-      const error = new Error("Install or enable the Drop & View Render extension for this website, then reload. SAVE PACKAGE is also available.");
+      const error = new Error("Install or enable the Drop & View Render extension for this website, then reload. SAVE SCENE PACKAGE is also available.");
       error.code = "extension_not_found";
       error.cause = cause;
       throw error;

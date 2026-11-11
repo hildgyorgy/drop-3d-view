@@ -2,6 +2,7 @@
 // The source geometry and its original TEXCOORD_0 bytes remain untouched.
 import { detectSupportedImageMime } from "./image-format.js";
 import { deduplicateMeterUvs } from "./meter-uv.js";
+import { CLEAR_GLASS, glassProfileExtras } from "./clear-glass-profile.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -298,17 +299,38 @@ export function patchGlbMaterials(source, edits) {
     if (edit.texCoord === 1 && Object.values(edit.images || {}).some(Boolean))
       meterMaterials.add(edit.materialIndex);
     if (edit.glassTransmission !== undefined) {
-      const authoredTransmission = Number(material.extensions?.KHR_materials_transmission?.transmissionFactor);
-      if (material.extras?.archicad?.clearGlassOverride !== true ||
-          !Number.isFinite(authoredTransmission) || authoredTransmission <= 0)
-        throw new Error(`Material ${edit.materialIndex} is not exporter-selected clear glass.`);
       if (!Number.isFinite(edit.glassTransmission) || edit.glassTransmission < 0 || edit.glassTransmission > 1)
         throw new Error("Glass transparency must be between 0 and 1.");
-      const pbr = material.pbrMetallicRoughness ??= {};
-      pbr.baseColorFactor = [...(edit.color ?? [1, 1, 1]), 1];
-      pbr.roughnessFactor = edit.roughness;
-      material.extensions.KHR_materials_transmission.transmissionFactor = edit.glassTransmission;
+      json.materials[edit.materialIndex] = {
+        ...(material.name !== undefined ? { name: material.name } : {}),
+        extras: glassProfileExtras(material.extras),
+        pbrMetallicRoughness: {
+          baseColorFactor: [...(edit.color ?? [1, 1, 1]), 1],
+          roughnessFactor: edit.roughness ?? CLEAR_GLASS.roughness,
+          metallicFactor: 0
+        },
+        doubleSided: true,
+        extensions: {
+          KHR_materials_transmission: { transmissionFactor: edit.glassTransmission },
+          KHR_materials_ior: { ior: CLEAR_GLASS.ior }
+        }
+      };
+      json.extensionsUsed ??= [];
+      for (const name of ["KHR_materials_transmission", "KHR_materials_ior"])
+        if (!json.extensionsUsed.includes(name)) json.extensionsUsed.push(name);
       continue;
+    }
+    // A surface edit must also work on imported physical glass. Remove its
+    // transmission/volume optics and calibration marker before applying maps.
+    const wasGlass = Number(material.extensions?.KHR_materials_transmission?.transmissionFactor) > 0;
+    // Workbench creates lit PBR materials, including when the source was unlit.
+    if (material.extensions) delete material.extensions.KHR_materials_unlit;
+    for (const name of ["KHR_materials_transmission", "KHR_materials_volume", "KHR_materials_ior", "KHR_materials_dispersion"])
+      if (material.extensions) delete material.extensions[name];
+    if (material.extras) material.extras = glassProfileExtras(material.extras, false);
+    if (wasGlass) {
+      material.alphaMode = "OPAQUE";
+      delete material.alphaCutoff;
     }
     const pbr = material.pbrMetallicRoughness ??= {};
     pbr.roughnessFactor = edit.roughness;
@@ -321,7 +343,7 @@ export function patchGlbMaterials(source, edits) {
     delete material.normalTexture;
     delete material.occlusionTexture;
     delete material.emissiveTexture;
-    pbr.baseColorFactor = [...(edit.color ?? [1, 1, 1]), pbr.baseColorFactor?.[3] ?? 1];
+    pbr.baseColorFactor = [...(edit.color ?? [1, 1, 1]), wasGlass ? 1 : pbr.baseColorFactor?.[3] ?? 1];
     for (const [field, target] of [
       ["color", "baseColorTexture"],
       ["roughness", "metallicRoughnessTexture"],

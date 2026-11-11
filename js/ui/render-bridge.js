@@ -90,7 +90,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
 
   function showError(error) {
     const messages = {
-      extension_not_found: "Install or enable the Drop & View Render extension for this website, then reload. SAVE PACKAGE is also available.",
+      extension_not_found: "Install or enable the Drop & View Render extension for this website, then reload. SAVE SCENE PACKAGE is also available.",
       native_unavailable: "Open Drop & View Render and complete the browser extension setup, then reconnect.",
       extension_unavailable: "Enable the Drop & View Render extension for this website, then reload.",
       pairing_denied: "Connection declined in Drop & View Render.",
@@ -115,7 +115,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
       messages[error.code || error.message] ??
       (error.status
         ? error.message
-        : "Connection unavailable. Check the browser extension and open Drop & View Render, or use SAVE PACKAGE.");
+        : "Connection unavailable. Check the browser extension and open Drop & View Render, or use SAVE SCENE PACKAGE.");
     update();
   }
 

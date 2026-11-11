@@ -36,11 +36,14 @@ are used in **SURFACE** and **LACQUERED** modes. Both modes also allow the
 native **COLOR** picker: without an uploaded color map it makes a solid base
 color; with one, it tints the map (white is neutral). **LACQUERED** adds a
 clear coat over either base. **POLISHED METAL** remains solid-colored and
-ignores uploaded maps. **GLASS** appears only on clear-glass materials explicitly
-marked by the Archicad exporter. It adjusts tint, physical transmission
-(TRANSPARENCY), and roughness from clear to frosted; uploaded maps are ignored,
-but any existing glass maps are preserved.
-The original IOR is retained. TEXTURE SIZE sets the repeat width in metres
+ignores uploaded maps. **GLASS** is available for every material, regardless of
+the source application. Selecting it clears staged maps and sets white color,
+0.98 transmission and 0.03 roughness. APPLY creates a new physical material with
+IOR 1.5, zero metalness, no volume, emission or inherited shading/maps, and the
+thin-glass marker understood by the viewer and Cycles. Tint, physical transmission
+(TRANSPARENCY) and roughness remain adjustable. Every glass material can also be
+converted to SURFACE, POLISHED METAL or LACQUERED; transmission and volume are
+removed. UNDO/RESET restore previous/original materials. TEXTURE SIZE sets the repeat width in metres
 (0.1–20 m, initially 2 m). Rotation and X/Y shift apply to uploaded maps as
 one aligned set. Click
 **APPLY** for a live preview in ORIGINAL mode, then **EXPORT → SAVE GLB** to download
@@ -73,8 +76,8 @@ metadata and custom extensions survive. Edits are written to both the default
 material and its debug Maxon variant (when present); the PBR appearance is
 therefore visible in either viewer after saving. Uploaded map transforms are
 stored with `KHR_texture_transform`, and LACQUERED uses
-`KHR_materials_clearcoat`. GLASS writes `KHR_materials_transmission` only into
-the downloaded copy.
+`KHR_materials_clearcoat`. GLASS replaces the material's shading with clean
+`KHR_materials_transmission` and `KHR_materials_ior` records in the downloaded copy.
 
 This deliberately small first version does not repair source UV coordinates, perform
 displacement/subdivision, edit non-clear transparent materials, or show changes in the active

@@ -102,7 +102,7 @@
                     aria-pressed="false"
                     hidden
                   >
-                    MEASUREMENTS
+                    TAPE MEASURE
                   </button>
                   <button id="blenderRenderEntry" class="about-workbench" type="button" aria-pressed="false" aria-controls="blenderRenderPanel" hidden>
                     RENDER WITH BLENDER
@@ -500,8 +500,8 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=pathtracer-28-1",
-          webgl: "renderers/webgl/main.js?v=pathtracer-28-1"
+          webgpu: "renderers/webgpu/main.js?v=workbench-glass-2",
+          webgl: "renderers/webgl/main.js?v=workbench-glass-2"
         };
       }
     </script>
@@ -570,7 +570,7 @@
             <input id="renderTargetSamples" type="number" min="1" max="100000" step="1" value="500" required>
             <span>BOUNCES 6 · GLASS 10</span>
           </div>
-          <button id="renderSnapshotExport" type="button" hidden>SAVE PACKAGE</button>
+          <button id="renderSnapshotExport" type="button" hidden>SAVE SCENE PACKAGE</button>
           <p id="renderSnapshotHint" class="render-snapshot-hint" hidden>Turn off SECTION before exporting a render package.</p>
           <p id="renderSnapshotStatus" role="status" aria-live="polite"></p>
         </section>

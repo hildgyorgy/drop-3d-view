@@ -1,8 +1,83 @@
 import { test, expect } from "@playwright/test";
 import { readFile, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { readGlb } from "../js/model/glb-material-patch.js";
 
 const modelPath = fileURLToPath(new URL("../demo/demo_house_2.glb", import.meta.url));
+
+test("Workbench converts a surface to clean physical glass and back, with export and undo", async ({ page }) => {
+  const backend = process.env.DVR_TEST_RENDERER ?? "webgl";
+  await page.addInitScript(mode => localStorage.setItem("drop-view-renderer-mode", mode), backend);
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.goto(backend === "webgpu" ? "/?rendererDebug=1" : "/");
+  await page.setInputFiles("#fileInput", modelPath);
+  await expect(page.locator("#startScreen")).toHaveClass(/hidden/);
+  await page.locator("#aboutButton").click();
+  await page.locator("#materialWorkbenchEntry").click();
+  await page.locator("body > canvas").click({ position: { x: 640, y: 400 } });
+  await expect(page.locator("#workbenchApply")).toBeEnabled();
+  const materialIndex = Number((await page.locator("#workbenchMaterial").textContent()).match(/#(\d+)/)[1]);
+  let lastExportPath;
+  let glassPath;
+
+  async function applyType(type) {
+    await page.locator("#workbenchType").selectOption(type);
+    await page.locator("#workbenchApply").click();
+    await expect(page.locator("#workbenchApply")).toBeEnabled();
+    await expect(page.locator("#workbenchStatus")).toBeEmpty();
+  }
+  async function exportedMaterial() {
+    await page.locator("#openAgain").click();
+    const download = page.waitForEvent("download");
+    await page.locator("#exportGlb").click();
+    lastExportPath = await (await download).path();
+    const bytes = await readFile(lastExportPath);
+    await page.locator("#filePanel [data-close]").click();
+    return readGlb(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)).json.materials[materialIndex];
+  }
+  await applyType("glass");
+  const glass = await exportedMaterial();
+  glassPath = lastExportPath;
+  expect(glass.pbrMetallicRoughness).toEqual({
+    baseColorFactor: [1, 1, 1, 1], metallicFactor: 0, roughnessFactor: 0.03
+  });
+  expect(glass.extensions).toEqual({
+    KHR_materials_transmission: { transmissionFactor: 0.98 },
+    KHR_materials_ior: { ior: 1.5 }
+  });
+  expect(glass.extras.archicad.clearGlassOverride).toBe(true);
+  for (const type of ["surface", "metal", "lacquered"]) {
+    await applyType(type);
+    const opaque = await exportedMaterial();
+    expect(opaque.extensions?.KHR_materials_transmission).toBeUndefined();
+    expect(opaque.extensions?.KHR_materials_volume).toBeUndefined();
+    expect(opaque.extras.archicad.clearGlassOverride).toBe(false);
+    await page.locator("#workbenchUndo").click();
+    await expect(page.locator("#workbenchType")).toHaveValue("glass");
+  }
+  await page.locator("#workbenchReset").click();
+  await expect(page.locator("#workbenchReset")).toBeDisabled();
+
+  // Reopen actual saved glass so the next edit starts from a physical-glass
+  // baseline, rather than from the first model's opaque original material.
+  await page.setInputFiles("#fileInput", {
+    name: "saved-glass.glb", mimeType: "model/gltf-binary", buffer: await readFile(glassPath)
+  });
+  await expect(page.locator("#workbenchMaterial")).toHaveText("—");
+  await page.locator("body > canvas").click({ position: { x: 640, y: 400 } });
+  await expect(page.locator("#workbenchType")).toHaveValue("glass");
+  await applyType("surface");
+  const reopenedSurface = await exportedMaterial();
+  expect(reopenedSurface.extensions?.KHR_materials_transmission).toBeUndefined();
+  expect(reopenedSurface.extras.archicad.clearGlassOverride).toBe(false);
+  await page.locator("#workbenchReset").click();
+  await expect(page.locator("#workbenchType")).toHaveValue("glass");
+  expect(errors).toEqual([]);
+});
 
 async function openBlenderTools(page) {
   if (!await page.locator("#blenderRenderPanel").evaluate(panel => panel.open)) {

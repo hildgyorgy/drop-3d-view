@@ -300,7 +300,7 @@ function bindRenderSnapshotControls() {
       console.error("Render snapshot export failed", error);
       reportExport(`PACKAGE SAVE FAILED: ${error.message}`);
     } finally {
-      exportButton.textContent = "SAVE PACKAGE";
+      exportButton.textContent = "SAVE SCENE PACKAGE";
       update();
     }
   });

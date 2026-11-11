@@ -7,7 +7,7 @@
 A felhasználó megerősítette a Safari extensionös kapcsolat működését, és kérte
 az explicit webes HTTP út eltávolítását. A CONNECTION választó és a közvetlen
 HTTP kliens kikerült. CONNECT mindig felismeri és használja a böngésző
-bővítményét; hiányakor telepítés/engedélyezés és SAVE PACKAGE az útmutatás.
+bővítményét; hiányakor telepítés/engedélyezés és SAVE SCENE PACKAGE az útmutatás.
 A natív app belső loopback szolgáltatása megmaradt az extensionök és queue között.
 Az alábbi korábbi mérföldkövek kézi HTTP választásai történeti leírások.
 
@@ -76,7 +76,7 @@ pillanatképeket, az elfogadott beállítások rögzítve maradnak. A webes
 feladatválasztóval korábbi render is kijelölhető; a CANCEL a kijelölt futó vagy
 várakozó feladatot kezeli. A natív várólista más feladatait ez nem indítja el.
 SHOW IN FOLDER explicit előtérbe hozza a Findert.
-A SAVE PACKAGE és a natív fájlkezelés továbbra is használható. Ellenőrizve: valódi
+A SAVE SCENE PACKAGE és a natív fájlkezelés továbbra is használható. Ellenőrizve: valódi
 Edge viewer → exporter → bridge → Cycles → FINISHED és RENDER → CANCELLED;
 146 unit teszt és 3 WebKit viewer smoke sikeres, mindkét bundle újraépítve.
 Közös protokoll: `docs/RENDER_BROWSER_BRIDGE.md`. A korábbi localhost-tiltás
@@ -85,7 +85,7 @@ A natív bridge macOS-on készül, Windows tray app még nincs.
 
 ## Csomagbélyegkép
 
-A SAVE PACKAGE opcionális `thumbnail` mezőt ment a v1 manifestbe: JPEG MIME,
+A SAVE SCENE PACKAGE opcionális `thumbnail` mezőt ment a v1 manifestbe: JPEG MIME,
 pixelméret és base64 képadat, legfeljebb 640 pixel hosszabbik oldal és 256 KiB.
 A képarány megmarad, a GLB/HDRI erőforrástábla változatlan. A natív Drop & View
 Render ezt mutatja a feladat mellett; a régi csomagok továbbra is megnyithatók.
@@ -141,13 +141,13 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 - A Workbench és a Blender-panel asztali szélessége **342 px**, magassága `min(600px, reszponzív magasságkeret)`; a FILE tartalomhoz igazodó magasságú. Kis ablakban automatikusan kisebbek és görgethetők. Nem modálisak; nincs viewert kitakaró háttérréteg.
 - A felhasználó a szűkszavú, nyugodt UI-t kedveli. A rutin magyarázó/sikerfeliratokat eltávolítottuk; az owner/policy figyelmeztetés, hibák és érdemi kompatibilitási jelzések maradjanak. A bezárás X, az akciók keret nélküli piros szövegek.
 - A Workbench gombsora **APPLY / UNDO / RESET**. Nincs SAVE AS; a GLB-mentés a **FILE → SAVE GLB** helyen van.
-- A FILE panel csak GLB importot és exportot tartalmaz. Az **i → Experimental features → RENDER WITH BLENDER** a harmadik kísérleti funkció: külön, azonos stílusú popup IMPORT / EXPORT fülekkel. IMPORT alatt `.dvrender` nyitható; EXPORT alatt CONNECT, renderindítás/feladatkezelés és SAVE PACKAGE található, IMAGE pixelmérettel, SAMPLES és BOUNCES 6 · GLASS 10 adatokkal.
+- A FILE panel csak GLB importot és exportot tartalmaz. Az **i → Experimental features → RENDER WITH BLENDER** a harmadik kísérleti funkció: külön, azonos stílusú popup IMPORT / EXPORT fülekkel. IMPORT alatt `.dvrender` nyitható; EXPORT alatt CONNECT, renderindítás/feladatkezelés és SAVE SCENE PACKAGE található, IMAGE pixelmérettel, SAMPLES és BOUNCES 6 · GLASS 10 adatokkal.
 - Az IMAGE kijelzés a tényleges rendercanvas fizikai pixelméretét mutatja, és resize esetén azonnal frissül. Retina alatt ez eltérhet a CSS-ablakmérettől. Pontosan ez a méret kerül a csomagba. Importált fix renderkeret esetén annak méretét mutatja.
 - A felhasználó bevált munkamódszere az ablak átméretezésével egyszerre komponálni és felbontást választani. A hétköznapi képekhez az aktuális app-ablak tartalma megfelelő; az 5K path tracer render éjszakára is maradhat.
 
 ## Material Workbench: eredeti textúrák és előnézet
 
-- Felületre kattintva a kiválasztott glTF-anyag összes előfordulása együtt szerkeszthető. SURFACE, POLISHED METAL, LACQUERED, illetve exporterrel kijelölt clear glass esetén GLASS mód van.
+- Felületre kattintva a kiválasztott glTF-anyag összes előfordulása együtt szerkeszthető. Mind a négy típus minden anyaghoz választható: SURFACE, POLISHED METAL, LACQUERED, GLASS. GLASS választáskor fehér szín, 0.98 transmission, 0.03 roughness, 1.5 IOR, nulla metalness és nulla vastagság áll be, minden korábbi map/shading eltűnik; a tint/transmission/roughness utólag állítható. Az új anyag megkapja az `archicad.clearGlassOverride` vékonyüveg-jelölést a viewer/Cycles kompatibilitáshoz. Importált fizikai üveg is felismerhető exporter-jelölés nélkül, és bármelyik másik típusra visszaalakítható. UNDO/RESET megtartja a visszautat. A GLB és `.dvrender` ugyanazt az új anyagot menti.
 - A gömb valódi Three.js előnézet, a viewerrel egyező WebGL/WebGPU backenddel. Egérrel és billentyűnyilakkal forgatható, csak változáskor renderel. Nagy, középre rendezett gömb a teljes szélességű drop box fölött; a dobozban a fájllista balra igazított.
 - A kiválasztott **eredeti GLB-textúrákat is átveszi**: base color, metallic/roughness (belső `arm` slot), normal, occlusion, emissive. A gömbön megjelennek, módosíthatók/cserélhetők; **CLEAR MAPS + APPLY** törli őket a modellből. UNDO/RESET visszaállíthatja az eredeti anyagot.
 - A beágyazott JPEG/PNG eredeti bájtjai megmaradnak. Más dekódolt képek lehetőség szerint PNG-vé alakulnak. A forrás-textúrák saját UV-csatornája, külön transzformációja, wrappingje/filterezése, metallic faktora és normal/AO erőssége megőrződik.
@@ -200,7 +200,7 @@ A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je va
 - A WebGL B/W shader csak `reflectedLight.directDiffuse` alapján küszöböl, hogy a HDRI ne tüntesse el az önárnyékokat. Alpha-cutout anyagokra is érvényes; az üveg külön anyag.
 - Safari **LACQUERED** regresszió: a `js/view/photo-clearcoat.js` stabil koszinuszos GGX/Smith alakra cseréli a tracer eredeti `acos`/`tan` értékelését. A lakkréteg megmarad, nincs clearcoat-kikapcsolás. Natív Safari alatt korábban fekete lett a DEMO 1 betonkerete/járdája, javítva világos maradt. A `photo-clearcoat.test.js` a pinned függőség belsejéhez illeszkedést ellenőrzi, a GPU-képet nem. Frissítéskor külön Safari-vizuális teszt kell.
 - A PATH TRACER alatt a kamera szándékosan zárolt; ORIGINAL-ban kell komponálni. A WINDOW LIGHTS exporterrel jelölt ablakfényekre épül, alapból ki; a régi emisszív GLASS LIGHT kísérlet rejtett/ki marad.
-- MEASUREMENTS: két modellfelületre húzható végpont, egyenes világkoordinátás távolság méterben, adaptív SVG-osztások. Nincs él/csúcs-snap vagy GLB-mentés. Kamera damping húzás közben szünetel; raycast kizárja a rejtett/levágott felületeket. Új modell/backend-váltás/reload törli, embedben rejtett. Mobilon külön próba továbbra is indokolt.
+- TAPE MEASURE: két modellfelületre húzható végpont, egyenes világkoordinátás távolság méterben, adaptív SVG-osztások. Nincs él/csúcs-snap vagy GLB-mentés. Kamera damping húzás közben szünetel; raycast kizárja a rejtett/levágott felületeket. Új modell/backend-váltás/reload törli, embedben rejtett. Mobilon külön próba továbbra is indokolt.
 
 ## Kódtérkép
 
