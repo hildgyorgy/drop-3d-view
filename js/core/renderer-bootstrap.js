@@ -1,5 +1,5 @@
 /* One document/UI, with renderer-specific module graphs selected at startup. */
-import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js";
+import { activeRendererMode, chooseRendererBackend } from "./backend-choice.js?v=pathtracer-28-1";
 import { clearBackendHandoff, saveBackendHandoff,
   takeBackendHandoff } from "./backend-handoff.js?v=embedded-hdri-1";
 import {

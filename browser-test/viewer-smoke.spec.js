@@ -21,7 +21,57 @@ async function expectVisibleCanvas(page) {
   expect(screenshot.byteLength).toBeGreaterThan(20_000);
 }
 
+test("normal view uses WebGL and a fresh debug view selects WebGPU", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.setItem("drop-view-renderer-mode", "webgpu"));
+  await page.reload();
+  await page.setInputFiles("#fileInput", modelPath);
+  await expect(page.locator("#photo1Button")).toHaveAttribute("title", "Progressive path tracing");
+  await expect(page.locator("#rendererPicker")).toBeHidden();
+  await expectVisibleCanvas(page);
+
+  const webGpuAvailable = await page.evaluate(async () => Boolean(await navigator.gpu?.requestAdapter()));
+  if (process.env.DVR_REQUIRE_WEBGPU === "1") expect(webGpuAvailable).toBe(true);
+  await page.evaluate(() => localStorage.removeItem("drop-view-renderer-mode"));
+  await page.goto("/?rendererDebug=1");
+  await page.locator("#aboutButton").click();
+  await expect(page.locator('[data-renderer-mode="webgpu"]')).toHaveAttribute("aria-pressed", "true");
+  if (webGpuAvailable) {
+    await page.setInputFiles("#fileInput", modelPath);
+    await expect(page.locator("#photo1Button")).toBeEnabled();
+    await expectVisibleCanvas(page);
+    await page.locator("#photo1Button").click();
+    await expect(page.locator("#performanceStats")).toHaveText(/SAMPLES • [1-9][0-9]*/, { timeout: 60_000 });
+    await page.locator("#photo1Button").click();
+    await expect(page.locator("#photo1Button")).toHaveText("RESUME");
+    await page.locator("#photo1Button").click();
+    await expect(page.locator("#photo1Button")).toHaveText("PAUSE");
+  } else {
+    test.info().annotations.push({ type: "WebGPU", description: "No adapter: checked default selection; GPU render requires a capable browser." });
+  }
+
+  if (!await page.locator("#aboutMenu").isVisible()) await page.locator("#aboutButton").click();
+  const reloaded = page.waitForEvent("load");
+  await page.locator('[data-renderer-mode="webgl"]').click();
+  await reloaded;
+  await page.locator("#aboutButton").click();
+  await expect(page.locator('[data-renderer-mode="webgl"]')).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await page.locator("#aboutButton").click();
+  await expect(page.locator('[data-renderer-mode="webgl"]')).toHaveAttribute("aria-pressed", "true");
+  expect(errors).toEqual([]);
+});
+
 test("a user GLB saves and reopens as a visible render package", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("drop-view-renderer-mode"))
+      localStorage.setItem("drop-view-renderer-mode", "webgl");
+  });
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => {
@@ -97,6 +147,7 @@ test("a user GLB saves and reopens as a visible render package", async ({ page }
 });
 
 test("orthographic package preserves the zoomed portrait camera frame on reopen", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("drop-view-renderer-mode", "webgl"));
   await page.setViewportSize({ width: 800, height: 1000 });
   await page.goto("/?rendererDebug=1");
   await page.setInputFiles("#fileInput", modelPath);

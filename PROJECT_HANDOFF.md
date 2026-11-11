@@ -106,7 +106,11 @@ A nekünk fontos változások:
 - A `WebGLRenderer.setViewport()` / `setScissor()` render target mellett már nem skáláz pixelaránnyal. A path tracer részlet-renderelése és a Retina/fix exportfelbontás külön ellenőrizendő.
 - Erőforrás-felszabadítási javítások, többek között explicit storage-buffer disposal, valamint belső `WeakRef` / `FinalizationRegistry` használat. **Ezekből nem következik automatikusan a Mini memóriaproblémájának megoldása.**
 
-Az npm-es `three-gpu-pathtracer` 0.0.27 WebGPU útvonala r187 alatt a storage-buffer változás miatt hibás compute pipeline-t készített. A tracer szerzőjének célzott, még kiadatlan r187-javítását egzakt commitra pineltük (`45919f326dded43b136f9fb08eb1de47878e4ad6`, upstream `webgpu/three-r187` ág), mellette a megkövetelt `three-mesh-bvh` 0.9.17 fut. Mozgó GitHub branch nincs használatban; a lockfile tarball-integritást is rögzít.
+A `three-gpu-pathtracer` 2026-11-11-én a kiadott npm **0.0.28** verzióra frissült. Ez kiváltja a korábbi 0.0.27 + `45919f3` upstream r187-kompatibilitási pinelést. A Three.js **0.187.0**, a `three-mesh-bvh` **0.9.17**, az automatikusan telepített `xatlas-web` peer **0.1.0** maradt; mind megfelel a 0.0.28 követelményeinek. A lockfile az npm-csomag integritását rögzíti. OIDN-t továbbra sem használ az in-app adapter, ezért külön denoiser-függőség nem került be.
+
+A jelenlegi belépő/cache-jelölés **`pathtracer-28-1`**. A normál URL mindig AUTO/WebGL; **`?rendererDebug=1` friss böngészőben WebGPU-t választ**, a korábban kézzel mentett AUTO/WEBGL/WEBGPU választást tiszteletben tartja. AUTO továbbra is WebGL. WebGPU nélküli debug böngészőben a választóval AUTO vagy WEBGL indítható. A WebGL clearcoat-kompatibilitási javítás megmaradt, és a kiadott 0.0.28 shaderével is ellenőrzött.
+
+A 0.0.28 frissítés ellenőrzése: **151/151 unit és 5/5 Playwright WebKit teszt sikeres**, mindkét publikus renderer felépült. Külön Edge-próba kötelező WebGPU-adapterrel (`DVR_REQUIRE_WEBGPU=1`) igazolta a mintaszám növekedését, PAUSE/RESUME működését, a WebGL-re visszaváltást és a mentett választás újratöltés utáni megtartását, konzolhiba nélkül. A normál URL mentett WebGPU-választás mellett is WebGL. A megszokott BVH névtér- és nagy-chunk buildfigyelmeztetések továbbra is megjelennek.
 
 Az r187-átállás ellenőrzésekor a teljes akkori tesztkészlet sikeres volt, mindkét publikus renderer felépült, és a DEMO 1/2 WebGL-, WebGPU- és path-tracer próbái is működtek. A tiszta WebGPU-próbán a mintaszám nőtt, kép épült és nem volt konzolhiba. A cache-jelölés `async-bvh-1`, a render producer revíziója `webgl-photo-3`, a Draco CDN pinje r187. A publikus AUTO továbbra is WebGL.
 
@@ -125,7 +129,7 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 | Függőség | Jelenlegi verzió |
 | --- | --- |
 | `three` | `0.187.0` |
-| `three-gpu-pathtracer` | `0.0.27` + upstream r187 commit `45919f3` |
+| `three-gpu-pathtracer` | `0.0.28` (kiadott npm-csomag) |
 | `three-mesh-bvh` | `0.9.17` |
 | Vite | `8.2.2` |
 
@@ -173,8 +177,8 @@ Rögzített függőségek a `webgpu-lab/package.json`-ban:
 
 A felhasználó egy Gemini-választ kért ellenőrizni. A WebGPU-ág merge-je valódi, de az üvegen átjutó közvetlen árnyéksugarak általános megoldása nem következik belőle.
 
-- A hivatalos changelog szerint a WebGPUPathTracer **0.0.25-ben, 2026-09-28-án** jelent meg, a 0.0.27 2026-10-08-i. Az app ennek egzakt upstream r187-kompatibilitási commitját (`45919f3`) használja, amíg ugyanez kiadott verzióban meg nem jelenik.
-- A kamerából induló sugár transzmissziója/fénytörése és a felületről a fény felé indított NEE shadow ray kezelése külön feladat. A megvizsgált `PathTracerMegaKernel.js` a közvetlen fényhez bináris occlusion-t vizsgál; a kód a színezett áttetsző árnyékokat lehetséges továbbfejlesztésként említi. MNEE/kausztika a roadmap Future részében van. Ebből nem következik, hogy semmilyen fény nem jut át üvegen, de az általános „ablakon átjövő direkt napfény megoldva” állítás nem igazolt.
+- A hivatalos changelog szerint a WebGPUPathTracer **0.0.25-ben, 2026-09-28-án** jelent meg; az app most a **2026-11-02-i 0.0.28** kiadást használja.
+- A 0.0.28 árnyéksugarai átjutnak az alpha-áttetsző felületeken (`transparent` és `opacity < 1`), az opacity szerint gyengülve. Ez megakernel és wavefront módban is működik; a `visibleToShadowRays=false` melletti kettős fénybeszámítás is javult. A fizikai `transmission`/IOR üveg ettől külön eset: az app megőrzi az `opacity=1`, `transparent=false` fizikai üveget, nem alakítja át alpha-közelítéssé. Színezett árnyékot/általános üvegkausztikát ez a frissítés nem igazol. A részleteket a [#897 hibajegy](https://github.com/gkjohnson/three-gpu-pathtracer/issues/897) és a 0.0.28 forráskódja rögzíti.
 - Compute shader használata nem jelenti a hardveres RT/RTX-egységek közvetlen használatát; itt a BVH-bejárást/metszést shaderkód végzi.
 - Források: [tracer changelog](https://github.com/gkjohnson/three-gpu-pathtracer/blob/main/CHANGELOG.md), [shader](https://github.com/gkjohnson/three-gpu-pathtracer/blob/main/src/webgpu/compute/PathTracerMegaKernel.js), [roadmap #777](https://github.com/gkjohnson/three-gpu-pathtracer/issues/777). Friss állításnál az aktuális forrást újra ellenőrizzük, ne általános Three.js/WebGPU hírből következtessünk kész tracerfunkcióra.
 

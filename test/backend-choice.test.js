@@ -18,3 +18,12 @@ test("a saved WebGPU selection applies only in debug mode", () => {
   assert.equal(activeRendererMode(false, "webgpu"), "auto");
   assert.equal(activeRendererMode(true, "webgpu"), "webgpu");
 });
+
+test("debug defaults to WebGPU while respecting every saved manual choice", () => {
+  assert.equal(activeRendererMode(true, null), "webgpu");
+  assert.equal(activeRendererMode(true, "unexpected"), "webgpu");
+  assert.equal(activeRendererMode(true, "webgl"), "webgl");
+  assert.equal(activeRendererMode(true, "auto"), "auto");
+  assert.equal(activeRendererMode(false, null), "auto");
+  assert.equal(activeRendererMode(false, "webgl"), "auto");
+});

@@ -5,7 +5,8 @@ export function normalizeRendererMode(value) {
 }
 
 export function activeRendererMode(debugEnabled, storedMode) {
-  return debugEnabled ? normalizeRendererMode(storedMode) : "auto";
+  if (!debugEnabled) return "auto";
+  return rendererModes.includes(storedMode) ? storedMode : "webgpu";
 }
 
 export function chooseRendererBackend(mode, webgpuAvailable) {

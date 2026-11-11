@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "three": "0.187.0",
-    "three-gpu-pathtracer": "github:gkjohnson/three-gpu-pathtracer#45919f326dded43b136f9fb08eb1de47878e4ad6",
+    "three-gpu-pathtracer": "0.0.28",
     "three-mesh-bvh": "0.9.17"
   },
   "devDependencies": {
