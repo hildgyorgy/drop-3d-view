@@ -25,6 +25,7 @@ export class ExtensionRenderBridgeClient extends SafariRenderBridgeClient {
         !result.capabilities?.includes("chunked-upload") || !result.capabilities.includes("jobs"))
       throw new Error("Update the Drop & View Render browser extension.");
     this.transport = result.transport;
+    this.capabilities = result.capabilities;
     return result;
   }
 }

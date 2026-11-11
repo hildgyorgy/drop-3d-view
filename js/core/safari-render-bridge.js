@@ -87,14 +87,17 @@ export class SafariRenderBridgeClient {
     await this.request("uploadAbort", { uploadID: transfer.id });
   }
 
-  async submit(snapshot, key, { onProgress = () => {} } = {}) {
+  async submit(snapshot, key, { onProgress = () => {}, denoise, adaptive } = {}) {
+    if ((denoise !== undefined && typeof denoise !== "boolean") || (adaptive !== undefined && typeof adaptive !== "boolean"))
+      throw new Error("Invalid render quality settings.");
     if (!this.token) throw new Error("Connect to Drop & View Render first.");
     if (this.transfer || this.beginning) throw new Error("Another native transfer is active.");
     if (!Number.isSafeInteger(snapshot.size) || snapshot.size < 24 || snapshot.size > 2 ** 31)
       throw new Error("The render package must be between 24 bytes and 2 GiB.");
     let begin;
     this.beginning = true;
-    try { begin = await this.request("uploadBegin", { key, totalBytes: snapshot.size }); }
+    const quality = { ...(denoise !== undefined ? { denoise } : {}), ...(adaptive !== undefined ? { adaptive } : {}) };
+    try { begin = await this.request("uploadBegin", { key, totalBytes: snapshot.size, ...quality }); }
     finally { this.beginning = false; }
     if (!/^[0-9a-f-]{36}$/i.test(begin.uploadID ?? "") || begin.offset !== 0 ||
         !Number.isInteger(begin.chunkBytes) || begin.chunkBytes < 1 || begin.chunkBytes > 65536)

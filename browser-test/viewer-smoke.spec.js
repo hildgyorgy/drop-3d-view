@@ -180,7 +180,20 @@ test("a user GLB saves and reopens as a visible render package", async ({ page }
   await page.locator("#filePanel [data-close]").click();
 
   await openBlenderTools(page);
+  await page.locator("#importTab").click();
+  await expect(page.locator("#importTab")).toHaveText("IMPORT / EXPORT");
+  await expect(page.locator("#exportTab")).toHaveText("RENDER");
+  await expect(page.locator("#openRenderPackage")).toBeVisible();
+  await expect(page.locator("#renderBridgeRender")).toBeHidden();
   await page.locator("#exportTab").click();
+  await expect(page.locator("#renderBridgeRender")).toHaveText("RENDER SCENE");
+  await expect(page.locator("#renderDenoise")).toBeChecked();
+  await expect(page.locator("#renderAdaptive")).toBeChecked();
+  await page.locator("#renderDenoise").uncheck();
+  await page.locator("#renderAdaptive").uncheck();
+  await expect(page.locator("#renderDenoise")).not.toBeChecked();
+  await expect(page.locator("#renderAdaptive")).not.toBeChecked();
+  await page.locator("#importTab").click();
   await expect(page.locator("#renderSnapshotExport")).toBeEnabled();
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#renderSnapshotExport").click();
@@ -236,7 +249,7 @@ test("orthographic package preserves the zoomed portrait camera frame on reopen"
 
   async function exportPackage() {
     await openBlenderTools(page);
-    await page.locator("#exportTab").click();
+    await page.locator("#importTab").click();
     const downloadPromise = page.waitForEvent("download");
     await page.locator("#renderSnapshotExport").click();
     const path = await (await downloadPromise).path();

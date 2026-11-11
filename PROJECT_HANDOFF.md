@@ -63,6 +63,18 @@ a régi csomagok továbbra is olvashatók, de pontos kivágáshoz újraexport ke
 
 ## Natív render bridge – első mérföldkő (2026-11-02)
 
+2026-11-11 UI: a Blender-popup fülei **IMPORT / EXPORT** és **RENDER**. Az elsőn
+OPEN A RENDER SCENE / SAVE A RENDER SCENE `.dvrender` műveletek vannak. A másodikon
+letöltési hivatkozás (egyelőre GitHub Releases, még nincs DMG), CONNECT, TEST
+CONNECTION, RENDER SCENE, IMAGE/SAMPLES/BOUNCES/GLASS, valamint DENOISE és ADAPTIVE
+körkapcsolók, mindkettő alapból ON. A kapcsolók a közvetlen natív renderfeladat
+beküldési beállításai; a `.dvrender` v1 formátumot nem változtatják. A web és a
+render repó forrása is frissült a `quality-controls` capabilityre. Régi app vagy
+extension mellett ON/ON használható; OFF esetén frissítést kér a UI. A beállítások
+a feltöltés kezdetén rögzülnek, és a retry ugyanazokat küldi. Mind a négy kombináció
+valódi Cycles-smoke renderrel ellenőrzött. Új natív app/extension telepítése és
+böngésző-reload szükséges az OFF működéséhez; telepített appot nem cseréltünk.
+
 Az i → RENDER WITH BLENDER → EXPORT → DROP & VIEW RENDER CONNECT gomb a natív app
 `127.0.0.1:43127` HTTP-hídjához kapcsolódik. Böngészőengedély és natív
 jóváhagyás után originhez kötött, csak memóriában tárolt tokennel kérdez

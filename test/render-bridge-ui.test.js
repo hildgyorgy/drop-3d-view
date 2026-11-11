@@ -13,6 +13,10 @@ test("manual checks and returning to the page refresh accepted jobs", async () =
   const elements = new Map();
   for (const name of ["Connect", "Disconnect", "Render", "Cancel", "Reveal", "Status", "Job", "Jobs", "Abort"])
     elements.set(`#renderBridge${name}`, new Element());
+  for (const name of ["Denoise", "Adaptive", "QualityHint"])
+    elements.set(`#render${name}`, new Element());
+  elements.get("#renderDenoise").checked = false;
+  elements.get("#renderAdaptive").checked = false;
   const page = new EventTarget();
   page.hidden = true;
   page.querySelector = selector => elements.get(selector) ?? null;
@@ -31,10 +35,14 @@ test("manual checks and returning to the page refresh accepted jobs", async () =
     globalThis.fetch = () => assert.fail("The web page must never fetch the native HTTP bridge");
     windowTarget.postMessage = ({ message }, origin) => {
       let data;
-      if (message.operation === "discover") data = { transport: "chromium-native-messaging", capabilities: ["chunked-upload", "jobs"] };
+      if (message.operation === "discover") data = { transport: "chromium-native-messaging", capabilities: ["chunked-upload", "jobs", "quality-controls"] };
       else if (message.operation === "pair") data = { token: "a".repeat(72), protocolVersion: 1 };
-      else if (message.operation === "status") data = { app: "Drop & View Render", protocolVersion: 1, blenderAvailable: true, capabilities: ["jobs"] };
-      else if (message.operation === "uploadBegin") data = { uploadID: jobID, offset: 0, chunkBytes: 65536 };
+      else if (message.operation === "status") data = { app: "Drop & View Render", protocolVersion: 1, blenderAvailable: true, capabilities: ["jobs", "quality-controls"] };
+      else if (message.operation === "uploadBegin") {
+        assert.equal(message.denoise, false, "Quality settings freeze before asynchronous scene capture");
+        assert.equal(message.adaptive, false);
+        data = { uploadID: jobID, offset: 0, chunkBytes: 65536 };
+      }
       else if (message.operation === "uploadChunk") data = { uploadID: jobID, offset: message.offset + atob(message.base64).length };
       else if (message.operation === "uploadFinish") data = { id: jobID };
       else if (message.operation === "job") { jobReads++; data = { id: jobID, state, elapsed: 7, outputName: "demo.png" }; }
@@ -49,7 +57,11 @@ test("manual checks and returning to the page refresh accepted jobs", async () =
       });
     };
     const settle = () => new Promise(resolve => setImmediate(resolve));
-    bindRenderBridgeControls({ captureSnapshot: async () => ({ snapshot: new Blob(["test scene with 24 bytes!"]) }), canCapture: () => true });
+    bindRenderBridgeControls({ captureSnapshot: async () => {
+      elements.get("#renderDenoise").checked = true;
+      elements.get("#renderAdaptive").checked = true;
+      return { snapshot: new Blob(["test scene with 24 bytes!"]) };
+    }, canCapture: () => true });
     elements.get("#renderBridgeConnect").click();
     await settle();
     elements.get("#renderBridgeRender").click();

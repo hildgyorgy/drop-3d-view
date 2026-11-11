@@ -1148,6 +1148,35 @@ body.dragging .drop-title {
 .file-panel #renderBridgeConnect { margin-right: 12px; }
 .file-panel .render-bridge-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
 .file-panel #renderBridgeJobs { width: 100%; margin: 8px 0; font: inherit; font-size: 10px; }
+.file-panel .scene-package-action { line-height: 1.8; letter-spacing: .03em; }
+.file-panel .scene-package-action button { padding: 0; }
+.file-panel .scene-package-action span { font-size: 11px; }
+.file-panel .render-download { margin: 0 0 20px; line-height: 1.7; letter-spacing: .03em; }
+.file-panel .render-download a { padding: 0; font: inherit; letter-spacing: .1em; }
+.file-panel .render-connection-test { margin-top: 12px; }
+.file-panel .render-job-controls { margin-top: 16px; row-gap: 12px; }
+.file-panel .render-job-controls .render-setting-label { grid-column: 1; color: inherit; font-size: inherit; }
+.file-panel .render-job-controls > output { justify-self: end; }
+#blenderRenderPanel input.render-circle-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  margin: 0;
+  justify-self: end;
+  border: 1px solid #242424;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+#blenderRenderPanel input.render-circle-toggle:checked { background: var(--red); border-color: var(--red); }
+#blenderRenderPanel input.render-circle-toggle:focus-visible { outline: 1px solid var(--red); outline-offset: 4px; }
+#blenderRenderPanel .file-pane { padding-top: 18px; }
+#blenderRenderPanel .render-download { margin-bottom: 12px; }
+#blenderRenderPanel .render-connection-test { margin-top: 6px; }
+#blenderRenderPanel .render-bridge-actions { margin-top: 8px; }
+#blenderRenderPanel .render-job-controls { margin-top: 10px; row-gap: 8px; }
 @media (max-height: 780px) and (min-width: 601px) {
   :root { --tool-panel-top: 175px; --tool-panel-height: calc(100dvh - 350px); }
   .file-panel { padding: 14px 18px 16px; }

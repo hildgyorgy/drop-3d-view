@@ -10,7 +10,7 @@ export function bindSafariRenderBridgeControls() {
     output.textContent = "Waiting for the extension and native app…";
     try {
       const result = await client.ping();
-      output.textContent = `PONG · ${result.roundTripMs} ms · Native PID ${result.nativeProcessID} · ${result.id}`;
+      output.textContent = `CONNECTION OK · ${result.roundTripMs} ms`;
     } catch (error) {
       output.textContent = error.message;
     } finally { button.disabled = false; }

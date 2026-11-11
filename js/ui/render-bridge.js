@@ -13,6 +13,9 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   const jobSelect = document.querySelector("#renderBridgeJobs");
   const jobs = new Map();
   const abort = document.querySelector("#renderBridgeAbort");
+  const denoise = document.querySelector("#renderDenoise");
+  const adaptive = document.querySelector("#renderAdaptive");
+  const qualityHint = document.querySelector("#renderQualityHint");
   let client = new ExtensionRenderBridgeClient();
   let sending = false;
   let busy = false;
@@ -22,25 +25,34 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   let pending = null;
 
   function update() {
+    const quality = pending ?? { denoise: denoise.checked, adaptive: adaptive.checked };
+    const unsupportedQuality = client.token && (!quality.denoise || !quality.adaptive) &&
+      (!status?.capabilities?.includes("quality-controls") || !client.capabilities?.includes("quality-controls"));
+    qualityHint.hidden = !unsupportedQuality;
+    qualityHint.textContent = unsupportedQuality
+      ? "Update Render for Blender and its browser extension to turn denoise or adaptive sampling off." : "";
     const active = job && ["queued", "rendering"].includes(job.state);
     render.disabled =
       busy ||
+      unsupportedQuality ||
       !client.token ||
       !status?.blenderAvailable ||
       !status?.capabilities?.includes("jobs") ||
       (!pending && !canCapture());
-    render.textContent = pending ? "RETRY SEND" : "RENDER";
+    render.textContent = pending ? "RETRY SEND" : "RENDER SCENE";
     cancel.hidden = !active || !client.token;
     cancel.disabled = busy;
     reveal.hidden = job?.state !== "finished" || !client.token;
     reveal.disabled = busy;
     connect.disabled = busy;
-    connect.textContent = client.token ? "CHECK CONNECTION" : "CONNECT";
+    connect.textContent = client.token ? "CONNECTED TO RENDER FOR BLENDER" : "CONNECT TO RENDER FOR BLENDER";
     disconnect.hidden = !client.token;
     disconnect.disabled = busy;
     abort.hidden = !sending;
     abort.disabled = !sending;
   }
+  denoise.addEventListener("change", update);
+  adaptive.addEventListener("change", update);
 
   function showStatus(value) {
     status = value;
@@ -210,11 +222,14 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
     try {
       if (!pending) {
         jobOutput.textContent = "PREPARING SCENE…";
+        const quality = { denoise: denoise.checked, adaptive: adaptive.checked };
         const { snapshot } = await captureSnapshot();
-        pending = { snapshot, key: crypto.randomUUID() };
+        pending = { snapshot, key: crypto.randomUUID(), ...quality };
       }
       jobOutput.textContent = "SENDING SCENE…";
       const result = await client.submit(pending.snapshot, pending.key, {
+        ...(status?.capabilities?.includes("quality-controls") && client.capabilities?.includes("quality-controls")
+          ? { denoise: pending.denoise, adaptive: pending.adaptive } : {}),
         onProgress: ({ sent, total, phase }) => {
           sending = phase === "upload";
           jobOutput.textContent = phase === "upload"

@@ -31,7 +31,7 @@
         document.documentElement.classList.add("safari-contrast-fallback");
       }
     </script>
-    <link rel="stylesheet" href="css/style.css?v=blender-panel-1" />
+    <link rel="stylesheet" href="css/style.css?v=render-controls-1" />
     <!-- Adaptive overlay labels; remove this link to disable (see README). -->
     <link rel="stylesheet" href="css/adaptive-contrast.css?v=glass-light-test" />
     <script type="importmap">
@@ -500,8 +500,8 @@
       // two-port development comparison still imports source modules instead.
       if (!["8001", "8002"].includes(location.port)) {
         window.__DROP_VIEW_RENDERER_PACKAGES__ = {
-          webgpu: "renderers/webgpu/main.js?v=workbench-glass-2",
-          webgl: "renderers/webgl/main.js?v=workbench-glass-2"
+          webgpu: "renderers/webgpu/main.js?v=render-controls-1",
+          webgl: "renderers/webgl/main.js?v=render-controls-1"
         };
       }
     </script>
@@ -529,25 +529,47 @@
         <h2 id="blenderRenderPanelTitle">RENDER WITH BLENDER</h2>
         <button type="button" data-close aria-label="Close Blender render tools">X</button>
       </header>
-      <div class="file-tabs" role="tablist" aria-label="Render package import and export">
-        <button id="importTab" type="button" role="tab" aria-selected="true" aria-controls="importPanel" data-tab="import">IMPORT</button>
-        <button id="exportTab" type="button" role="tab" aria-selected="false" aria-controls="exportPanel" tabindex="-1" data-tab="export">EXPORT</button>
+      <div class="file-tabs" role="tablist" aria-label="Scene packages and rendering">
+        <button id="importTab" type="button" role="tab" aria-selected="true" aria-controls="importPanel" data-tab="import">IMPORT / EXPORT</button>
+        <button id="exportTab" type="button" role="tab" aria-selected="false" aria-controls="exportPanel" tabindex="-1" data-tab="export">RENDER</button>
       </div>
       <div id="importPanel" class="file-pane" role="tabpanel" aria-labelledby="importTab" data-pane="import">
         <section class="file-section" aria-labelledby="importPackageTitle">
-          <h3 id="importPackageTitle">RENDER PACKAGE</h3>
-          <button id="openRenderPackage" type="button">OPEN .DVRENDER</button>
+          <p id="importPackageTitle" class="scene-package-action"><button id="openRenderPackage" type="button">OPEN A RENDER SCENE</button> <span>.dvrender package file from your computer</span></p>
           <input id="renderPackageInput" type="file" accept=".dvrender" hidden>
           <p id="renderPackageStatus" role="status" aria-live="polite"></p>
+        </section>
+        <section class="file-section" aria-labelledby="renderExportTitle">
+          <p id="renderExportTitle" class="scene-package-action"><button id="renderSnapshotExport" type="button" hidden>SAVE A RENDER SCENE</button> <span>.dvrender package</span></p>
+          <p id="renderSnapshotHint" class="render-snapshot-hint" hidden>Turn off SECTION before exporting a render package.</p>
+          <p id="renderSnapshotStatus" role="status" aria-live="polite"></p>
         </section>
       </div>
       <div id="exportPanel" class="file-pane" role="tabpanel" aria-labelledby="exportTab" data-pane="export" hidden>
         <section class="file-section" aria-labelledby="renderBridgeTitle">
-          <h3 id="renderBridgeTitle">DROP &amp; VIEW RENDER</h3>
-          <button id="renderBridgeConnect" type="button">CONNECT</button>
+          <p id="renderBridgeTitle" class="render-download">Download <a href="https://github.com/hildgyorgy/drop-view-render/releases" target="_blank" rel="noopener">RENDER FOR BLENDER</a> app for Mac and the connection extension for Safari.</p>
+          <button id="renderBridgeConnect" type="button">CONNECT TO RENDER FOR BLENDER</button>
           <button id="renderBridgeDisconnect" type="button" hidden>DISCONNECT</button>
+          <div class="render-connection-test">
+            <button id="safariRenderBridgeTest" type="button">TEST CONNECTION</button>
+            <p id="safariRenderBridgeStatus" role="status" aria-live="polite"></p>
+          </div>
           <div class="render-bridge-actions">
-            <button id="renderBridgeRender" type="button" disabled>RENDER</button>
+            <button id="renderBridgeRender" type="button" disabled>RENDER SCENE</button>
+          </div>
+          <div id="renderJobControls" class="render-job-controls" hidden>
+            <div class="export-render-size"><span>IMAGE</span><output id="renderExportSize" aria-label="Export image size">—</output></div>
+            <label for="renderTargetSamples">SAMPLES</label>
+            <input id="renderTargetSamples" type="number" min="1" max="100000" step="1" value="500" required>
+            <span class="render-setting-label">BOUNCES</span><output>6</output>
+            <span class="render-setting-label">GLASS</span><output>10</output>
+            <label for="renderDenoise">DENOISE</label>
+            <input id="renderDenoise" class="render-circle-toggle" type="checkbox" checked aria-describedby="renderQualityHint">
+            <label for="renderAdaptive">ADAPTIVE</label>
+            <input id="renderAdaptive" class="render-circle-toggle" type="checkbox" checked aria-describedby="renderQualityHint">
+          </div>
+          <p id="renderQualityHint" class="render-snapshot-hint" hidden></p>
+          <div class="render-bridge-actions">
             <button id="renderBridgeCancel" type="button" hidden>CANCEL</button>
             <button id="renderBridgeReveal" type="button" hidden>SHOW IN FOLDER</button>
             <button id="renderBridgeAbort" type="button" hidden>STOP SENDING</button>
@@ -555,24 +577,6 @@
           <p id="renderBridgeJob" role="status" aria-live="polite"></p>
           <select id="renderBridgeJobs" aria-label="Submitted renders" hidden></select>
           <p id="renderBridgeStatus" role="status" aria-live="polite"></p>
-          <details>
-            <summary>CONNECTION DIAGNOSTICS</summary>
-            <button id="safariRenderBridgeTest" type="button">TEST NATIVE CONNECTION</button>
-            <p>Connection test only. No render will start.</p>
-            <p id="safariRenderBridgeStatus" role="status" aria-live="polite"></p>
-          </details>
-        </section>
-        <section class="file-section" aria-labelledby="renderExportTitle">
-          <h3 id="renderExportTitle">RENDER PACKAGE</h3>
-          <div id="renderJobControls" class="render-job-controls" hidden>
-            <div class="export-render-size"><span>IMAGE</span><output id="renderExportSize" aria-label="Export image size">—</output></div>
-            <label for="renderTargetSamples">SAMPLES</label>
-            <input id="renderTargetSamples" type="number" min="1" max="100000" step="1" value="500" required>
-            <span>BOUNCES 6 · GLASS 10</span>
-          </div>
-          <button id="renderSnapshotExport" type="button" hidden>SAVE SCENE PACKAGE</button>
-          <p id="renderSnapshotHint" class="render-snapshot-hint" hidden>Turn off SECTION before exporting a render package.</p>
-          <p id="renderSnapshotStatus" role="status" aria-live="polite"></p>
         </section>
       </div>
     </dialog>
