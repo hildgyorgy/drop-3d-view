@@ -5,6 +5,109 @@ import { readGlb } from "../js/model/glb-material-patch.js";
 
 const modelPath = fileURLToPath(new URL("../demo/demo_house_2.glb", import.meta.url));
 
+test("Workbench classifies dropped maps, accepts manual roles and exports DX normals with ARM AO", async ({ page }) => {
+  const backend = process.env.DVR_TEST_RENDERER ?? "webgl";
+  await page.addInitScript(mode => localStorage.setItem("drop-view-renderer-mode", mode), backend);
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto(backend === "webgpu" ? "/?rendererDebug=1" : "/");
+  await page.setInputFiles("#fileInput", modelPath);
+  await expect(page.locator("#startScreen")).toHaveClass(/hidden/);
+  await page.locator("#aboutButton").click();
+  await page.locator("#materialWorkbenchEntry").click();
+  await page.locator("body > canvas").click({ position: { x: 640, y: 400 } });
+  await expect(page.locator("#workbenchApply")).toBeEnabled();
+  await page.locator("#workbenchType").selectOption("surface");
+  if (await page.locator("#workbenchClearMaps").isEnabled())
+    await page.locator("#workbenchClearMaps").click();
+  const index = Number((await page.locator("#workbenchMaterial").textContent()).match(/#(\d+)/)[1]);
+
+  async function dropMaps(maps) {
+    await page.evaluate(async maps => {
+      const transfer = new DataTransfer();
+      for (const { name, pixel } of maps) {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 2;
+        const context = canvas.getContext("2d");
+        context.fillStyle = `rgb(${pixel.join(",")})`;
+        context.fillRect(0, 0, 2, 2);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+        transfer.items.add(new File([blob], name, { type: "image/png" }));
+      }
+      document.querySelector(".workbench-file").dispatchEvent(new DragEvent("drop", {
+        bubbles: true, cancelable: true, dataTransfer: transfer
+      }));
+    }, maps);
+    await expect(page.locator("#workbenchAddMaps")).toBeEnabled();
+  }
+
+  await dropMaps([
+    { name: "Bricks001_Color.png", pixel: [90, 60, 30] },
+    { name: "wood_nor_dx_1k.png", pixel: [128, 64, 250] },
+    { name: "wood_arm_1k.png", pixel: [70, 180, 220] }
+  ]);
+  await expect(page.getByRole("combobox", { name: "Map type for Bricks001_Color.png", exact: true })).toHaveValue("color");
+  await expect(page.getByRole("combobox", { name: "Map type for wood_nor_dx_1k.png", exact: true })).toHaveValue("normalDx");
+  await expect(page.locator("#workbenchMaps .workbench-map-item")).toHaveCount(3);
+  await dropMaps([{ name: "my-favourite-wood.png", pixel: [100, 80, 40] }]);
+  await expect(page.locator("#workbenchMaps .workbench-map-item")).toHaveCount(4);
+  await page.getByRole("combobox", { name: "Map type for my-favourite-wood.png", exact: true }).selectOption("color");
+  // Reassignment preserves the displaced image for a deliberate new choice.
+  await expect(page.getByRole("combobox", { name: "Map type for Bricks001_Color.png", exact: true })).toHaveValue("");
+  await page.getByRole("combobox", { name: "Map type for Bricks001_Color.png", exact: true }).selectOption("roughness");
+  await expect(page.locator("#workbenchStatus")).toBeEmpty();
+  await page.locator("#workbenchApply").click();
+  await expect(page.locator("#workbenchApply")).toBeEnabled();
+  await expect(page.locator("#workbenchStatus")).toBeEmpty();
+  await page.locator("#materialWorkbench").evaluate(panel => { panel.scrollTop = 0; });
+  await page.locator("#materialWorkbench").screenshot({ path: `test-results/workbench-map-roles-${backend}.png` });
+
+  async function exportedPixels() {
+    await page.locator("#openAgain").click();
+    const download = page.waitForEvent("download");
+    await page.locator("#exportGlb").click();
+    const bytes = await readFile(await (await download).path());
+    const { json, binary } = readGlb(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const material = json.materials[index];
+    const images = {};
+    for (const [kind, info] of Object.entries({
+      normal: material.normalTexture, ao: material.occlusionTexture,
+      packed: material.pbrMetallicRoughness.metallicRoughnessTexture
+    })) {
+      expect(info.texCoord).toBe(1);
+      const image = json.images[json.textures[info.index].source];
+      const view = json.bufferViews[image.bufferView];
+      images[kind] = [...binary.slice(view.byteOffset || 0, (view.byteOffset || 0) + view.byteLength)];
+    }
+    await page.locator("#filePanel [data-close]").click();
+    return page.evaluate(async images => {
+      const pixels = {};
+      for (const [kind, bytes] of Object.entries(images)) {
+        const bitmap = await createImageBitmap(new Blob([new Uint8Array(bytes)], { type: "image/png" }));
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 2;
+        const context = canvas.getContext("2d");
+        context.drawImage(bitmap, 0, 0);
+        pixels[kind] = [...context.getImageData(0, 0, 1, 1).data];
+        bitmap.close();
+      }
+      return pixels;
+    }, images);
+  }
+  const first = await exportedPixels();
+  expect(first.normal).toEqual([128, 191, 250, 255]);
+  expect(first.ao).toEqual([70, 70, 70, 255]);
+  expect(first.packed).toEqual([255, 180, 220, 255]);
+  // An individually added AO replaces derived ARM AO without losing other maps.
+  await dropMaps([{ name: "Bricks001_AmbientOcclusion.png", pixel: [110, 110, 110] }]);
+  await page.locator("#workbenchApply").click();
+  await expect(page.locator("#workbenchApply")).toBeEnabled();
+  const second = await exportedPixels();
+  expect(second.ao).toEqual([110, 110, 110, 255]);
+  expect(second.normal).toEqual([128, 191, 250, 255]);
+  expect(errors).toEqual([]);
+});
+
 test("Workbench converts a surface to clean physical glass and back, with export and undo", async ({ page }) => {
   const backend = process.env.DVR_TEST_RENDERER ?? "webgl";
   await page.addInitScript(mode => localStorage.setItem("drop-view-renderer-mode", mode), backend);

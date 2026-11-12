@@ -21,10 +21,23 @@ Texture-size changes scale that original mapping relative to the neutral 2.0 set
 it is not a measurement of the source UVs in metres. CLEAR MAPS removes them from
 the staging area, APPLY removes them from the model, and UNDO/RESET can restore them.
 
-Drop JPEG/PNG maps onto the panel or choose several files at once. Filenames
-containing `diff`/`albedo`/`basecolor`, `rough`, `nor_gl`/`normal`, or `arm`/`orm`
-are recognized. OpenGL normal maps are expected. If both a standalone roughness
-map and an ARM map are supplied, the ARM map takes precedence. Uploaded maps
+Drop JPEG/PNG maps onto the panel or choose files, individually or as a set.
+The box lists each filename beside its editable map type: COLOR, NORMAL · GL,
+NORMAL · DX, ARM / ORM, ROUGHNESS, METALNESS or AO. Existing GLB emissive maps
+remain listed as EMISSIVE. Common filename
+tokens include `color`/`diff`/`albedo`/`basecolor`, `rough`/`roughness`,
+`nor_gl`/`normalgl`/`normal`, `nor_dx`/`normaldx`, `arm`/`orm`, and
+`ao`/`ambientocclusion`/`occlusion`. Unrecognized JPEG/PNG files remain in the box
+with CHOOSE MAP TYPE; they are not applied until assigned. Other file formats
+are rejected with a message. Generic normal names are treated as OpenGL.
+NORMAL · DX converts the green channel for preview and GLB export, without
+altering the uploaded file or applying the conversion twice. Selecting a type
+manually overrides filename recognition; a displaced map remains unassigned.
+Adding another file replaces only its map type (GL and DX share one normal slot).
+If both a standalone roughness map and an ARM map are supplied, ARM takes
+precedence. Uploaded ARM/ORM red becomes AO unless a separate AO map is present.
+Original GLB metallic-roughness images are not assumed to contain AO in red.
+Uploaded maps
 appear immediately on the small material sphere, before APPLY changes the
 selected model material. The sphere uses the viewer's Three.js renderer backend
 (WebGL or WebGPU), including when no maps are selected. Drag it or use the arrow

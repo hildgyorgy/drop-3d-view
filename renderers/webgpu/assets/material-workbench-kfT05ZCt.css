@@ -125,14 +125,15 @@
 
 #materialWorkbench .workbench-file {
   display: flex;
-  min-height: 60px;
-  height: 60px;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: 76px;
+  max-height: 210px;
   overflow: auto;
   align-items: flex-start;
   justify-content: flex-start;
   padding: 8px;
   border: 1px dashed #777;
-  cursor: pointer;
   text-align: left;
 }
 
@@ -143,7 +144,7 @@
 
 #materialWorkbench .workbench-map-upload {
   display: grid;
-  grid-template-rows: 14px 60px;
+  grid-template-rows: 14px auto;
   gap: 6px;
 }
 
@@ -220,8 +221,50 @@
   font-size: 9px;
   letter-spacing: 0;
   overflow-wrap: anywhere;
-  white-space: pre-line;
   text-align: left;
+}
+
+#materialWorkbench .workbench-map-item {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+#materialWorkbench .workbench-map-item select {
+  height: 24px;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 9px;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+#materialWorkbench .workbench-map-item select:focus-visible {
+  outline: 1px solid #f1250c;
+}
+
+#materialWorkbench .workbench-map-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#materialWorkbench #workbenchAddMaps {
+  border: 0;
+  padding: 5px 0;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: #f1250c;
+}
+
+#materialWorkbench .workbench-maps:empty + #workbenchAddMaps {
+  flex: 1;
+  align-self: stretch;
+  text-align: center;
 }
 
 #materialWorkbench .workbench-type-color-row {

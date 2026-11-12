@@ -25,6 +25,7 @@ import { readSourceMaterialMaps, sourceMapSettings } from "./workbench-source-ma
 import { createWorkbenchSpherePreview } from "./workbench-sphere-preview.js";
 import { getMaterialWorkbenchAccess } from "../model/material-workbench-policy.js";
 import { CLEAR_GLASS, glassProfileExtras } from "../model/clear-glass-profile.js";
+import { MAP_TYPES, classifyMap, normalMapAlternatives, preparedMapImages } from "./workbench-map-types.js";
 
 const variantName = "Maxon / Redshift PBR";
 const raycaster = new THREE.Raycaster();
@@ -36,6 +37,7 @@ let gltf = null;
 let sourceFile = null;
 let selectedIndex = null;
 let packageImages = {};
+let unassignedMaps = [];
 let sourceMaps = null;
 let selectionGeneration = 0;
 let loadingMaps = false;
@@ -80,10 +82,11 @@ panel.innerHTML = `<div class="workbench-header">
           <span>DROP MAPS</span>
           <button id="workbenchClearMaps" type="button" disabled>CLEAR MAPS</button>
         </div>
-        <label class="workbench-file">
+        <div class="workbench-file">
           <input id="workbenchFiles" aria-label="Material maps" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
-          <span id="workbenchMaps" class="workbench-maps"></span>
-        </label>
+          <div id="workbenchMaps" class="workbench-maps"></div>
+          <button id="workbenchAddMaps" type="button">DROP TEXTURE MAPS OR CHOOSE FILES</button>
+        </div>
       </div>
     </div>
     <div class="workbench-type-color-row">
@@ -175,6 +178,14 @@ function updateButtons() {
   $("workbenchUndo").disabled = !lastAction || busy || !access.canEdit;
   $("workbenchReset").disabled =
     selectedIndex === null || !edits.has(selectedIndex) || busy || !access.canEdit;
+  const mapsDisabled = busy || loadingMaps || !access.canEdit ||
+    !["surface", "lacquered"].includes($("workbenchType").value);
+  $("workbenchFiles").disabled = mapsDisabled;
+  $("workbenchAddMaps").disabled = mapsDisabled;
+  $("workbenchClearMaps").disabled = mapsDisabled ||
+    !(Object.values(packageImages).some(Boolean) || unassignedMaps.length);
+  for (const control of $("workbenchMaps").querySelectorAll("select, button"))
+    control.disabled = mapsDisabled;
   window.dispatchEvent(new Event("dropview:workbench-changed"));
 }
 
@@ -292,6 +303,7 @@ async function select(object, { loadSourceMaps = true } = {}) {
   mapLoadFailed = false;
   sourceMaps = null;
   packageImages = {};
+  unassignedMaps = [];
   clearSpherePreview();
   selectedIndex = index;
   const name = gltf.parser.json.materials[index]?.name || `MATERIAL ${index}`;
@@ -387,22 +399,62 @@ function onCanvasClick(event) {
   if (hit) select(hit.object);
 }
 
-function classify(name) {
-  const n = name.toLowerCase();
-  if (/(^|[_ .-])(nor_gl|normal|nor)([_ .-]|$)/.test(n)) return "normal";
-  if (/(^|[_ .-])(arm|orm)([_ .-]|$)/.test(n)) return "arm";
-  if (/(^|[_ .-])(rough|roughness)([_ .-]|$)/.test(n)) return "roughness";
-  if (/(^|[_ .-])(metal|metallic|metalness)([_ .-]|$)/.test(n)) return "metalness";
-  if (/(^|[_ .-])(diff|diffuse|albedo|basecolor|col)([_ .-]|$)/.test(n)) return "color";
-  return null;
+function showMaps() {
+  const list = $("workbenchMaps");
+  list.replaceChildren();
+  const rows = MAP_TYPES.filter(([kind]) => packageImages[kind])
+    .map(([kind]) => ({ kind, file: packageImages[kind] }));
+  if (packageImages.emissive) rows.push({ kind: "emissive", file: packageImages.emissive });
+  rows.push(...unassignedMaps.map(file => ({ kind: "", file })));
+  for (const { kind, file } of rows) {
+    const row = document.createElement("div");
+    row.className = "workbench-map-item";
+    const select = document.createElement("select");
+    select.setAttribute("aria-label", `Map type for ${file.name}`);
+    select.add(new Option("CHOOSE MAP TYPE", ""));
+    for (const [value, label] of MAP_TYPES) select.add(new Option(label, value));
+    if (kind === "emissive") select.add(new Option("EMISSIVE", "emissive"));
+    select.value = kind;
+    select.addEventListener("change", () => {
+      if (busy || loadingMaps) return;
+      if (kind) {
+        delete packageImages[kind];
+        discardSourceMapSettings(kind);
+      } else unassignedMaps = unassignedMaps.filter(item => item !== file);
+      if (select.value) assignMap(select.value, file, true);
+      else unassignedMaps.push(file);
+      showMaps();
+      status(unassignedMaps.length ? "CHOOSE A MAP TYPE FOR UNASSIGNED FILES" : "");
+      void refreshSpherePreview();
+    });
+    const name = document.createElement("span");
+    name.textContent = file.name;
+    name.title = file.name;
+    row.append(select, name);
+    list.append(row);
+  }
+  $("workbenchAddMaps").textContent = rows.length ? "ADD MAPS" : "DROP TEXTURE MAPS OR CHOOSE FILES";
+  updateButtons();
 }
 
-function showMaps() {
-  const labels = Object.entries(packageImages)
-    .filter(([, file]) => file)
-    .map(([kind, file]) => `${kind}: ${file.name}`);
-  $("workbenchMaps").textContent = labels.join("\n");
-  $("workbenchClearMaps").disabled = labels.length === 0;
+function discardSourceMapSettings(kind) {
+  if (!sourceMaps) return;
+  sourceMaps = { ...sourceMaps };
+  const slot = kind === "arm" || kind === "metalness" ? "roughness"
+    : kind === "normalDx" ? "normal" : kind;
+  delete sourceMaps[slot];
+  if (kind === "arm") delete sourceMaps.uploadedArm;
+}
+
+function assignMap(kind, file, preserveDisplaced = false) {
+  for (const alternative of normalMapAlternatives(kind)) {
+    if (preserveDisplaced && packageImages[alternative] && packageImages[alternative] !== file)
+      unassignedMaps.push(packageImages[alternative]);
+    delete packageImages[alternative];
+  }
+  packageImages[kind] = file;
+  discardSourceMapSettings(kind);
+  if (kind === "arm" && sourceMaps) sourceMaps.uploadedArm = true;
 }
 
 function clearSpherePreview() {
@@ -421,7 +473,8 @@ async function refreshSpherePreview() {
   let textures = [];
   try {
     const packed = await packedRoughnessImage(images, metalness);
-    textures = await previewImages(images, packed);
+    const prepared = await preparedMapImages(images, { armOcclusion: !sourceMaps || sourceMaps.uploadedArm });
+    textures = await previewImages(prepared, packed);
     if (generation !== spherePreviewGeneration) {
       disposeTextureResources(textures);
       return;
@@ -686,7 +739,8 @@ async function apply() {
     const glass = type === "glass";
     const usesMaps = type === "surface" || type === "lacquered";
     if (sourceMaps && usesMaps) inputs.workbenchSourceMaps = JSON.stringify(sourceMaps);
-    const metalness = type === "metal" ? 1 : sourceMaps?.metalness ?? 0;
+    const metalness = type === "metal" ? 1 : sourceMaps?.metalness ??
+      (packageImages.arm || packageImages.metalness ? 1 : 0);
     const clearcoat = type === "lacquered" ? 1 : 0;
     const images = usesMaps ? { ...packageImages } : {};
     const meterUv =
@@ -694,14 +748,16 @@ async function apply() {
       Boolean(
         images.color ||
         images.normal ||
+        images.normalDx ||
         images.arm ||
         images.roughness ||
-        images.metalness
+        images.metalness || images.occlusion || images.emissive
       );
     const packed = usesMaps ? await packedRoughnessImage(images, metalness) : null;
     if (!isWorkbenchOperationCurrent(operation, gltf, State.model)) return;
     const transform = transformFromInputs(inputs);
-    const [colorMap, roughMap, normalMap, aoMap, emissiveMap] = await previewImages(images, packed);
+    const prepared = await preparedMapImages(images, { armOcclusion: !sourceMaps || sourceMaps.uploadedArm });
+    const [colorMap, roughMap, normalMap, aoMap, emissiveMap] = await previewImages(prepared, packed);
     [colorMap, roughMap, normalMap, aoMap, emissiveMap]
       .filter(Boolean)
       .forEach(texture => resources.textures.add(texture));
@@ -710,7 +766,8 @@ async function apply() {
       return;
     }
     for (const [kind, texture] of Object.entries({color: colorMap, roughness: roughMap, normal: normalMap, occlusion: aoMap, emissive: emissiveMap})) {
-      setTransform(texture, sourceMaps ? sourceMapSettings(sourceMaps, kind, inputs) : transform);
+      const settingsKind = kind === "occlusion" && !images.occlusion ? "roughness" : kind;
+      setTransform(texture, sourceMaps ? sourceMapSettings(sourceMaps, settingsKind, inputs) : transform);
       if (texture && meterUv) texture.channel = 1;
     }
     before = captureMaterial(materialIndex);
@@ -910,11 +967,12 @@ async function buildWorkbenchGlbBuffer() {
   for (const edit of savedEdits) {
     const sourceSettings = edit.inputs.workbenchSourceMaps
       ? JSON.parse(edit.inputs.workbenchSourceMaps) : null;
+    const prepared = await preparedMapImages(edit.images, { armOcclusion: !sourceSettings || sourceSettings.uploadedArm });
     const [color, roughness, normal, occlusion, emissive] = await Promise.all([
       imageRecord(edit.images.color),
       imageRecord(edit.packed),
-      imageRecord(edit.images.normal),
-      imageRecord(edit.images.occlusion),
+      imageRecord(prepared.normal),
+      imageRecord(prepared.occlusion),
       imageRecord(edit.images.emissive)
     ]);
     for (const [targetIndex, materialIndex] of edit.materialIndices.entries())
@@ -922,7 +980,8 @@ async function buildWorkbenchGlbBuffer() {
         materialIndex,
         images: { color, roughness, normal, occlusion, emissive },
         mapSettings: sourceSettings ? Object.fromEntries(
-          ["color", "roughness", "normal", "occlusion", "emissive"].map(kind => [kind, sourceMapSettings(sourceSettings, kind, edit.inputs)])
+          ["color", "roughness", "normal", "occlusion", "emissive"].map(kind => [kind, sourceMapSettings(sourceSettings,
+            kind === "occlusion" && !edit.images.occlusion ? "roughness" : kind, edit.inputs)])
         ) : undefined,
         normalScale: sourceSettings?.normalScale,
         occlusionStrength: sourceSettings?.occlusionStrength,
@@ -936,7 +995,7 @@ async function buildWorkbenchGlbBuffer() {
         color: new THREE.Color(edit.inputs.workbenchColor).toArray(),
         roughness: Number(edit.inputs.workbenchRoughness),
         metalness: edit.inputs.workbenchType === "metal" ? 1 :
-          sourceSettings?.metalness ?? 0,
+          sourceSettings?.metalness ?? (edit.images.arm || edit.images.metalness ? 1 : 0),
         clearcoat: edit.inputs.workbenchType === "lacquered" ? 1 : 0,
         clearcoatRoughness: 0.08,
         transform: transformFromInputs(edit.inputs)
@@ -1013,6 +1072,7 @@ function resetMaterial() {
   lastAction = previous;
   disposeSnapshotResourcesIfUnused(discardedAction);
   packageImages = {};
+  unassignedMaps = [];
   $("workbenchFiles").value = "";
   setViewMode("original");
   if (previous.objects[0]) select(previous.objects[0].object);
@@ -1021,20 +1081,15 @@ function resetMaterial() {
 }
 
 async function acceptFiles(files) {
-  if (busy || loadingMaps) return;
+  if (busy || loadingMaps || !currentAccess().canEdit ||
+      !["surface", "lacquered"].includes($("workbenchType").value)) return;
   const generation = ++fileAcceptGeneration;
   ++selectionGeneration;
-  loadingMaps = false;
+  loadingMaps = true;
   mapLoadFailed = false;
   updateButtons();
   const candidates = [...(files || [])]
-    .map(file => ({ file, kind: classify(file.name) }))
-    .filter(candidate => candidate.kind);
-  if (!candidates.length) {
-    showMaps();
-    status("NO RECOGNIZED MAPS · USE DIFF / ROUGH / NOR_GL / ARM NAMES");
-    return;
-  }
+    .map(file => ({ file, kind: classifyMap(file.name) }));
   status("");
   const checked = await Promise.all(
     candidates.map(async candidate => ({
@@ -1043,14 +1098,12 @@ async function acceptFiles(files) {
     }))
   );
   if (generation !== fileAcceptGeneration) return;
+  loadingMaps = false;
   const rejected = [];
   for (const { file, kind, mimeType } of checked) {
     if (mimeType) {
-      packageImages[kind] = file;
-      if (sourceMaps) {
-        sourceMaps = { ...sourceMaps };
-        delete sourceMaps[kind === "arm" || kind === "metalness" ? "roughness" : kind];
-      }
+      if (kind) assignMap(kind, file);
+      else unassignedMaps.push(file);
     }
     else rejected.push(file.name);
   }
@@ -1058,9 +1111,13 @@ async function acceptFiles(files) {
   void refreshSpherePreview();
   if (rejected.length)
     status(`IGNORED ${rejected.join(", ")} · USE GENUINE JPEG OR PNG FILES`);
-  else status("");
+  else status(unassignedMaps.length ? "CHOOSE A MAP TYPE FOR UNASSIGNED FILES" : "");
 }
-$("workbenchFiles").addEventListener("change", event => acceptFiles(event.target.files));
+$("workbenchFiles").addEventListener("change", event => {
+  void acceptFiles(event.target.files);
+  event.target.value = "";
+});
+$("workbenchAddMaps").addEventListener("click", () => $("workbenchFiles").click());
 $("workbenchClearMaps").addEventListener("click", () => {
   if (busy) return;
   ++fileAcceptGeneration;
@@ -1070,6 +1127,7 @@ $("workbenchClearMaps").addEventListener("click", () => {
   sourceMaps = null;
   updateButtons();
   packageImages = {};
+  unassignedMaps = [];
   $("workbenchFiles").value = "";
   showMaps();
   clearSpherePreview();
@@ -1100,6 +1158,7 @@ $("workbenchType").addEventListener("change", event => {
     $("workbenchGlassTransparency").value = String(CLEAR_GLASS.transmission);
     sourceMaps = null;
     packageImages = {};
+    unassignedMaps = [];
     $("workbenchFiles").value = "";
     clearSpherePreview();
     showMaps();
@@ -1132,6 +1191,7 @@ window.addEventListener("dropview:model-loaded", event => {
   selectedIndex = null;
   $("workbenchType").value = "surface";
   packageImages = {};
+  unassignedMaps = [];
   $("workbenchFiles").value = "";
   clearSpherePreview();
   edits.clear();
@@ -1175,6 +1235,7 @@ window.addEventListener("dropview:model-cleared", event => {
   sourceFile = null;
   selectedIndex = null;
   packageImages = {};
+  unassignedMaps = [];
   clearSpherePreview();
   edits.clear();
   $("workbenchType").value = "surface";

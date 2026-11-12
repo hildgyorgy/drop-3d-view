@@ -2,6 +2,21 @@
 
 Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
+## Workbench textúratípusok és AO / DX normal (2026-11-12)
+
+A bedobódoboz kategóriaválasztóval és fájlnévvel listázza a térképeket.
+Egyenként és csoportosan is tölthetők; az ismeretlen nevű JPEG/PNG megmarad
+kézi besorolásra. A választó felülírja a felismerést; foglalt típusra átsoroláskor
+a korábbi kép besorolás nélkül megmarad. GL/DX közös normálhelyet használ.
+A gyakori Color / NormalGL / NormalDX / AmbientOcclusion neveket is felismerjük.
+DX normal zöldcsatorna-fordítást kap a nézetben és exportban; a nyers fájl és
+típusa megmarad az undo/backend-handoff számára. Feltöltött ARM/ORM R → AO,
+külön AO elsőbbséggel. Eredeti GLB metallic-roughness R csatornáját nem tekintjük
+automatikusan AO-nak. Nincs anti-tiling vagy textúraméret-korlátozás ebben a körben.
+Ellenőrzés: 157 unit teszt, 7 WebKit smoke és 2 külön WebGPU Workbench-próba
+sikeres; az exportált GLB képpixeljein is ellenőrizve a DX-konverzió és az AO
+elsőbbség. Mindkét publikus renderer bundle helyben újraépítve; nincs push/deploy.
+
 ## Egységes extensionös kapcsolat (2026-11-04)
 
 A felhasználó megerősítette a Safari extensionös kapcsolat működését, és kérte

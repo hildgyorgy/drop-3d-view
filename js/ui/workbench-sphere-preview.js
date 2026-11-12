@@ -53,7 +53,7 @@ export function createWorkbenchSpherePreview(element) {
     const usesMaps = ["surface", "lacquered"].includes(settings.type);
     material.color.set(settings.color);
     material.roughness = settings.roughness;
-    material.metalness = settings.type === "glass" ? 0 : settings.type === "metal" ? 1 : settings.sourceMaps?.metalness ?? 0;
+    material.metalness = settings.type === "glass" ? 0 : settings.type === "metal" ? 1 : settings.sourceMaps?.metalness ?? settings.mapMetalness ?? 0;
     material.clearcoat = settings.type === "lacquered" ? 1 : 0;
     material.clearcoatRoughness = .08;
     material.transmission = settings.type === "glass" ? settings.transparency : 0;
@@ -210,13 +210,15 @@ export function createWorkbenchSpherePreview(element) {
       settings = { ...settings, ...values };
       updateMaterial();
     },
-    show({ colorMap, roughMap, normalMap, aoMap, emissiveMap }) {
+    show({ colorMap, roughMap, normalMap, aoMap, emissiveMap, metalness = 0 }) {
       disposeTextureResources(ownedTextures);
+      settings.mapMetalness = metalness;
       ownedTextures = [colorMap, roughMap, normalMap, aoMap, emissiveMap];
       updateMaterial();
     },
     clear() {
       disposeTextureResources(ownedTextures);
+      settings.mapMetalness = 0;
       ownedTextures = [];
       updateMaterial();
     }
