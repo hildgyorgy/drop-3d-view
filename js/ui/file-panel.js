@@ -1,5 +1,11 @@
 /* GLB file tools and the separate experimental Blender render tools. */
 
+export function isMobileRenderDevice(device = navigator) {
+  return device.userAgentData?.mobile === true ||
+    /Android|iPhone|iPad|iPod|IEMobile|Windows Phone|Silk|Kindle/i.test(device.userAgent || "") ||
+    (/Mac/i.test(device.platform || device.userAgentData?.platform || "") && device.maxTouchPoints > 1);
+}
+
 export function bindFilePanel({ openPackage }) {
   const entry = document.querySelector("#openAgain");
   const dialog = document.querySelector("#filePanel");
@@ -8,12 +14,15 @@ export function bindFilePanel({ openPackage }) {
   const $ = selector => document.querySelector(selector);
   const tabs = [...renderDialog.querySelectorAll("[role=tab]")];
   const panes = [...renderDialog.querySelectorAll("[role=tabpanel]")];
+  const renderTab = tabs.find(tab => tab.dataset.tab === "export");
+  renderTab.hidden = isMobileRenderDevice();
   const modelInput = document.querySelector("#fileInput");
   const packageInput = $("#renderPackageInput");
   const packageStatus = $("#renderPackageStatus");
   let openingPackage = false;
 
   function selectTab(name, focus = false) {
+    if (name === "export" && renderTab.hidden) name = "import";
     for (const tab of tabs) {
       const selected = tab.dataset.tab === name;
       tab.setAttribute("aria-selected", String(selected));
@@ -23,19 +32,23 @@ export function bindFilePanel({ openPackage }) {
     for (const pane of panes) pane.hidden = pane.dataset.pane !== name;
   }
 
-  tabs.forEach((tab, index) => {
+  tabs.forEach(tab => {
     tab.addEventListener("click", () => selectTab(tab.dataset.tab));
     tab.addEventListener("keydown", event => {
+      const visibleTabs = tabs.filter(item => !item.hidden);
+      const index = visibleTabs.indexOf(tab);
       let target;
-      if (event.key === "ArrowRight" || event.key === "ArrowLeft") target = 1 - index;
+      if (event.key === "ArrowRight") target = (index + 1) % visibleTabs.length;
+      else if (event.key === "ArrowLeft") target = (index + visibleTabs.length - 1) % visibleTabs.length;
       else if (event.key === "Home") target = 0;
-      else if (event.key === "End") target = 1;
+      else if (event.key === "End") target = visibleTabs.length - 1;
       else return;
       event.preventDefault();
       event.stopPropagation();
-      selectTab(tabs[target].dataset.tab, true);
+      selectTab(visibleTabs[target].dataset.tab, true);
     });
   });
+  selectTab("import");
 
   entry.addEventListener("click", () => {
     renderDialog.close();
