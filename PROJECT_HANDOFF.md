@@ -2,6 +2,23 @@
 
 Állapot: **2026-11-01**. Publikus appverzió: **2.0** (`package.json`: `2.0.0`). A kód és a tesztek az elsődleges források; a felhasználói működés részletei a [README](README.md)-ben vannak. Ez az átadó a következő gépen/fejlesztői chatben történő folytatáshoz készült.
 
+## Safari renderküldés ütemezése (2026-11-12)
+
+Élő Safariban a nagy csomag küldése `native_unavailable` hibával elakadt,
+miközben a status/ping működött. Safari napló: `runtime.sendNativeMessage`
+visszautasítás, `SFErrorDomain error 3`. A küldési hibát a 2 mp-es sikeres
+status-poll korábban eltüntette; most megmarad retry/reconnect/disconnectig,
+ismeretlen natív hibánál a kód és HTTP-státusz is látszik.
+
+Az oldalon 80 ms-ra ütemezett chunk-küldéssel ugyanaz a félbemaradt csomag
+sikeresen átment, és Blender 5.3.0 alatt renderelni kezdett. A tartós webes
+javítás csak Safari uploadChunk kéréseket ütemez; egy oldal kliensei közös
+ütemezőt használnak. Status/cancel és Chromium küldés nincs késleltetve.
+Nincs natív app/extension módosítás. A konzolos élő próba ideiglenes,
+oldalfrissítéskor elvész; a tartós javításhoz a webes buildet publikálni kell.
+160 unit és 7 WebKit smoke teszt sikeres; mindkét renderer bundle helyben
+újraépítve. Nincs commit/push ebben a javítási körben.
+
 ## Workbench textúratípusok és AO / DX normal (2026-11-12)
 
 A bedobódoboz kategóriaválasztóval és fájlnévvel listázza a térképeket.

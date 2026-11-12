@@ -27,6 +27,8 @@ test("manual checks and returning to the page refresh accepted jobs", async () =
   let poll;
   let state = "rendering";
   let jobReads = 0;
+  let rejectSubmission = false;
+  const submissionKeys = [];
   const jobID = crypto.randomUUID();
   try {
     globalThis.document = page;
@@ -41,6 +43,7 @@ test("manual checks and returning to the page refresh accepted jobs", async () =
       else if (message.operation === "uploadBegin") {
         assert.equal(message.denoise, false, "Quality settings freeze before asynchronous scene capture");
         assert.equal(message.adaptive, false);
+        submissionKeys.push(message.key);
         data = { uploadID: jobID, offset: 0, chunkBytes: 65536 };
       }
       else if (message.operation === "uploadChunk") data = { uploadID: jobID, offset: message.offset + atob(message.base64).length };
@@ -51,7 +54,9 @@ test("manual checks and returning to the page refresh accepted jobs", async () =
         const event = new Event("message");
         Object.assign(event, { source: windowTarget, origin, data: {
           channel: "drop-view-render:safari:response",
-          message: { protocolVersion: 1, id: message.id, ok: true, transport: "chromium-native-messaging", data }
+          message: rejectSubmission && message.operation === "uploadFinish"
+            ? { protocolVersion: 1, id: message.id, ok: false, error: "native_storage_failed", status: 500 }
+            : { protocolVersion: 1, id: message.id, ok: true, transport: "chromium-native-messaging", data }
         } });
         windowTarget.dispatchEvent(event);
       });
@@ -84,6 +89,24 @@ test("manual checks and returning to the page refresh accepted jobs", async () =
     windowTarget.dispatchEvent(new Event("focus"));
     await settle();
     assert.ok(jobReads > visibleReads, "window focus refreshes immediately");
+    rejectSubmission = true;
+    elements.get("#renderDenoise").checked = false;
+    elements.get("#renderAdaptive").checked = false;
+    elements.get("#renderBridgeRender").click();
+    for (let attempt = 0; attempt < 100 && !/native_storage_failed/.test(elements.get("#renderBridgeStatus").textContent); attempt++) await settle();
+    const failure = elements.get("#renderBridgeStatus").textContent;
+    assert.match(failure, /native_storage_failed \(500\)/);
+    poll();
+    await settle();
+    assert.equal(elements.get("#renderBridgeStatus").textContent, failure,
+      "a healthy connection must not hide the submission failure");
+    rejectSubmission = false;
+    elements.get("#renderBridgeRender").click();
+    for (let attempt = 0; attempt < 100 && elements.get("#renderBridgeRender").textContent === "RETRY SEND"; attempt++) await settle();
+    poll();
+    await settle();
+    assert.match(elements.get("#renderBridgeStatus").textContent, /CONNECTED · READY/);
+    assert.equal(submissionKeys.at(-1), submissionKeys.at(-2), "retry reuses the failed scene's submission ID");
   } finally {
     for (const [key, value] of Object.entries(originals)) {
       if (value === undefined) delete globalThis[key];

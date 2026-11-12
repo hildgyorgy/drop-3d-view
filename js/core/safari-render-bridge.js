@@ -1,4 +1,5 @@
-// Bounded Native Messaging transport. HTTP remains a separate selectable path.
+// Bounded Native Messaging transport shared by browser extensions.
+import { paceSafariChunk } from "./safari-chunk-pacer.js";
 const requestChannel = "drop-view-render:safari:request";
 const responseChannel = "drop-view-render:safari:response";
 
@@ -13,6 +14,10 @@ export class SafariRenderBridgeClient {
   }
 
   async request(operation, fields = {}, timeout = 17000) {
+    if (operation === "uploadChunk" && this.transport === "safari-native-messaging") {
+      await paceSafariChunk(this.target);
+      if (this.transfer?.cancelled) throw new DOMException("Transfer cancelled.", "AbortError");
+    }
     const target = this.target;
     const id = crypto.randomUUID();
     const origin = target.location.origin;

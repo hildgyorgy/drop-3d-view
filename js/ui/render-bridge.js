@@ -23,6 +23,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
   let status = null;
   let job = null;
   let pending = null;
+  let submissionError = "";
 
   function update() {
     const quality = pending ?? { denoise: denoise.checked, adaptive: adaptive.checked };
@@ -56,13 +57,13 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
 
   function showStatus(value) {
     status = value;
-    output.textContent = !value.capabilities?.includes("jobs")
+    output.textContent = submissionError || (!value.capabilities?.includes("jobs")
       ? "CONNECTED · Update Drop & View Render to send renders."
       : !value.blenderAvailable
         ? "CONNECTED · Choose Blender in Drop & View Render."
         : value.rendering
           ? "CONNECTED · RENDERING"
-          : "CONNECTED · READY";
+          : "CONNECTED · READY");
     update();
     if (!value.capabilities?.includes("jobs")) render.disabled = true;
   }
@@ -125,7 +126,9 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
     };
     output.textContent =
       messages[error.code || error.message] ??
-      (error.status
+      (error.code
+        ? `Render bridge error: ${error.code}${error.status ? ` (${error.status})` : ""}.`
+        : error.status
         ? error.message
         : "Connection unavailable. Check the browser extension and open Drop & View Render, or use SAVE SCENE PACKAGE.");
     update();
@@ -169,6 +172,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
 
   connect.addEventListener("click", async () => {
     if (busy) return;
+    submissionError = "";
     busy = true;
     output.textContent = client.token
       ? "Checking…"
@@ -209,6 +213,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
     } finally {
       busy = false;
       status = null;
+      submissionError = "";
       output.textContent = "";
       update();
     }
@@ -216,6 +221,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
 
   render.addEventListener("click", async () => {
     if (render.disabled) return;
+    submissionError = "";
     busy = true;
     update();
     let accepted = false;
@@ -256,6 +262,7 @@ export function bindRenderBridgeControls({ captureSnapshot, canCapture }) {
       else if (accepted) jobOutput.textContent = "Render accepted. Waiting for status…";
       else jobOutput.textContent = "Could not prepare the scene.";
       showError(error);
+      submissionError = output.textContent;
     } finally {
       sending = false;
       busy = false;
